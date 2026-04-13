@@ -55,7 +55,7 @@ export function HomePage() {
   return (
     <>
       {/* ── HERO ──────────────────────────────────────────────────── */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden">
+      <section className="hero-section relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden">
         {heroType === 'video' && heroSrc ? (
           <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
         ) : heroType === 'image' && heroSrc ? (
@@ -151,7 +151,7 @@ export function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2.5 booking-item-list">
               {services.map((service, i) => (
                 <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                   <Link

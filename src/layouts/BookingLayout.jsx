@@ -162,7 +162,7 @@ export function BookingLayout({ children }) {
 
       {/* Navbar — hides at top of homepage, appears on scroll */}
       <motion.header
-        className="fixed top-0 right-0 left-0 z-40"
+        className="booking-navbar fixed top-0 right-0 left-0 z-40"
         animate={{ opacity: navVisible ? 1 : 0, y: navVisible ? 0 : -8 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         style={{

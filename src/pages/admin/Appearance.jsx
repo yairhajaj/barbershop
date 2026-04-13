@@ -571,65 +571,74 @@ export function Appearance() {
 
 // Mini previews for each layout
 function LayoutPreviewMini({ id }) {
-  if (id === 'flat') return (
-    <div className="w-full h-full flex flex-col bg-white p-3 gap-2">
-      {/* Flat header */}
-      <div className="flex items-center justify-between pb-2" style={{ borderBottom: '1.5px solid #e5e5e5' }}>
-        <div className="w-10 h-2 bg-gray-900" style={{ borderRadius: 1 }} />
-        <div className="w-8 h-4 bg-gray-900 flex items-center justify-center" style={{ borderRadius: 2 }}>
-          <div className="w-5 h-1.5 bg-white" style={{ borderRadius: 1 }} />
+  // CLASSIC — white background, horizontal rows with border-bottom
+  if (id === 'classic') return (
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden">
+      {/* Navbar — thin bordered bar */}
+      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1.5px solid #e5e5e5' }}>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 bg-gray-900" style={{ borderRadius: 1 }} />
+          <div className="w-14 h-1.5 bg-gray-400" style={{ borderRadius: 1 }} />
         </div>
+        <div className="px-2 py-0.5 bg-gray-900 text-white" style={{ borderRadius: 2, fontSize: 5 }}>BOOK</div>
       </div>
-      {/* Flat content rows */}
-      <div className="space-y-1.5">
-        {[80, 65, 75].map((w, i) => (
-          <div key={i} className="flex items-center justify-between px-2 py-1.5" style={{ border: '1.5px solid #e5e5e5', borderRadius: 3 }}>
+      {/* Row list — no shadows, border only */}
+      <div className="mx-2 mt-2" style={{ border: '1.5px solid #e5e5e5', borderRadius: 3, overflow: 'hidden' }}>
+        {[72, 58, 80].map((w, i) => (
+          <div key={i} className="flex items-center justify-between px-2 py-1.5" style={{ borderBottom: i < 2 ? '1px solid #e5e5e5' : 'none', background: '#fff' }}>
             <div className="h-1.5 bg-gray-300" style={{ width: `${w}%`, borderRadius: 1 }} />
-            <div className="h-3 w-6 bg-gray-900" style={{ borderRadius: 2 }} />
+            <div className="h-4 w-8 bg-gray-900" style={{ borderRadius: 2 }} />
           </div>
         ))}
       </div>
     </div>
   )
 
-  if (id === 'cards') return (
-    <div className="w-full h-full flex flex-col p-2 gap-2" style={{ background: '#f5f5f5' }}>
-      {/* Cards header */}
-      <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderRadius: 10 }}>
-        <div className="w-8 h-2 rounded-full bg-gray-800" />
-        <div className="w-10 h-3 rounded-lg bg-orange-400" style={{ borderRadius: 6 }} />
+  // MODERN — gray background, floating white cards
+  if (id === 'modern') return (
+    <div className="w-full h-full flex flex-col p-2 gap-1.5 overflow-hidden" style={{ background: '#f2f2f7' }}>
+      {/* Floating navbar card */}
+      <div className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 10, boxShadow: '0 1px 5px rgba(0,0,0,0.08)' }}>
+        <div className="w-4 h-4 rounded-full" style={{ background: '#FF7A00' }} />
+        <div className="px-2 py-0.5" style={{ background: '#FF7A00', borderRadius: 8, fontSize: 5, color: '#fff' }}>קבע תור</div>
       </div>
-      {/* Cards content */}
-      <div className="space-y-1.5">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
-            <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: '55%' }} />
-            <div className="h-4 w-8 bg-orange-400 rounded-lg" style={{ borderRadius: 6 }} />
+      {/* Floating cards */}
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(255,122,0,0.12)' }} />
+            <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: 36 }} />
           </div>
-        ))}
-      </div>
-    </div>
-  )
-
-  // premium
-  return (
-    <div className="w-full h-full flex flex-col p-2 gap-2" style={{ background: '#f8f8f8' }}>
-      {/* Premium header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-white" style={{ borderRadius: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-        <div className="w-7 h-7 rounded-full bg-orange-400" style={{ boxShadow: '0 2px 6px rgba(255,122,0,0.35)' }} />
-        <div className="h-5 px-3 bg-orange-400 flex items-center" style={{ borderRadius: 999, boxShadow: '0 2px 8px rgba(255,122,0,0.35)' }}>
-          <div className="w-8 h-1.5 bg-white rounded-full opacity-90" />
+          <div className="h-4 w-8" style={{ background: '#FF7A00', borderRadius: 8 }} />
         </div>
+      ))}
+    </div>
+  )
+
+  // LUXURY — dark background, glassmorphism cards
+  return (
+    <div className="w-full h-full flex flex-col p-2 gap-2 overflow-hidden" style={{ background: '#0a0a0a' }}>
+      {/* Glass navbar */}
+      <div className="flex items-center justify-between px-2.5 py-1.5" style={{
+        background: 'rgba(255,255,255,0.06)',
+        borderRadius: 14,
+        border: '1px solid rgba(255,255,255,0.1)',
+      }}>
+        <div className="w-5 h-5 rounded-full" style={{ background: '#c9a96e', boxShadow: '0 0 8px rgba(201,169,110,0.6)' }} />
+        <div className="px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg,#c9a96e,#a8843a)', fontSize: 5, color: '#000', fontWeight: 700 }}>BOOK</div>
       </div>
-      {/* Premium items — pill shaped */}
-      <div className="space-y-1.5">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-white" style={{ borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
-            <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: '50%' }} />
-            <div className="h-4 w-10 bg-orange-400" style={{ borderRadius: 999 }} />
-          </div>
-        ))}
-      </div>
+      {/* Glass items */}
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex items-center justify-between px-2.5 py-1.5" style={{
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: 14,
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        }}>
+          <div className="h-1.5 rounded-full" style={{ width: '48%', background: 'rgba(255,255,255,0.25)' }} />
+          <div className="h-4 rounded-full" style={{ width: 28, background: 'linear-gradient(135deg,#c9a96e,#a8843a)' }} />
+        </div>
+      ))}
     </div>
   )
 }

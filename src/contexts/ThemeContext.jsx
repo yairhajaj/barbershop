@@ -42,25 +42,22 @@ export const THEMES = [
 
 export const LAYOUTS = [
   {
-    id: 'flat',
-    name: 'מינימלי',
-    desc: 'שטוח ונקי — ללא צללים, קצוות חדים, אוורירי',
-    icon: '▭',
-    preview: { radius: 4, shadow: false, pill: false },
+    id: 'classic',
+    name: 'קלאסי',
+    desc: 'רשימת שורות מקצועית — ללא צלליות, נקי ורציני',
+    icon: '≡',
   },
   {
-    id: 'cards',
-    name: 'כרטיסים',
-    desc: 'פינות מעוגלות, צללים עדינים, מבנה מסודר',
+    id: 'modern',
+    name: 'מודרני',
+    desc: 'כרטיסים צפים עם פינות עגולות — סגנון אפליקציה',
     icon: '⬭',
-    preview: { radius: 14, shadow: true, pill: false },
   },
   {
-    id: 'premium',
-    name: 'פרימיום',
-    desc: 'כפתורי pill, אנימציות חלקות, חוויית יוקרה',
-    icon: '◯',
-    preview: { radius: 999, shadow: true, pill: true },
+    id: 'luxury',
+    name: 'יוקרה',
+    desc: 'כהה, דרמטי, גלאס מורפיזם — חוויה קולנועית',
+    icon: '◈',
   },
 ]
 
@@ -73,14 +70,14 @@ async function getSettingsId() {
 
 export function ThemeProvider({ children }) {
   const [theme,  setThemeState]  = useState('orange')
-  const [layout, setLayoutState] = useState('cards')
+  const [layout, setLayoutState] = useState('modern')
   const [loaded, setLoaded] = useState(false)
 
   // Load from Supabase on mount (syncs all devices)
   useEffect(() => {
     supabase.from('business_settings').select('theme, layout').single().then(({ data }) => {
       const t = data?.theme  || 'orange'
-      const l = data?.layout || 'cards'
+      const l = data?.layout || 'modern'
       setThemeState(t)
       setLayoutState(l)
       applyToDOM(t, l)

@@ -38,7 +38,7 @@ export function SelectService() {
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 booking-item-list">
             {services.map((service, i) => (
               <motion.button
                 key={service.id}
