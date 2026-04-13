@@ -73,19 +73,29 @@ export function ThemeProvider({ children }) {
   const [layout, setLayoutState] = useState('modern')
   const [loaded, setLoaded] = useState(false)
 
-  // Load from Supabase on mount + real-time subscription (syncs all devices instantly)
+  // Load on mount — DB first, localStorage fallback
   useEffect(() => {
-    // Initial load
-    supabase.from('business_settings').select('theme, layout').single().then(({ data }) => {
-      const t = data?.theme  || 'orange'
-      const l = data?.layout || 'modern'
+    // Apply localStorage immediately (instant, no flicker)
+    const lsTheme  = localStorage.getItem('app_theme')
+    const lsLayout = localStorage.getItem('app_layout')
+    if (lsTheme || lsLayout) {
+      applyToDOM(lsTheme || 'orange', lsLayout || 'modern')
+    }
+
+    // Then load from Supabase (authoritative — syncs all devices)
+    supabase.from('business_settings').select('theme, layout').single().then(({ data, error }) => {
+      if (error) { setLoaded(true); return }
+      const t = data?.theme  || lsTheme  || 'orange'
+      const l = data?.layout || lsLayout || 'modern'
       setThemeState(t)
       setLayoutState(l)
+      localStorage.setItem('app_theme',  t)
+      localStorage.setItem('app_layout', l)
       applyToDOM(t, l)
       setLoaded(true)
     })
 
-    // Real-time — any change in DB is applied immediately on all devices
+    // Real-time — any DB change applies immediately on all open devices
     const channel = supabase
       .channel('business_settings_theme')
       .on('postgres_changes', {
@@ -93,8 +103,8 @@ export function ThemeProvider({ children }) {
         schema: 'public',
         table: 'business_settings',
       }, ({ new: row }) => {
-        if (row.theme)  { setThemeState(row.theme);  document.documentElement.setAttribute('data-theme',  row.theme) }
-        if (row.layout) { setLayoutState(row.layout); document.documentElement.setAttribute('data-layout', row.layout) }
+        if (row.theme)  { setThemeState(row.theme);  localStorage.setItem('app_theme',  row.theme);  document.documentElement.setAttribute('data-theme',  row.theme) }
+        if (row.layout) { setLayoutState(row.layout); localStorage.setItem('app_layout', row.layout); document.documentElement.setAttribute('data-layout', row.layout) }
       })
       .subscribe()
 
@@ -114,6 +124,7 @@ export function ThemeProvider({ children }) {
   async function saveTheme(t) {
     setThemeState(t)
     applyToDOM(t, layout)
+    localStorage.setItem('app_theme', t)
     const id = await getSettingsId()
     if (id) await supabase.from('business_settings').update({ theme: t }).eq('id', id)
   }
@@ -121,6 +132,7 @@ export function ThemeProvider({ children }) {
   async function saveLayout(l) {
     setLayoutState(l)
     applyToDOM(theme, l)
+    localStorage.setItem('app_layout', l)
     const id = await getSettingsId()
     if (id) await supabase.from('business_settings').update({ layout: l }).eq('id', id)
   }
