@@ -354,41 +354,41 @@ export function BookingLayout({ children }) {
       {/* ── Mobile floating bottom bar — hidden on desktop ── */}
       <div
         className="mobile-bottom-bar md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{ padding: '0 12px calc(12px + env(safe-area-inset-bottom, 0px))' }}
+        style={{ padding: '0 10px calc(10px + env(safe-area-inset-bottom, 0px))' }}
       >
         <nav style={{
-          background: 'rgba(10,10,10,0.90)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '24px',
-          boxShadow: '0 -4px 40px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.05)',
+          background: 'rgba(12,12,12,0.88)',
+          backdropFilter: 'blur(32px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(32px) saturate(1.6)',
+          border: '1px solid rgba(255,255,255,0.11)',
+          borderRadius: '26px',
+          boxShadow: '0 -2px 0 rgba(255,255,255,0.06), 0 8px 48px rgba(0,0,0,0.45), 0 24px 64px rgba(0,0,0,0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
-          padding: '8px 4px',
+          padding: '10px 6px',
         }}>
-          <BottomBarButton to="/" icon="🏠" label="בית" active={location.pathname === '/'} />
-          {/* Central book button — elevated & prominent */}
+          <BottomBarButton to="/" icon="🏡" label="בית" active={location.pathname === '/'} />
+          {/* Central book button — elevated pill */}
           <Link
             to={bookHref}
-            className="flex flex-col items-center gap-0.5 px-4 py-2 rounded-2xl"
+            className="flex flex-col items-center gap-0.5 px-5 py-2.5 rounded-2xl"
             style={{
               background: 'var(--color-gold)',
               color: '#fff',
-              boxShadow: '0 4px 20px var(--color-accent-glow)',
-              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 32px var(--color-accent-glow), 0 4px 16px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(255,255,255,0.18) inset',
+              transform: 'translateY(-6px)',
             }}
           >
-            <span className="text-xl leading-none">✂</span>
+            <span className="text-2xl leading-none">💈</span>
             <span className="text-[10px] font-bold leading-tight">הזמן תור</span>
           </Link>
           {user
-            ? <BottomBarButton to="/my-appointments" icon="📅" label="התורים שלי" active={location.pathname === '/my-appointments'} />
-            : <BottomBarButton to="/login" icon="👤" label="כניסה" active={location.pathname.startsWith('/login')} />
+            ? <BottomBarButton to="/my-appointments" icon="🗓️" label="התורים שלי" active={location.pathname === '/my-appointments'} />
+            : <BottomBarButton to="/login" icon="🔑" label="כניסה" active={location.pathname.startsWith('/login')} />
           }
           {isAdmin && (
-            <BottomBarButton to="/admin" icon="⚙️" label="ניהול" active={location.pathname.startsWith('/admin')} />
+            <BottomBarButton to="/admin" icon="🛠️" label="ניהול" active={location.pathname.startsWith('/admin')} />
           )}
         </nav>
       </div>
@@ -400,11 +400,21 @@ function BottomBarButton({ to, icon, label, active }) {
   return (
     <Link
       to={to}
-      className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all"
-      style={{ color: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.52)', minWidth: 52 }}
+      className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all relative"
+      style={{
+        color: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.5)',
+        minWidth: 54,
+        background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
+      }}
     >
-      <span className="text-xl leading-none">{icon}</span>
+      <span className="text-2xl leading-none">{icon}</span>
       <span className="text-[10px] font-semibold leading-tight">{label}</span>
+      {active && (
+        <span
+          className="absolute top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
+          style={{ background: 'var(--color-gold)' }}
+        />
+      )}
     </Link>
   )
 }

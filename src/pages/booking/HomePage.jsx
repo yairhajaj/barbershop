@@ -19,7 +19,7 @@ export function HomePage() {
   const { products: featuredProducts } = useProducts({ activeOnly: true, featuredOnly: true })
   const { settings } = useBusinessSettings()
   const { user, profile } = useAuth()
-  const { theme } = useTheme()
+  const { theme, layout } = useTheme()
 
   const [portfolioMember, setPortfolioMember] = useState(null)
 
@@ -47,6 +47,9 @@ export function HomePage() {
 
   // floating / parallax effect
   const floating = settings?.floating ?? (localStorage.getItem('floating') === 'true')
+  // glass layout auto-enables floating so video is always visible through frosted content
+  const isGlass = layout === 'glass'
+  const effectiveFloating = floating || isGlass
   const heroH = typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600
   const { scrollY } = useScroll()
   // Background stays perfectly still — elegance through restraint.
@@ -64,9 +67,9 @@ export function HomePage() {
   }
 
   return (
-    <div className={floating ? 'relative' : undefined}>
+    <div className={effectiveFloating ? 'relative' : undefined}>
       {/* ── HERO ──────────────────────────────────────────────────── */}
-      <section className={`hero-section min-h-[70vh] flex flex-col items-center justify-center ${floating ? 'sticky top-0 z-0' : 'relative overflow-hidden'}`}>
+      <section className={`hero-section min-h-[70vh] flex flex-col items-center justify-center ${effectiveFloating ? 'sticky top-0 z-0' : 'relative overflow-hidden'}`}>
         {/* Background — completely still, acts as a stage */}
         <div className="absolute inset-0 overflow-hidden">
           {heroType === 'video' && heroSrc ? (
@@ -79,16 +82,16 @@ export function HomePage() {
           {/* Overlay darkens as you scroll — cinematic, no blur needed */}
           <motion.div
             className="absolute inset-0"
-            style={floating ? { opacity: overlayOpacity } : { opacity: 0.55 }}
+            style={effectiveFloating ? { opacity: overlayOpacity } : { opacity: 0.55 }}
             initial={false}
           >
             <div className="w-full h-full" style={{ background: '#000' }} />
           </motion.div>
           {/* Thin gradient at bottom — seamless content entry, not a blur effect */}
-          {floating && (
+          {effectiveFloating && (
             <div
               className="absolute bottom-0 left-0 right-0 pointer-events-none"
-              style={{ height: '56px', background: 'linear-gradient(to top, var(--color-surface), transparent)' }}
+              style={{ height: '56px', background: isGlass ? 'transparent' : 'linear-gradient(to top, var(--color-surface), transparent)' }}
             />
           )}
         </div>
@@ -96,7 +99,7 @@ export function HomePage() {
         {/* Content — fades + lifts cleanly */}
         <motion.div
           className="relative z-10 text-center text-white px-6 w-full max-w-lg mx-auto"
-          style={floating ? { opacity: heroContentOpacity, y: heroContentY } : {}}
+          style={effectiveFloating ? { opacity: heroContentOpacity, y: heroContentY } : {}}
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -144,7 +147,7 @@ export function HomePage() {
       </section>
 
       {/* ── CONTENT (scrolls over hero when floating) ─────────────── */}
-      <div className={`floating-content-wrapper${floating ? ' relative z-10' : ''}`}>
+      <div className={`floating-content-wrapper${effectiveFloating ? ' relative z-10' : ''}`}>
 
       {/* ── WELCOME CARD ──────────────────────────────────────────── */}
       <section className="py-6 px-4" style={{ background: 'var(--color-surface)' }}>
