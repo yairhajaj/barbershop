@@ -89,7 +89,7 @@ export function BookingLayout({ children }) {
                         style={{ background: 'var(--color-gold)', color: '#fff' }}>
                         {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" /> : BUSINESS.logoText}
                       </div>
-                      <span className="font-bold text-white text-sm">{BUSINESS.name}</span>
+                      <span className="font-bold text-white text-sm whitespace-nowrap">{BUSINESS.name}</span>
                     </div>
                     <button onClick={() => setMenuOpen(false)} className="text-white/50 hover:text-white text-2xl w-8 h-8 flex items-center justify-center">×</button>
                   </div>
@@ -235,7 +235,7 @@ export function BookingLayout({ children }) {
                     ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" />
                     : BUSINESS.logoText}
                 </div>
-                <span className="font-bold text-base tracking-tight" style={{ color: '#fff', letterSpacing: '-0.01em' }}>
+                <span className="font-bold text-base tracking-tight whitespace-nowrap" style={{ color: '#fff', letterSpacing: '-0.01em' }}>
                   {BUSINESS.name}
                 </span>
               </Link>

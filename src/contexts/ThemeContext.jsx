@@ -73,8 +73,9 @@ export function ThemeProvider({ children }) {
   const [layout, setLayoutState] = useState('modern')
   const [loaded, setLoaded] = useState(false)
 
-  // Load from Supabase on mount (syncs all devices)
+  // Load from Supabase on mount + real-time subscription (syncs all devices instantly)
   useEffect(() => {
+    // Initial load
     supabase.from('business_settings').select('theme, layout').single().then(({ data }) => {
       const t = data?.theme  || 'orange'
       const l = data?.layout || 'modern'
@@ -83,6 +84,21 @@ export function ThemeProvider({ children }) {
       applyToDOM(t, l)
       setLoaded(true)
     })
+
+    // Real-time — any change in DB is applied immediately on all devices
+    const channel = supabase
+      .channel('business_settings_theme')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'business_settings',
+      }, ({ new: row }) => {
+        if (row.theme)  { setThemeState(row.theme);  document.documentElement.setAttribute('data-theme',  row.theme) }
+        if (row.layout) { setLayoutState(row.layout); document.documentElement.setAttribute('data-layout', row.layout) }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   function applyToDOM(t, l) {
