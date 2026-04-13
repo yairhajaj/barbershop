@@ -86,6 +86,9 @@ export function Appointments() {
   const [bookForm, setBookForm] = useState({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '' })
   const [customerResults, setCustomerResults] = useState([])
   const [savingBook, setSavingBook] = useState(false)
+  const [deviceContacts, setDeviceContacts] = useState([])
+  const [contactsTab, setContactsTab] = useState('db') // 'db' | 'contacts'
+  const [contactsLoaded, setContactsLoaded] = useState(false)
 
   // WhatsApp prompt after move
   const [whatsappAfterMove, setWhatsappAfterMove] = useState(null)
@@ -193,12 +196,54 @@ export function Appointments() {
   // Customer search for book modal
   async function searchCustomers(q) {
     if (!q || q.length < 2) { setCustomerResults([]); return }
+    if (contactsTab === 'contacts') {
+      // Search device contacts locally
+      const lower = q.toLowerCase()
+      const filtered = deviceContacts
+        .filter(c => c.name.toLowerCase().includes(lower) || c.phone.includes(q))
+        .slice(0, 8)
+        .map(c => ({ id: `device:${c.phone}`, name: c.name, phone: c.phone, isDevice: true }))
+      setCustomerResults(filtered)
+      return
+    }
     const { data } = await supabase
       .from('profiles')
       .select('id, name, phone')
       .or(`name.ilike.%${q}%,phone.ilike.%${q}%`)
       .limit(8)
     setCustomerResults(data ?? [])
+  }
+
+  async function syncDeviceContacts() {
+    if (!('contacts' in navigator) || !('ContactsManager' in window)) {
+      toast({ message: 'הדפדפן שלך לא תומך בגישה לאנשי קשר. נסה ב-Chrome/Safari במובייל.', type: 'error' })
+      return
+    }
+    try {
+      const raw = await navigator.contacts.select(['name', 'tel'], { multiple: true })
+      const normalized = raw
+        .map(c => ({ name: (c.name?.[0] || '').trim(), phone: (c.tel?.[0] || '').trim() }))
+        .filter(c => c.name || c.phone)
+      setDeviceContacts(normalized)
+      setContactsLoaded(true)
+      setContactsTab('contacts')
+      toast({ message: `נטענו ${normalized.length} אנשי קשר`, type: 'success' })
+    } catch {
+      toast({ message: 'לא הצלחנו לגשת לאנשי הקשר', type: 'error' })
+    }
+  }
+
+  async function selectDeviceContact(c) {
+    // Try to find existing profile by phone
+    const phone = c.phone.replace(/\D/g, '')
+    const { data } = await supabase.from('profiles').select('id,name,phone').ilike('phone', `%${phone.slice(-9)}%`).limit(1)
+    if (data?.[0]) {
+      setBookForm(f => ({ ...f, customerId: data[0].id, customerName: data[0].name, customerPhone: data[0].phone || c.phone, customerSearch: `${data[0].name}${data[0].phone ? ' · ' + data[0].phone : ''}` }))
+    } else {
+      // New customer — will be created on save
+      setBookForm(f => ({ ...f, customerId: 'new', customerName: c.name, customerPhone: c.phone, customerSearch: `${c.name}${c.phone ? ' · ' + c.phone : ''}` }))
+    }
+    setCustomerResults([])
   }
 
   // Book appointment for customer
@@ -216,8 +261,21 @@ export function Appointments() {
 
     setSavingBook(true)
     try {
+      let customerId = bookForm.customerId
+
+      // If selected from device contacts and not yet in DB — create a profile
+      if (customerId === 'new') {
+        const { data: newProfile, error: profErr } = await supabase
+          .from('profiles')
+          .insert({ name: bookForm.customerName, phone: bookForm.customerPhone, role: 'customer' })
+          .select('id')
+          .single()
+        if (profErr) throw profErr
+        customerId = newProfile.id
+      }
+
       const { error } = await supabase.from('appointments').insert({
-        customer_id: bookForm.customerId,
+        customer_id: customerId,
         service_id:  bookForm.serviceId,
         staff_id:    bookForm.staffId,
         start_at,
@@ -794,43 +852,96 @@ export function Appointments() {
       {/* ── Book for Customer Modal ── */}
       <Modal open={bookOpen} onClose={() => { setBookOpen(false); setCustomerResults([]) }} title="קביעת תור ללקוח">
         <form onSubmit={handleBookForCustomer} className="space-y-4">
-          {/* Customer search */}
+
+          {/* ── Customer Source Tabs ── */}
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+            <button type="button"
+              onClick={() => { setContactsTab('db'); setCustomerResults([]); setBookForm(f => ({ ...f, customerSearch: '', customerId: null, customerName: '', customerPhone: '' })) }}
+              className="flex-1 py-1.5 text-sm font-semibold rounded-lg transition-all"
+              style={{ background: contactsTab === 'db' ? 'var(--color-card)' : 'transparent', color: contactsTab === 'db' ? 'var(--color-text)' : 'var(--color-muted)', boxShadow: contactsTab === 'db' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
+            >
+              👤 לקוחות קיימים
+            </button>
+            <button type="button"
+              onClick={() => { setContactsTab('contacts'); setCustomerResults([]); setBookForm(f => ({ ...f, customerSearch: '', customerId: null, customerName: '', customerPhone: '' })) }}
+              className="flex-1 py-1.5 text-sm font-semibold rounded-lg transition-all"
+              style={{ background: contactsTab === 'contacts' ? 'var(--color-card)' : 'transparent', color: contactsTab === 'contacts' ? 'var(--color-text)' : 'var(--color-muted)', boxShadow: contactsTab === 'contacts' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
+            >
+              📱 אנשי קשר
+            </button>
+          </div>
+
+          {/* ── Customer Search ── */}
           <div className="relative">
-            <label className="block text-sm font-medium mb-1">חיפוש לקוח (שם / טלפון) *</label>
-            <input
-              className="input"
-              placeholder="הקלד לחיפוש..."
-              value={bookForm.customerSearch}
-              onChange={e => {
-                const q = e.target.value
-                setBookForm(f => ({ ...f, customerSearch: q, customerId: null, customerName: '', customerPhone: '' }))
-                searchCustomers(q)
-              }}
-            />
-            {customerResults.length > 0 && (
-              <div className="absolute z-20 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                {customerResults.map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className="w-full text-right px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm border-b border-gray-50 last:border-0"
-                    onClick={() => {
-                      setBookForm(f => ({ ...f, customerId: c.id, customerName: c.name, customerPhone: c.phone || '', customerSearch: `${c.name}${c.phone ? ' · ' + c.phone : ''}` }))
-                      setCustomerResults([])
-                    }}
-                  >
-                    <span className="font-semibold">{c.name}</span>
-                    {c.phone && <span className="text-muted text-xs mr-2">{c.phone}</span>}
-                  </button>
-                ))}
+            {contactsTab === 'contacts' && !contactsLoaded ? (
+              <div className="text-center py-4">
+                <p className="text-sm mb-3" style={{ color: 'var(--color-muted)' }}>סנכרן את אנשי הקשר מהמכשיר שלך</p>
+                <button type="button" onClick={syncDeviceContacts}
+                  className="btn-primary text-sm px-5 py-2"
+                >
+                  📲 סנכרן אנשי קשר
+                </button>
+                <p className="text-xs mt-2" style={{ color: 'var(--color-muted)' }}>* הגישה לאנשי קשר נשמרת רק בדפדפן, לא נשלחת לשום מקום</p>
               </div>
-            )}
-            {bookForm.customerId && (
-              <p className="text-xs mt-1 font-medium" style={{ color: 'var(--color-primary)' }}>✓ לקוח נבחר: {bookForm.customerName}</p>
+            ) : (
+              <>
+                <div className="flex gap-2 items-center mb-1">
+                  <label className="block text-sm font-medium flex-1">
+                    {contactsTab === 'db' ? 'חיפוש לקוח (שם / טלפון) *' : `חיפוש באנשי קשר (${deviceContacts.length})`}
+                  </label>
+                  {contactsTab === 'contacts' && (
+                    <button type="button" onClick={syncDeviceContacts} className="text-xs px-2 py-0.5 rounded-lg border" style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}>
+                      🔄 רענן
+                    </button>
+                  )}
+                </div>
+                <input
+                  className="input"
+                  placeholder="הקלד לחיפוש..."
+                  value={bookForm.customerSearch}
+                  onChange={e => {
+                    const q = e.target.value
+                    setBookForm(f => ({ ...f, customerSearch: q, customerId: null, customerName: '', customerPhone: '' }))
+                    searchCustomers(q)
+                  }}
+                />
+                {customerResults.length > 0 && (
+                  <div className="absolute z-20 top-full mt-1 w-full rounded-xl shadow-lg overflow-hidden" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+                    {customerResults.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full text-right px-4 py-2.5 text-sm transition-colors"
+                        style={{ borderBottom: '1px solid var(--color-border)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        onClick={() => {
+                          if (c.isDevice) {
+                            selectDeviceContact(c)
+                          } else {
+                            setBookForm(f => ({ ...f, customerId: c.id, customerName: c.name, customerPhone: c.phone || '', customerSearch: `${c.name}${c.phone ? ' · ' + c.phone : ''}` }))
+                            setCustomerResults([])
+                          }
+                        }}
+                      >
+                        <span className="font-semibold">{c.name}</span>
+                        {c.phone && <span className="text-xs mr-2" style={{ color: 'var(--color-muted)' }}>{c.phone}</span>}
+                        {c.isDevice && <span className="text-xs mr-1" style={{ color: 'var(--color-muted)' }}>📱</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {bookForm.customerId && (
+                  <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--color-primary)' }}>
+                    ✓ {bookForm.customerId === 'new' ? 'לקוח חדש: ' : 'לקוח נבחר: '}{bookForm.customerName}
+                    {bookForm.customerId === 'new' && <span className="font-normal" style={{ color: 'var(--color-muted)' }}> (ייווצר אוטומטית)</span>}
+                  </p>
+                )}
+              </>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1">שירות *</label>
               <select className="input" value={bookForm.serviceId} onChange={e => setBookForm(f => ({ ...f, serviceId: e.target.value }))} required>
@@ -849,7 +960,7 @@ export function Appointments() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1">תאריך *</label>
               <input type="date" className="input" value={bookForm.date} onChange={e => setBookForm(f => ({ ...f, date: e.target.value }))} required />
