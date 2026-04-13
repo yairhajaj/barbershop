@@ -454,15 +454,6 @@ export function Settings() {
                 <span className="text-sm text-muted">שעות לפני</span>
               </div>
 
-              {/* Cron notice */}
-              <div className="rounded-xl p-3 text-sm" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                <p className="font-semibold mb-0.5" style={{ color: '#b45309' }}>⚠️ נדרש הגדרת Cron</p>
-                <p style={{ color: '#92400e' }}>
-                  כדי שהתזכורות יישלחו אוטומטית, יש להגדיר cron job ב-
-                  <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="underline mx-1">cron-job.org</a>
-                  שיקרא ל-Edge Function כל 30 דקות.
-                </p>
-              </div>
             </>)}
           </div>
         </section>
