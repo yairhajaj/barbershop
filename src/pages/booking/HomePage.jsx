@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { BUSINESS } from '../../config/business'
 import { useServices } from '../../hooks/useServices'
 import { useStaff } from '../../hooks/useStaff'
@@ -45,6 +45,15 @@ export function HomePage() {
     || 'multistep'
   const bookHref = bookingFlow === 'all-in-one' ? '/book/all' : '/book/service'
 
+  // floating / parallax effect
+  const floating = settings?.floating ?? (localStorage.getItem('floating') === 'true')
+  const heroH = typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600
+  const { scrollY } = useScroll()
+  const bgY              = useTransform(scrollY, [0, heroH], ['0%', '25%'])
+  const bgFilter         = useTransform(scrollY, [heroH * 0.3, heroH * 0.9], ['blur(0px)', 'blur(10px)'])
+  const bgOpacity        = useTransform(scrollY, [heroH * 0.4, heroH], [1, 0.15])
+  const heroContentOpacity = useTransform(scrollY, [0, heroH * 0.55], [1, 0])
+
   // Service card link — skip service step if multistep, pre-select if all-in-one
   function serviceHref(serviceId) {
     return bookingFlow === 'all-in-one'
@@ -53,19 +62,29 @@ export function HomePage() {
   }
 
   return (
-    <>
+    <div className={floating ? 'relative' : undefined}>
       {/* ── HERO ──────────────────────────────────────────────────── */}
-      <section className="hero-section relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden">
-        {heroType === 'video' && heroSrc ? (
-          <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
-        ) : heroType === 'image' && heroSrc ? (
-          <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
-        ) : (
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111 0%, #222 100%)' }} />
-        )}
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.55)' }} />
+      <section className={`hero-section min-h-[70vh] flex flex-col items-center justify-center ${floating ? 'sticky top-0 z-0' : 'relative overflow-hidden'}`}>
+        {/* Background layer — parallax when floating */}
+        <motion.div
+          className="absolute inset-0 overflow-hidden"
+          style={floating ? { y: bgY, filter: bgFilter, opacity: bgOpacity } : {}}
+        >
+          {heroType === 'video' && heroSrc ? (
+            <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
+          ) : heroType === 'image' && heroSrc ? (
+            <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
+          ) : (
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111 0%, #222 100%)' }} />
+          )}
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.55)' }} />
+        </motion.div>
 
-        <div className="relative z-10 text-center text-white px-6 w-full max-w-lg mx-auto">
+        {/* Content layer — fades out when floating */}
+        <motion.div
+          className="relative z-10 text-center text-white px-6 w-full max-w-lg mx-auto"
+          style={floating ? { opacity: heroContentOpacity } : {}}
+        >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -108,8 +127,18 @@ export function HomePage() {
               </Link>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       </section>
+
+      {/* ── CONTENT (scrolls over hero when floating) ─────────────── */}
+      <div
+        className={floating ? 'relative z-10' : undefined}
+        style={floating ? {
+          borderRadius: '24px 24px 0 0',
+          background: 'var(--color-surface)',
+          boxShadow: '0 -12px 48px rgba(0,0,0,0.25)',
+        } : undefined}
+      >
 
       {/* ── WELCOME CARD ──────────────────────────────────────────── */}
       <section className="py-6 px-4" style={{ background: 'var(--color-surface)' }}>
@@ -382,7 +411,9 @@ export function HomePage() {
           />
         )}
       </AnimatePresence>
-    </>
+
+      </div>{/* end floating content wrapper */}
+    </div>
   )
 }
 

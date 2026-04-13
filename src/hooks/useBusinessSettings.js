@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
   calendar_columns: 1,
   recurring_appointments_enabled: true,
   recurring_weeks_ahead: 12,
+  floating: false,
 }
 
 export function useBusinessSettings() {

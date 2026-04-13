@@ -84,6 +84,23 @@ export function Appearance() {
     toast({ message: flow === 'multistep' ? 'מצב רב-שלבי פעיל ✓' : 'מצב עמוד אחד פעיל ✓', type: 'success' })
   }
 
+  // ── Floating / Parallax ───────────────────────────────────────
+  const [floating, setFloating] = useState(
+    localStorage.getItem('floating') === 'true'
+  )
+
+  useEffect(() => {
+    if (settings?.floating !== undefined) setFloating(!!settings.floating)
+  }, [settings?.floating])
+
+  async function handleToggleFloating() {
+    const next = !floating
+    setFloating(next)
+    localStorage.setItem('floating', String(next))
+    saveSettings({ floating: next }).catch(() => {})
+    toast({ message: next ? 'אפקט ריחוף פעיל ✓' : 'ריחוף כבוי', type: 'success' })
+  }
+
   // ── Portfolio mode ─────────────────────────────────────────────
   const [portfolioMode, setPortfolioMode] = useState(
     localStorage.getItem('portfolio_view_mode') || 'grid'
@@ -347,6 +364,46 @@ export function Appearance() {
         {localHeroType === 'gradient' && (
           <p className="text-sm" style={{ color: 'var(--color-muted)' }}>גרדיאנט כהה — ברירת מחדל יפה ומקצועית</p>
         )}
+      </motion.section>
+
+      {/* ── FLOATING EFFECT ─────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">אפקט ריחוף</h2>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>התוכן מרחף מעל הרקע בגלילה — אפקט עומק קולנועי</p>
+        <button
+          type="button"
+          onClick={handleToggleFloating}
+          className="w-full p-4 rounded-2xl border-2 text-right transition-all"
+          style={{
+            borderColor: floating ? 'var(--color-gold)' : 'var(--color-border)',
+            background:  floating ? 'rgba(201,169,110,0.08)' : 'var(--color-card)',
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <span className="text-3xl">🌊</span>
+            <div className="flex-1">
+              <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-text)' }}>ריחוף דף הבית</div>
+              <div className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                {floating
+                  ? 'פעיל — הרקע נשאר מאחורה, התוכן עולה מעליו עם blur ו-fade'
+                  : 'כבוי — גלילה רגילה ללא אפקט'}
+              </div>
+            </div>
+            {/* Toggle switch */}
+            <div
+              className="relative w-12 h-6 rounded-full transition-colors shrink-0"
+              style={{ background: floating ? 'var(--color-gold)' : '#d1d5db' }}
+            >
+              <div
+                className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
+                style={{ transform: floating ? 'translateX(-1.625rem)' : 'translateX(0.125rem)' }}
+              />
+            </div>
+          </div>
+          {floating && (
+            <div className="mt-3 text-xs font-bold" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
+          )}
+        </button>
       </motion.section>
 
       {/* ── LOGO ────────────────────────────────────────────────── */}
