@@ -30,12 +30,6 @@ export const THEMES = [
 
 export const LAYOUTS = [
   {
-    id: 'classic',
-    name: 'קלאסי',
-    desc: 'רשימת שורות מקצועית — ללא צלליות, נקי ורציני',
-    icon: '≡',
-  },
-  {
     id: 'modern',
     name: 'מודרני',
     desc: 'כרטיסים צפים עם פינות עגולות — סגנון אפליקציה',
@@ -43,7 +37,7 @@ export const LAYOUTS = [
   },
   {
     id: 'luxury',
-    name: 'יוקרה',
+    name: 'כהה',
     desc: 'כהה, דרמטי, גלאס מורפיזם — חוויה קולנועית',
     icon: '◈',
   },
@@ -52,12 +46,6 @@ export const LAYOUTS = [
     name: 'זכוכית צפה',
     desc: 'זכוכית מקפיאה — iOS, שקיפות ו-blur קינמטי',
     icon: '◻',
-  },
-  {
-    id: 'beauty',
-    name: 'ביוטי',
-    desc: 'עגול ורך — לקוסמטיקאיות ומספרות נשים',
-    icon: '❋',
   },
 ]
 
