@@ -7,5 +7,13 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+    },
+  },
+  preview: {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+    },
   },
 })

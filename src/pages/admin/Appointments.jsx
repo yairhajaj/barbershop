@@ -611,6 +611,10 @@ export function Appointments() {
           appointments={appointments}
           serviceColors={serviceColors}
           onSelect={setSelectedAppt}
+          recurringBreaks={recurringBreaks}
+          blockedTimes={allBlockedTimes}
+          startHour={calStartHour}
+          endHour={calEndHour}
         />
       )}
 
@@ -1005,9 +1009,33 @@ function ListViewAppointments({ appointments, onSelect }) {
 }
 
 // ─── Week View ─────────────────────────────────────────────────────────────────
-function WeekView({ days, appointments, serviceColors, onSelect }) {
-  const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 07:00–19:00
+function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20 }) {
+  const HOURS = Array.from({ length: endHour - startHour }, (_, i) => i + startHour)
   const activeAppts = appointments.filter(a => a.status !== 'cancelled')
+
+  // Returns true if this day+hour is fully/partially covered by a recurring break or blocked time
+  function getBreaksForCell(day, hour) {
+    const dow = day.getDay()
+    const results = []
+
+    recurringBreaks
+      .filter(b => b.is_active && (b.day_of_week === null || b.day_of_week === dow))
+      .forEach(b => {
+        const [sh] = b.start_time.split(':').map(Number)
+        const [eh] = b.end_time.split(':').map(Number)
+        if (hour >= sh && hour < eh) results.push(b.label || 'הפסקה')
+      })
+
+    blockedTimes
+      .filter(bt => isSameDay(new Date(bt.start_at), day))
+      .forEach(bt => {
+        const sh = new Date(bt.start_at).getHours()
+        const eh = new Date(bt.end_at).getHours()
+        if (hour >= sh && hour < eh) results.push(bt.reason || 'חסום')
+      })
+
+    return results
+  }
 
   return (
     <div className="card overflow-hidden">
@@ -1046,35 +1074,60 @@ function WeekView({ days, appointments, serviceColors, onSelect }) {
           <div
             key={hour}
             className="grid"
-            style={{ gridTemplateColumns: '52px repeat(7, 1fr)', minHeight: '64px', borderBottom: '1px solid #f0f0f0' }}
+            style={{ gridTemplateColumns: '52px repeat(7, 1fr)', minHeight: '56px', borderBottom: '1.5px solid #ebebeb' }}
           >
-            <div className="text-xs font-medium text-gray-400 pt-1.5 text-center select-none border-r border-gray-100">{hour}:00</div>
+            <div className="text-xs font-bold text-gray-400 pt-1.5 text-center select-none border-r border-gray-200"
+              style={{ fontSize: 11 }}>{hour}:00</div>
             {days.map(day => {
               const dayAppts = activeAppts.filter(a => {
                 const start = new Date(a.start_at)
                 return isSameDay(start, day) && start.getHours() === hour
               })
-              const isNow = isSameDay(day, new Date())
+              const isNow   = isSameDay(day, new Date())
+              const breaks  = getBreaksForCell(day, hour)
+              const hasBreak = breaks.length > 0
+
               return (
                 <div
                   key={day.toISOString()}
-                  className="border-r border-gray-50 last:border-0 p-0.5 relative"
-                  style={{ background: isNow ? 'rgba(255,133,0,0.02)' : undefined }}
+                  className="border-r border-gray-100 last:border-0 relative overflow-hidden"
+                  style={{
+                    background: hasBreak && !dayAppts.length
+                      ? 'repeating-linear-gradient(135deg, #f0f1f3 0px, #f0f1f3 5px, #e2e4e7 5px, #e2e4e7 10px)'
+                      : isNow ? 'rgba(255,133,0,0.02)' : undefined,
+                  }}
                 >
-                  {dayAppts.map(appt => {
-                    const color = appt.no_show ? '#ef4444' : (serviceColors[appt.service_id] || DEFAULT_COLOR)
-                    return (
-                      <button
-                        key={appt.id}
-                        onClick={() => onSelect(appt)}
-                        className="w-full text-right px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 mb-0.5"
-                        style={{ background: color, color: '#fff' }}
-                      >
-                        <div className="truncate">{appt.profiles?.name}</div>
-                        <div className="opacity-80 truncate">{appt.services?.name}</div>
-                      </button>
-                    )
-                  })}
+                  {/* Break label (when no appointments overlap) */}
+                  {hasBreak && !dayAppts.length && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>
+                        {breaks[0]}
+                      </span>
+                    </div>
+                  )}
+                  {/* Thin stripe overlay even when there are appointments */}
+                  {hasBreak && dayAppts.length > 0 && (
+                    <div className="absolute inset-0 pointer-events-none" style={{
+                      background: 'repeating-linear-gradient(135deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 4px, transparent 4px, transparent 8px)',
+                      zIndex: 0,
+                    }} />
+                  )}
+                  <div className="p-0.5 relative" style={{ zIndex: 1 }}>
+                    {dayAppts.map(appt => {
+                      const color = appt.no_show ? '#ef4444' : (serviceColors[appt.service_id] || DEFAULT_COLOR)
+                      return (
+                        <button
+                          key={appt.id}
+                          onClick={() => onSelect(appt)}
+                          className="w-full text-right px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 mb-0.5"
+                          style={{ background: color, color: '#fff' }}
+                        >
+                          <div className="truncate">{appt.profiles?.name}</div>
+                          <div className="opacity-80 truncate">{appt.services?.name}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )
             })}
