@@ -372,7 +372,7 @@ export function BookingLayout({ children }) {
             ? '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
             : '0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)'
         // Text/icon color
-        const barText = isDark || isGlassBar ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.58)'
+        const barText = isDark || isGlassBar ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.78)'
         const barBgActive = isDark || isGlassBar ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
         return (
           <div
