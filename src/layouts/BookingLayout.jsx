@@ -10,7 +10,7 @@ import { useBusinessSettings } from '../hooks/useBusinessSettings'
 export function BookingLayout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, isAdmin, signOut } = useAuth()
   const { layout, theme } = useTheme()
   const { settings } = useBusinessSettings()
   const logoUrl = settings?.logo_url
@@ -46,8 +46,9 @@ export function BookingLayout({ children }) {
   return (
     <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="booking-root min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
 
-      {/* ── Floating hamburger — only when navbar is hidden (top of homepage) ── */}
+      {/* ── Floating hamburger — only when navbar is hidden (top of homepage), desktop only ── */}
       {isHome && !scrolled && (
+        <div className="hidden md:block">
         <button
           onClick={() => setMenuOpen(true)}
           className="fixed top-4 right-4 z-50 w-11 h-11 flex flex-col justify-center items-center gap-1.5 rounded-xl"
@@ -62,6 +63,7 @@ export function BookingLayout({ children }) {
           <span className="block w-5 h-0.5 bg-white rounded-full" />
           <span className="block w-3.5 h-0.5 bg-white rounded-full self-end" />
         </button>
+        </div>
       )}
 
       {/* ── Slide-in drawer (shared) ── */}
@@ -160,9 +162,9 @@ export function BookingLayout({ children }) {
         </>
       )}
 
-      {/* Navbar — hides at top of homepage, appears on scroll */}
+      {/* Navbar — desktop only; mobile uses bottom bar */}
       <motion.header
-        className="booking-navbar fixed top-0 right-0 left-0 z-40"
+        className="booking-navbar fixed top-0 right-0 left-0 z-40 hidden md:block"
         animate={{ opacity: navVisible ? 1 : 0, y: navVisible ? 0 : -8 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         style={{
@@ -314,7 +316,7 @@ export function BookingLayout({ children }) {
         )}
       </motion.header>
 
-      <main>{children}</main>
+      <main className="pb-24 md:pb-0">{children}</main>
 
       {/* Footer */}
       <footer className="border-t py-10 mt-8" style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}>
@@ -348,7 +350,62 @@ export function BookingLayout({ children }) {
           </div>
         </div>
       </footer>
+
+      {/* ── Mobile floating bottom bar — hidden on desktop ── */}
+      <div
+        className="mobile-bottom-bar md:hidden fixed bottom-0 left-0 right-0 z-50"
+        style={{ padding: '0 12px calc(12px + env(safe-area-inset-bottom, 0px))' }}
+      >
+        <nav style={{
+          background: 'rgba(10,10,10,0.90)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '24px',
+          boxShadow: '0 -4px 40px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.05)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          padding: '8px 4px',
+        }}>
+          <BottomBarButton to="/" icon="🏠" label="בית" active={location.pathname === '/'} />
+          {/* Central book button — elevated & prominent */}
+          <Link
+            to={bookHref}
+            className="flex flex-col items-center gap-0.5 px-4 py-2 rounded-2xl"
+            style={{
+              background: 'var(--color-gold)',
+              color: '#fff',
+              boxShadow: '0 4px 20px var(--color-accent-glow)',
+              transform: 'translateY(-4px)',
+            }}
+          >
+            <span className="text-xl leading-none">✂</span>
+            <span className="text-[10px] font-bold leading-tight">הזמן תור</span>
+          </Link>
+          {user
+            ? <BottomBarButton to="/my-appointments" icon="📅" label="התורים שלי" active={location.pathname === '/my-appointments'} />
+            : <BottomBarButton to="/login" icon="👤" label="כניסה" active={location.pathname.startsWith('/login')} />
+          }
+          {isAdmin && (
+            <BottomBarButton to="/admin" icon="⚙️" label="ניהול" active={location.pathname.startsWith('/admin')} />
+          )}
+        </nav>
+      </div>
     </div>
+  )
+}
+
+function BottomBarButton({ to, icon, label, active }) {
+  return (
+    <Link
+      to={to}
+      className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all"
+      style={{ color: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.52)', minWidth: 52 }}
+    >
+      <span className="text-xl leading-none">{icon}</span>
+      <span className="text-[10px] font-semibold leading-tight">{label}</span>
+    </Link>
   )
 }
 

@@ -496,7 +496,7 @@ export function Appearance() {
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card p-6">
         <h2 className="font-semibold text-lg mb-1">סגנון תצוגה</h2>
         <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>3 חוויות UI/UX שונות לגמרי — לחץ כדי לראות הבדל</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {LAYOUTS.map(lay => {
             const active = activeLayout === lay.id
             return (
@@ -667,6 +667,46 @@ function LayoutPreviewMini({ id }) {
             <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: 36 }} />
           </div>
           <div className="h-4 w-8" style={{ background: '#FF7A00', borderRadius: 8 }} />
+        </div>
+      ))}
+    </div>
+  )
+
+  // GLASS — purple gradient bg, frosted glass cards (iOS 26 style)
+  if (id === 'glass') return (
+    <div className="w-full h-full flex flex-col p-2 gap-1.5 overflow-hidden"
+      style={{ background: 'linear-gradient(160deg,#667eea 0%,#764ba2 100%)' }}>
+      <div className="flex items-center justify-between px-2.5 py-1.5"
+        style={{ background: 'rgba(255,255,255,0.65)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.7)' }}>
+        <div className="w-4 h-4 rounded-full" style={{ background: '#FF8500' }} />
+        <div className="px-2 py-0.5 rounded-full text-white" style={{ background: '#FF8500', fontSize: 5, fontWeight: 700 }}>הזמן</div>
+      </div>
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex items-center justify-between px-2.5 py-1.5"
+          style={{ background: 'rgba(255,255,255,0.28)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.55)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '52%', background: 'rgba(0,0,0,0.4)' }} />
+          <div className="h-4 rounded-full" style={{ width: 28, background: '#FF8500' }} />
+        </div>
+      ))}
+    </div>
+  )
+
+  // BEAUTY — ivory bg, soft pink very-rounded cards
+  if (id === 'beauty') return (
+    <div className="w-full h-full flex flex-col p-2 gap-2 overflow-hidden" style={{ background: '#fdf8f6' }}>
+      <div className="flex items-center justify-between px-2.5 py-1.5"
+        style={{ background: 'rgba(253,248,246,0.95)', borderRadius: 20, border: '1px solid rgba(212,98,122,0.12)' }}>
+        <div className="w-4 h-4 rounded-full" style={{ background: '#d4627a' }} />
+        <div className="px-2 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#d4627a,#b84d63)', fontSize: 5, fontWeight: 700 }}>הזמן</div>
+      </div>
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex items-center justify-between px-2.5 py-1.5"
+          style={{ background: '#fffcfb', borderRadius: 20, border: '1px solid rgba(212,98,122,0.1)', boxShadow: '0 2px 10px rgba(212,98,122,0.06)' }}>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(212,98,122,0.1)' }} />
+            <div className="h-1.5 rounded-full" style={{ width: 32, background: '#fce4ea' }} />
+          </div>
+          <div className="h-4 rounded-full" style={{ width: 24, background: 'linear-gradient(135deg,#d4627a,#b84d63)' }} />
         </div>
       ))}
     </div>

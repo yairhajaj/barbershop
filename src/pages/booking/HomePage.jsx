@@ -144,7 +144,7 @@ export function HomePage() {
       </section>
 
       {/* ── CONTENT (scrolls over hero when floating) ─────────────── */}
-      <div className={floating ? 'relative z-10' : undefined}>
+      <div className={`floating-content-wrapper${floating ? ' relative z-10' : ''}`}>
 
       {/* ── WELCOME CARD ──────────────────────────────────────────── */}
       <section className="py-6 px-4" style={{ background: 'var(--color-surface)' }}>

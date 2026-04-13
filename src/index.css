@@ -40,31 +40,11 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   THEME 1: ORANGE — בהיר + כתום (like reference app)
+   THEME: orange — כתום (light white + orange)
+   Also covers old 'app-copy' ID via alias
 ══════════════════════════════════════════════════════════════════ */
 :root,
-[data-theme="orange"] {
-  --color-primary:       #111111;
-  --color-primary-light: #333333;
-  --color-gold:          #FF7A00;
-  --color-gold-light:    #FFA040;
-  --color-gold-dark:     #D96500;
-  --color-surface:       #f5f5f5;
-  --color-card:          #ffffff;
-  --color-border:        rgba(0,0,0,0.08);
-  --color-muted:         #999999;
-  --color-text:          #111111;
-  --color-navbar:        #111111;
-  --color-accent-glow:   rgba(255,122,0,0.18);
-  --radius-btn:          999px;
-  --radius-card:         1.25rem;
-  --shadow-card:         0 2px 16px rgba(0,0,0,0.07);
-  --shadow-elevated:     0 8px 32px rgba(0,0,0,0.12);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   THEME APP-COPY — העתק אפליקציה (white + #FF8500)
-══════════════════════════════════════════════════════════════════ */
+[data-theme="orange"],
 [data-theme="app-copy"] {
   --color-primary:       #000000;
   --color-primary-light: #1a1a1a;
@@ -74,116 +54,114 @@
   --color-surface:       #ffffff;
   --color-card:          #f7f7f7;
   --color-border:        rgba(0,0,0,0.07);
-  --color-muted:         #8a8a8a;
+  --color-muted:         #6b6b6b;
   --color-text:          #1a1a1a;
   --color-navbar:        #000000;
   --color-accent-glow:   rgba(255,133,0,0.2);
   --radius-btn:          999px;
-  --radius-card:         1rem;
+  --radius-card:         1.25rem;
   --shadow-card:         0 1px 6px rgba(0,0,0,0.06);
   --shadow-elevated:     0 8px 24px rgba(0,0,0,0.1);
 }
-[data-theme="app-copy"] body {
-  background: #ffffff;
-}
 
 /* ══════════════════════════════════════════════════════════════════
-   THEME 2: DARK GOLD — כהה יוקרתי
+   THEME: rose — ורוד (feminine pink)
 ══════════════════════════════════════════════════════════════════ */
-[data-theme="dark-gold"] {
-  --color-primary:       #111111;
-  --color-primary-light: #1c1c1c;
-  --color-gold:          #c9a96e;
-  --color-gold-light:    #e2c99a;
-  --color-gold-dark:     #a8843a;
-  --color-surface:       #080808;
-  --color-card:          #141414;
-  --color-border:        rgba(255,255,255,0.07);
-  --color-muted:         #666666;
-  --color-text:          #efefef;
-  --color-navbar:        #0a0a0a;
-  --color-accent-glow:   rgba(201,169,110,0.22);
-  --radius-btn:          0.75rem;
-  --radius-card:         1.25rem;
-  --shadow-card:         0 4px 32px rgba(0,0,0,0.4);
-  --shadow-elevated:     0 8px 48px rgba(0,0,0,0.6);
+[data-theme="rose"] {
+  --color-primary:       #2d1b1f;
+  --color-primary-light: #4a2d33;
+  --color-gold:          #d4627a;
+  --color-gold-light:    #e8a0b0;
+  --color-gold-dark:     #b84d63;
+  --color-surface:       #fdf4f0;
+  --color-card:          #ffffff;
+  --color-border:        rgba(212,98,122,0.12);
+  --color-muted:         #9a8085;
+  --color-text:          #2d1b1f;
+  --color-navbar:        #2d1b1f;
+  --color-accent-glow:   rgba(212,98,122,0.22);
+  --radius-btn:          999px;
+  --radius-card:         1.5rem;
+  --shadow-card:         0 2px 16px rgba(212,98,122,0.08);
+  --shadow-elevated:     0 8px 32px rgba(212,98,122,0.14);
 }
+[data-theme="rose"] .btn-primary {
+  background: linear-gradient(135deg, #d4627a, #b84d63);
+  box-shadow: 0 4px 16px rgba(212,98,122,0.35);
+}
+[data-theme="rose"] .btn-primary:hover { box-shadow: 0 6px 24px rgba(212,98,122,0.5); }
 
 /* ══════════════════════════════════════════════════════════════════
-   THEME 3: COSMIC — קוסמי (glass + violet, space vibes)
+   THEME: sage — ירוק (spa / nature)
 ══════════════════════════════════════════════════════════════════ */
-[data-theme="cosmic"] {
-  --color-primary:       #0D0B26;
-  --color-primary-light: #1A1640;
-  --color-gold:          #A78BFA;
-  --color-gold-light:    #C4B5FD;
-  --color-gold-dark:     #7C3AED;
-  --color-surface:       #07091A;
-  --color-card:          #13103A;
-  --color-border:        rgba(139,92,246,0.22);
-  --color-muted:         #9B9BC8;
-  --color-text:          #F0F0FF;
-  --color-navbar:        #06080F;
-  --color-accent-glow:   rgba(167,139,250,0.3);
-  --radius-btn:          0.875rem;
+[data-theme="sage"] {
+  --color-primary:       #1a2e22;
+  --color-primary-light: #2a4435;
+  --color-gold:          #4a8c6a;
+  --color-gold-light:    #72b08e;
+  --color-gold-dark:     #326b4f;
+  --color-surface:       #f0f5f1;
+  --color-card:          #ffffff;
+  --color-border:        rgba(74,140,106,0.12);
+  --color-muted:         #7a9a86;
+  --color-text:          #1a2e22;
+  --color-navbar:        #1a2e22;
+  --color-accent-glow:   rgba(74,140,106,0.2);
+  --radius-btn:          999px;
   --radius-card:         1.25rem;
-  --shadow-card:         0 8px 32px rgba(0,0,0,0.5);
+  --shadow-card:         0 2px 16px rgba(74,140,106,0.08);
+  --shadow-elevated:     0 8px 32px rgba(74,140,106,0.12);
+}
+[data-theme="sage"] .btn-primary {
+  background: linear-gradient(135deg, #4a8c6a, #326b4f);
+  box-shadow: 0 4px 16px rgba(74,140,106,0.3);
+}
+[data-theme="sage"] .btn-primary:hover { box-shadow: 0 6px 24px rgba(74,140,106,0.45); }
+
+/* ══════════════════════════════════════════════════════════════════
+   THEME: midnight — לילה (deep blue / indigo)
+══════════════════════════════════════════════════════════════════ */
+[data-theme="midnight"] {
+  --color-primary:       #0f1025;
+  --color-primary-light: #1a1b3a;
+  --color-gold:          #818cf8;
+  --color-gold-light:    #a5b4fc;
+  --color-gold-dark:     #6366f1;
+  --color-surface:       #0f1025;
+  --color-card:          #1a1b3a;
+  --color-border:        rgba(129,140,248,0.15);
+  --color-muted:         #8892c8;
+  --color-text:          #e8eaf6;
+  --color-navbar:        #0a0b1e;
+  --color-accent-glow:   rgba(99,102,241,0.28);
+  --radius-btn:          999px;
+  --radius-card:         1.25rem;
+  --shadow-card:         0 4px 32px rgba(0,0,0,0.5);
   --shadow-elevated:     0 16px 64px rgba(0,0,0,0.7);
 }
-
-[data-theme="cosmic"] body {
-  background: #060914;
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(76,29,149,0.35) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(109,40,217,0.15) 0%, transparent 50%);
-  background-attachment: fixed;
+[data-theme="midnight"] body { background: #0f1025; }
+[data-theme="midnight"] .btn-primary {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.4);
 }
-
-/* Subtle star dots for cosmic */
-[data-theme="cosmic"] body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px);
-  background-size: 48px 48px;
-  opacity: 0.025;
-  pointer-events: none;
-  z-index: 0;
+[data-theme="midnight"] .btn-primary:hover { box-shadow: 0 6px 28px rgba(99,102,241,0.55); }
+[data-theme="midnight"] .input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
 }
-
-/* Navy Gold */
-[data-theme="navy-gold"] {
-  --color-primary:       #0a0e1a;
-  --color-primary-light: #111827;
-  --color-gold:          #c9a96e;
-  --color-gold-light:    #e2c99a;
-  --color-gold-dark:     #a8843a;
-  --color-surface:       #060810;
-  --color-card:          #0d1220;
-  --color-border:        rgba(201,169,110,0.12);
-  --color-muted:         #6b7a9a;
-  --color-text:          #e8eaf6;
-  --color-navbar:        #060810;
-  --color-accent-glow:   rgba(201,169,110,0.2);
-  --radius-btn:          0.75rem;
+[data-theme="midnight"] .glass {
+  background: rgba(26,27,58,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(129,140,248,0.18);
 }
-
-/* Charcoal */
-[data-theme="charcoal"] {
-  --color-primary:       #1c1c1e;
-  --color-primary-light: #2c2c2e;
-  --color-gold:          #a8a8b3;
-  --color-gold-light:    #c8c8d0;
-  --color-gold-dark:     #8a8a95;
-  --color-surface:       #0f0f10;
-  --color-card:          #1c1c1e;
-  --color-border:        rgba(255,255,255,0.06);
-  --color-muted:         #6e6e73;
-  --color-text:          #f5f5f7;
-  --color-navbar:        #0f0f10;
-  --color-accent-glow:   rgba(168,168,179,0.18);
-  --radius-btn:          0.875rem;
-}
+[data-theme="midnight"] .badge-confirmed { background: rgba(52,211,153,0.15);  color: #34d399; }
+[data-theme="midnight"] .badge-cancelled { background: rgba(239,68,68,0.15);   color: #ef4444; }
+[data-theme="midnight"] .badge-completed { background: rgba(255,255,255,0.08); color: #888; }
+[data-theme="midnight"] .badge-pending   { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+[data-theme="midnight"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
 
 /* ══════════════════════════════════════════════════════════════════
    UTILITIES
@@ -737,6 +715,193 @@
   color: #f0f0f0 !important;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT: glass — זכוכית צפה (iOS frosted glass)
+   Background stays sticky; content section is semi-transparent
+   so you can see the hero video/image behind it.
+   Color overrides scoped to .booking-root only (admin untouched).
+══════════════════════════════════════════════════════════════════ */
+[data-layout="glass"] {
+  --radius-card: 1.75rem;
+  --radius-btn: 9999px;
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+  --shadow-elevated: 0 20px 60px rgba(0,0,0,0.18);
+}
+
+/* Content wrapper — semi-transparent so video shows through (works with floating ON) */
+[data-layout="glass"] .booking-root .floating-content-wrapper {
+  background: rgba(240,240,250,0.22);
+  backdrop-filter: blur(48px) saturate(2);
+  -webkit-backdrop-filter: blur(48px) saturate(2);
+  border-top: 1px solid rgba(255,255,255,0.35);
+  border-radius: 2rem 2rem 0 0;
+}
+
+/* Cards — frosted glass panels */
+[data-layout="glass"] .booking-root .card {
+  background: rgba(255,255,255,0.26) !important;
+  backdrop-filter: blur(24px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.8) !important;
+  border: 1px solid rgba(255,255,255,0.52) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.7) !important;
+  border-radius: 1.75rem !important;
+}
+
+/* Booking item list */
+[data-layout="glass"] .booking-root .booking-item-list { gap: 0.75rem !important; }
+[data-layout="glass"] .booking-root .booking-item-list > * {
+  border-radius: 1.5rem !important;
+  background: rgba(255,255,255,0.30) !important;
+  backdrop-filter: blur(20px) saturate(1.6) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+  border: 1px solid rgba(255,255,255,0.52) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.65) !important;
+}
+
+/* Buttons */
+[data-layout="glass"] .booking-root .btn-primary {
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 20px var(--color-accent-glow), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+[data-layout="glass"] .booking-root .btn-primary:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 8px 30px var(--color-accent-glow), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+[data-layout="glass"] .booking-root .btn-outline {
+  border-radius: 9999px !important;
+  background: rgba(255,255,255,0.18) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255,255,255,0.45) !important;
+}
+[data-layout="glass"] .booking-root .input {
+  border-radius: 9999px !important;
+  background: rgba(255,255,255,0.38) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.52) !important;
+}
+[data-layout="glass"] .booking-root .input:focus {
+  background: rgba(255,255,255,0.52) !important;
+  border-color: var(--color-gold) !important;
+}
+
+/* Navbar — strong glass */
+[data-layout="glass"] .booking-root .booking-navbar {
+  background: rgba(255,255,255,0.72) !important;
+  backdrop-filter: blur(28px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.8) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.52) !important;
+}
+[data-layout="glass"] .booking-root .hero-section { min-height: 75vh !important; }
+
+/* Dark glass — midnight theme override */
+[data-layout="glass"][data-theme="midnight"] .booking-root .card,
+[data-layout="glass"][data-theme="midnight"] .booking-root .booking-item-list > * {
+  background: rgba(15,16,37,0.55) !important;
+  border-color: rgba(129,140,248,0.22) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(129,140,248,0.12) !important;
+}
+[data-layout="glass"][data-theme="midnight"] .booking-root .floating-content-wrapper {
+  background: rgba(10,11,30,0.45);
+  border-color: rgba(129,140,248,0.15);
+}
+[data-layout="glass"][data-theme="midnight"] .booking-root .booking-navbar {
+  background: rgba(10,11,30,0.78) !important;
+  border-color: rgba(129,140,248,0.12) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT: beauty — ביוטי (feminine / soft / cosmetic)
+   Scoped to .booking-root only — admin untouched.
+══════════════════════════════════════════════════════════════════ */
+[data-layout="beauty"] {
+  --radius-card: 2.5rem;
+  --radius-btn: 9999px;
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-elevated: 0 12px 40px rgba(0,0,0,0.10);
+}
+
+/* Warm ivory background — only in booking */
+[data-layout="beauty"] .booking-root { background: #fdf8f6; }
+
+/* Cards — very soft, ultra-rounded */
+[data-layout="beauty"] .booking-root .card {
+  border-radius: 2.5rem !important;
+  background: #fffcfb !important;
+  border: 1px solid rgba(200,150,160,0.14) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+/* Booking item list — extra breathing room */
+[data-layout="beauty"] .booking-root .booking-item-list { gap: 1.25rem !important; }
+[data-layout="beauty"] .booking-root .booking-item-list > * {
+  border-radius: 2rem !important;
+  background: #fffcfb !important;
+  border: 1px solid rgba(200,150,160,0.14) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
+  padding: 1.25rem !important;
+}
+[data-layout="beauty"] .booking-root .booking-item-list > *:hover {
+  box-shadow: 0 8px 32px rgba(212,98,122,0.12) !important;
+  border-color: rgba(212,98,122,0.2) !important;
+}
+
+/* Buttons — pill with gentle bounce */
+[data-layout="beauty"] .booking-root .btn-primary {
+  border-radius: 9999px !important;
+  font-weight: 700;
+  box-shadow: 0 4px 16px var(--color-accent-glow) !important;
+  transition: all 360ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+[data-layout="beauty"] .booking-root .btn-primary:hover {
+  transform: translateY(-2px) scale(1.04) !important;
+  box-shadow: 0 8px 28px var(--color-accent-glow) !important;
+}
+[data-layout="beauty"] .booking-root .btn-primary:active {
+  transform: scale(0.97) !important;
+  transition-duration: 120ms !important;
+}
+[data-layout="beauty"] .booking-root .btn-outline {
+  border-radius: 9999px !important;
+  border-color: rgba(200,150,160,0.3) !important;
+  transition: all 280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+[data-layout="beauty"] .booking-root .input {
+  border-radius: 9999px !important;
+  border: 1.5px solid rgba(200,150,160,0.25) !important;
+  background: #fff !important;
+  padding: 0.875rem 1.5rem !important;
+}
+[data-layout="beauty"] .booking-root .input:focus {
+  border-color: var(--color-gold) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+}
+[data-layout="beauty"] .booking-root .hero-section { min-height: 72vh !important; }
+[data-layout="beauty"] .booking-root .booking-navbar {
+  background: rgba(253,248,246,0.92) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(200,150,160,0.12) !important;
+}
+
+/* ── Mobile bottom bar — light theme override ── */
+[data-theme="orange"] .mobile-bottom-bar nav,
+[data-theme="app-copy"] .mobile-bottom-bar nav,
+[data-theme="rose"] .mobile-bottom-bar nav,
+[data-theme="sage"] .mobile-bottom-bar nav {
+  background: rgba(255,255,255,0.88) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  box-shadow: 0 -4px 40px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+[data-theme="orange"] .mobile-bottom-bar a:not([style*="background"]),
+[data-theme="app-copy"] .mobile-bottom-bar a:not([style*="background"]),
+[data-theme="rose"] .mobile-bottom-bar a:not([style*="background"]),
+[data-theme="sage"] .mobile-bottom-bar a:not([style*="background"]) {
+  color: rgba(0,0,0,0.38) !important;
+}
+
 /* ── BACKWARDS COMPATIBILITY ALIASES ── */
 /* DB may store old IDs flat/cards/premium — remap them */
 [data-layout="flat"]    { --radius-card: 4px; --radius-btn: 4px; --shadow-card: none; }
@@ -760,6 +925,17 @@
 [data-layout="premium"] .booking-item-list { gap: 1rem !important; }
 [data-layout="premium"] .booking-item-list > * { border-radius: 1.5rem !important; background: rgba(255,255,255,0.04) !important; backdrop-filter: blur(20px) !important; border: 1px solid rgba(255,255,255,0.1) !important; }
 
-/* ── CONTRAST IMPROVEMENTS ── */
-[data-theme="orange"]   { --color-muted: #6b6b6b; }
-[data-theme="app-copy"] { --color-muted: #6b6b6b; }
+/* ── OLD THEME ID ALIASES (DB backward compat) ── */
+[data-theme="dark-gold"],
+[data-theme="cosmic"],
+[data-theme="navy-gold"],
+[data-theme="charcoal"] {
+  --color-gold:        #818cf8;
+  --color-surface:     #0f1025;
+  --color-card:        #1a1b3a;
+  --color-border:      rgba(129,140,248,0.15);
+  --color-muted:       #8892c8;
+  --color-text:        #e8eaf6;
+  --color-navbar:      #0a0b1e;
+  --color-accent-glow: rgba(99,102,241,0.28);
+}

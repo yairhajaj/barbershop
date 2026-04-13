@@ -3,40 +3,28 @@ import { supabase } from '../lib/supabase'
 
 export const THEMES = [
   {
-    id: 'app-copy',
-    name: 'העתק אפליקציה',
-    desc: 'הזמנה בעמוד אחד — העתק מדויק של הדוגמה',
-    preview: ['#ffffff', '#FF8500', '#f2f2f2'],
-  },
-  {
     id: 'orange',
-    name: 'כתום מינימלי',
-    desc: 'בהיר + כתום — כל ההזמנה בעמוד אחד, pills נוחים',
-    preview: ['#f5f5f5', '#FF7A00', '#ffffff'],
+    name: 'כתום',
+    desc: 'בהיר ואנרגטי — קלאסי ומוכח',
+    preview: ['#ffffff', '#FF8500', '#f5f5f5'],
   },
   {
-    id: 'dark-gold',
-    name: 'פרימיום כהה',
-    desc: 'כהה עם זהב — אשף שלבים יוקרתי קלאסי',
-    preview: ['#111111', '#c9a96e', '#1a1a1a'],
+    id: 'rose',
+    name: 'ורוד',
+    desc: 'ורוד אלגנטי — נשי ומתוחכם',
+    preview: ['#fdf4f0', '#d4627a', '#ffffff'],
   },
   {
-    id: 'cosmic',
-    name: 'קוסמי',
-    desc: 'זכוכית + סגול — עיצוב עתידני חדשני',
-    preview: ['#060914', '#A78BFA', '#0D0B26'],
+    id: 'sage',
+    name: 'ירוק',
+    desc: 'ירוק טבעי — ספא ובריאות',
+    preview: ['#f0f5f1', '#4a8c6a', '#ffffff'],
   },
   {
-    id: 'navy-gold',
-    name: 'כחול מלכותי',
-    desc: 'כחול עמוק עם זהב — יוקרה מלכותית',
-    preview: ['#0a0e1a', '#c9a96e', '#111827'],
-  },
-  {
-    id: 'charcoal',
-    name: 'אפור כהה',
-    desc: 'אפור פחם עם כסף — מודרני ועדין',
-    preview: ['#1c1c1e', '#a8a8b3', '#2c2c2e'],
+    id: 'midnight',
+    name: 'לילה',
+    desc: 'כחול עמוק — מסתורי ומודרני',
+    preview: ['#0f1025', '#818cf8', '#1a1b3a'],
   },
 ]
 
@@ -58,6 +46,18 @@ export const LAYOUTS = [
     name: 'יוקרה',
     desc: 'כהה, דרמטי, גלאס מורפיזם — חוויה קולנועית',
     icon: '◈',
+  },
+  {
+    id: 'glass',
+    name: 'זכוכית צפה',
+    desc: 'זכוכית מקפיאה — iOS, שקיפות ו-blur קינמטי',
+    icon: '◻',
+  },
+  {
+    id: 'beauty',
+    name: 'ביוטי',
+    desc: 'עגול ורך — לקוסמטיקאיות ומספרות נשים',
+    icon: '❋',
   },
 ]
 
