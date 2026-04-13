@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -i \"product\" /c/Users/yairh/barbershop-app/supabase/migrations/*.sql)"
+    ]
+  }
+}
