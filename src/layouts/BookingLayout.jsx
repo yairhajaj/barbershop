@@ -44,7 +44,7 @@ export function BookingLayout({ children }) {
   // Visual differences are handled purely by CSS variables and [data-layout] selectors
   // Mobile menu drawer (used when navbar is hidden at top of homepage)
   return (
-    <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
+    <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="booking-root min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
 
       {/* ── Floating hamburger — only when navbar is hidden (top of homepage) ── */}
       {isHome && !scrolled && (
