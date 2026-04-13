@@ -49,10 +49,12 @@ export function HomePage() {
   const floating = settings?.floating ?? (localStorage.getItem('floating') === 'true')
   const heroH = typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600
   const { scrollY } = useScroll()
-  const bgY              = useTransform(scrollY, [0, heroH], ['0%', '25%'])
-  const bgFilter         = useTransform(scrollY, [heroH * 0.3, heroH * 0.9], ['blur(0px)', 'blur(10px)'])
-  const bgOpacity        = useTransform(scrollY, [heroH * 0.4, heroH], [1, 0.15])
-  const heroContentOpacity = useTransform(scrollY, [0, heroH * 0.55], [1, 0])
+  // Background: subtle parallax + slow Ken Burns zoom
+  const bgY     = useTransform(scrollY, [0, heroH], ['0%', '10%'])
+  const bgScale = useTransform(scrollY, [0, heroH], [1, 1.08])
+  // Hero content: fade out + rise — feels high-end, not just fade
+  const heroContentOpacity = useTransform(scrollY, [0, heroH * 0.42], [1, 0])
+  const heroContentY       = useTransform(scrollY, [0, heroH * 0.42], ['0px', '-28px'])
 
   // Service card link — skip service step if multistep, pre-select if all-in-one
   function serviceHref(serviceId) {
@@ -65,25 +67,34 @@ export function HomePage() {
     <div className={floating ? 'relative' : undefined}>
       {/* ── HERO ──────────────────────────────────────────────────── */}
       <section className={`hero-section min-h-[70vh] flex flex-col items-center justify-center ${floating ? 'sticky top-0 z-0' : 'relative overflow-hidden'}`}>
-        {/* Background layer — parallax when floating */}
-        <motion.div
-          className="absolute inset-0 overflow-hidden"
-          style={floating ? { y: bgY, filter: bgFilter, opacity: bgOpacity } : {}}
-        >
-          {heroType === 'video' && heroSrc ? (
-            <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
-          ) : heroType === 'image' && heroSrc ? (
-            <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
-          ) : (
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111 0%, #222 100%)' }} />
-          )}
+        {/* Background layer — parallax + scale when floating */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            className="absolute inset-0"
+            style={floating ? { y: bgY, scale: bgScale } : {}}
+          >
+            {heroType === 'video' && heroSrc ? (
+              <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
+            ) : heroType === 'image' && heroSrc ? (
+              <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
+            ) : (
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111 0%, #222 100%)' }} />
+            )}
+          </motion.div>
           <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.55)' }} />
-        </motion.div>
+          {/* Premium gradient fade — hero bleeds seamlessly into content */}
+          {floating && (
+            <div
+              className="absolute bottom-0 left-0 right-0 pointer-events-none"
+              style={{ height: '160px', background: 'linear-gradient(to top, var(--color-surface) 0%, transparent 100%)' }}
+            />
+          )}
+        </div>
 
-        {/* Content layer — fades out when floating */}
+        {/* Content layer — fades + rises when floating */}
         <motion.div
           className="relative z-10 text-center text-white px-6 w-full max-w-lg mx-auto"
-          style={floating ? { opacity: heroContentOpacity } : {}}
+          style={floating ? { opacity: heroContentOpacity, y: heroContentY } : {}}
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -131,14 +142,7 @@ export function HomePage() {
       </section>
 
       {/* ── CONTENT (scrolls over hero when floating) ─────────────── */}
-      <div
-        className={floating ? 'relative z-10' : undefined}
-        style={floating ? {
-          borderRadius: '24px 24px 0 0',
-          background: 'var(--color-surface)',
-          boxShadow: '0 -12px 48px rgba(0,0,0,0.25)',
-        } : undefined}
-      >
+      <div className={floating ? 'relative z-10' : undefined}>
 
       {/* ── WELCOME CARD ──────────────────────────────────────────── */}
       <section className="py-6 px-4" style={{ background: 'var(--color-surface)' }}>
