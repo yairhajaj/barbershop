@@ -41,11 +41,11 @@ export function BookingLayout({ children }) {
   }
 
   if (layout === 'app') {
-    return <AppLayout children={children} user={user} profile={profile} handleSignOut={handleSignOut} t={t} lang={lang} toggleLang={toggleLang} location={location} />
+    return <AppLayout children={children} user={user} profile={profile} handleSignOut={handleSignOut} t={t} lang={lang} toggleLang={toggleLang} location={location} bookHref={bookHref} />
   }
 
   if (layout === 'minimal') {
-    return <MinimalLayout children={children} user={user} profile={profile} handleSignOut={handleSignOut} t={t} lang={lang} toggleLang={toggleLang} location={location} navigate={navigate} />
+    return <MinimalLayout children={children} user={user} profile={profile} handleSignOut={handleSignOut} t={t} lang={lang} toggleLang={toggleLang} location={location} navigate={navigate} bookHref={bookHref} />
   }
 
   // Default layout
@@ -345,7 +345,7 @@ export function BookingLayout({ children }) {
             <div>
               <h4 className="font-bold mb-3 text-sm" style={{ color: 'var(--color-text)' }}>ניווט</h4>
               <div className="flex flex-col gap-1">
-                <Link to="/book/service" className="text-sm hover:underline" style={{ color: 'var(--color-muted)' }}>{t.bookNow}</Link>
+                <Link to={bookHref} className="text-sm hover:underline" style={{ color: 'var(--color-muted)' }}>{t.bookNow}</Link>
                 <Link to="/login" className="text-sm hover:underline" style={{ color: 'var(--color-muted)' }}>{t.login}</Link>
               </div>
             </div>
@@ -360,10 +360,10 @@ export function BookingLayout({ children }) {
 }
 
 // ── APP LAYOUT ────────────────────────────────────────────────────
-function AppLayout({ children, user, profile, handleSignOut, t, lang, toggleLang, location }) {
+function AppLayout({ children, user, profile, handleSignOut, t, lang, toggleLang, location, bookHref }) {
   const tabs = [
     { to: '/',                   icon: '⌂', label: 'בית' },
-    { to: '/book/service',       icon: '✂', label: t.bookNow },
+    { to: bookHref,              icon: '✂', label: t.bookNow },
     { to: '/my-appointments',    icon: '📅', label: lang === 'he' ? 'התורים' : 'Appts' },
     { to: user ? '#' : '/login', icon: user ? '↩' : '⎗', label: user ? t.logout : t.login, action: user ? handleSignOut : null },
   ]
@@ -423,7 +423,7 @@ function AppLayout({ children, user, profile, handleSignOut, t, lang, toggleLang
 }
 
 // ── MINIMAL LAYOUT ────────────────────────────────────────────────
-function MinimalLayout({ children, user, profile, handleSignOut, t, lang, toggleLang, location, navigate }) {
+function MinimalLayout({ children, user, profile, handleSignOut, t, lang, toggleLang, location, navigate, bookHref }) {
   return (
     <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="min-h-screen" style={{ background: '#fff', color: '#111' }}>
       <header className="sticky top-0 z-40 h-14 border-b flex items-center px-6" style={{ background: '#fff', borderColor: '#f0f0f0' }}>
@@ -444,7 +444,7 @@ function MinimalLayout({ children, user, profile, handleSignOut, t, lang, toggle
             ) : (
               <Link to="/login" className="text-sm" style={{ color: '#666' }}>{t.login}</Link>
             )}
-            <Link to="/book/service" className="text-sm font-bold px-4 py-2 rounded-full"
+            <Link to={bookHref} className="text-sm font-bold px-4 py-2 rounded-full"
               style={{ background: '#111', color: '#fff' }}>
               {t.bookNow}
             </Link>

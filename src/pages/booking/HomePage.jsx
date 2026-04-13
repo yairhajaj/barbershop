@@ -229,7 +229,9 @@ export function HomePage() {
                 {/* Actions */}
                 <div className="p-3 flex gap-2">
                   <Link
-                    to={`/book/service?staff=${member.id}`}
+                    to={bookingFlow === 'all-in-one'
+                      ? `/book/all?staff=${member.id}`
+                      : `/book/service?staff=${member.id}`}
                     onClick={e => e.stopPropagation()}
                     className="btn-primary flex-1 justify-center text-xs py-2 px-2"
                   >

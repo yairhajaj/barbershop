@@ -42,6 +42,14 @@ export function BookAll() {
     if (found) setSelService(found)
   }, [searchParams, services])
 
+  // Pre-select staff from URL param (e.g. /book/all?staff=ID)
+  useEffect(() => {
+    const staffId = searchParams.get('staff')
+    if (!staffId || staff.length === 0) return
+    const found = staff.find(s => s.id === staffId)
+    if (found) setSelStaff(found)
+  }, [searchParams, staff])
+
   const [blockedTimes, setBlockedTimes] = useState([])
   const [slots, setSlots]               = useState([])
   const [slotsLoading, setSlotsLoading] = useState(false)
