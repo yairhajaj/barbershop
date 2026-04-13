@@ -77,18 +77,21 @@ export function AdminLayout({ children }) {
               <div className="text-xs text-gray-400">מנהל</div>
             </div>
           </div>
+          <Link
+            to="/"
+            className="w-full text-sm font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 px-3 mb-2"
+            style={{ background: 'rgba(201,169,110,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(201,169,110,0.25)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(201,169,110,0.15)'}
+          >
+            🌐 צפה באתר
+          </Link>
           <button
             onClick={handleSignOut}
             className="w-full text-sm text-gray-400 hover:text-white py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2 px-3"
           >
             ↩ יציאה
           </button>
-          <Link
-            to="/"
-            className="w-full text-sm text-gray-400 hover:text-white py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2 px-3 mt-1"
-          >
-            ← חזרה לאתר
-          </Link>
         </div>
       </aside>
 
@@ -137,6 +140,23 @@ export function AdminLayout({ children }) {
                 )
               })}
             </nav>
+            {/* Mobile sidebar bottom */}
+            <div className="p-4 border-t border-white/10">
+              <Link
+                to="/"
+                onClick={() => setSidebarOpen(false)}
+                className="w-full text-sm font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 px-3 mb-2"
+                style={{ background: 'rgba(201,169,110,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}
+              >
+                🌐 צפה באתר
+              </Link>
+              <button
+                onClick={() => { handleSignOut(); setSidebarOpen(false) }}
+                className="w-full text-sm text-gray-400 hover:text-white py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2 px-3"
+              >
+                ↩ יציאה
+              </button>
+            </div>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -154,7 +174,14 @@ export function AdminLayout({ children }) {
           <div className="hidden sm:block text-sm text-gray-500">
             {new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="text-sm font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+              style={{ background: 'rgba(201,169,110,0.1)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.25)' }}
+            >
+              🌐 צפה באתר
+            </Link>
             <div className="w-8 h-8 rounded-full bg-[var(--color-gold)]/10 flex items-center justify-center text-[var(--color-gold)] font-semibold text-sm">
               {profile?.name?.[0] ?? 'A'}
             </div>

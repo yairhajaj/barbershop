@@ -48,8 +48,123 @@ export function BookingLayout({ children }) {
   }
 
   // Default layout
+  // Mobile menu drawer (used when navbar is hidden at top of homepage)
   return (
     <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
+
+      {/* ── Floating hamburger — only when navbar is hidden (top of homepage) ── */}
+      {isHome && !scrolled && (
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="fixed top-4 right-4 z-50 w-11 h-11 flex flex-col justify-center items-center gap-1.5 rounded-xl"
+          style={{
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+          }}
+        >
+          <span className="block w-5 h-0.5 bg-white rounded-full" />
+          <span className="block w-5 h-0.5 bg-white rounded-full" />
+          <span className="block w-3.5 h-0.5 bg-white rounded-full self-end" />
+        </button>
+      )}
+
+      {/* ── Slide-in drawer (shared) ── */}
+      {isHome && (
+        <>
+          {/* Slide-in drawer */}
+          <AnimatePresence>
+            {menuOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 bg-black/60"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <motion.div
+                  initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+                  className="fixed top-0 right-0 bottom-0 z-50 w-72 flex flex-col"
+                  style={{ background: '#0e0e0e' }}
+                >
+                  {/* Drawer header */}
+                  <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold overflow-hidden flex-shrink-0"
+                        style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                        {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" /> : BUSINESS.logoText}
+                      </div>
+                      <span className="font-bold text-white text-sm">{BUSINESS.name}</span>
+                    </div>
+                    <button onClick={() => setMenuOpen(false)} className="text-white/50 hover:text-white text-2xl w-8 h-8 flex items-center justify-center">×</button>
+                  </div>
+
+                  {/* Drawer links */}
+                  <nav className="flex-1 p-4 flex flex-col gap-1">
+                    {[
+                      { label: 'שירותים',   href: '/#services', icon: '✂' },
+                      { label: 'הצוות',     href: '/#team',     icon: '👤' },
+                      { label: 'צור קשר',   href: '/#contact',  icon: '📍' },
+                    ].map(link => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                        style={{ color: 'rgba(255,255,255,0.8)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <span className="w-5 text-center">{link.icon}</span>
+                        {link.label}
+                      </a>
+                    ))}
+
+                    {user && (
+                      <Link to="/my-appointments" onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
+                        style={{ color: 'rgba(255,255,255,0.8)' }}>
+                        <span className="w-5 text-center">📅</span>
+                        {t.myAppointments}
+                      </Link>
+                    )}
+
+                    {profile?.role === 'admin' && (
+                      <Link to="/admin" onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
+                        style={{ color: 'var(--color-gold)' }}>
+                        <span className="w-5 text-center">⚙</span>
+                        {t.admin}
+                      </Link>
+                    )}
+                  </nav>
+
+                  {/* Drawer bottom */}
+                  <div className="p-4 border-t flex flex-col gap-2" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <Link to={bookHref} onClick={() => setMenuOpen(false)} className="btn-primary justify-center py-3">
+                      ✂ {t.bookNow}
+                    </Link>
+                    {user ? (
+                      <button onClick={() => { handleSignOut(); setMenuOpen(false) }}
+                        className="text-sm py-2 text-center"
+                        style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {t.logout}
+                      </button>
+                    ) : (
+                      <Link to="/login" onClick={() => setMenuOpen(false)}
+                        className="text-sm py-2 text-center"
+                        style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {t.login}
+                      </Link>
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </>
+      )}
 
       {/* Navbar — hides at top of homepage, appears on scroll */}
       <motion.header
@@ -65,7 +180,7 @@ export function BookingLayout({ children }) {
         }}
       >
         {isHome ? (
-          /* ── MINIMAL: homepage scrolled — just logo icon + book button ── */
+          /* ── MINIMAL: homepage scrolled — logo + book + hamburger (mobile) ── */
           <nav className="flex items-center justify-between h-14 px-5">
             <Link to="/" className="flex items-center">
               <div
@@ -79,26 +194,37 @@ export function BookingLayout({ children }) {
             </Link>
 
             <div className="flex items-center gap-3">
+              {/* Desktop links */}
               {user && profile?.role === 'admin' && (
-                <Link to="/admin" className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                <Link to="/admin" className="hidden md:flex text-xs font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: 'rgba(201,169,110,0.15)', color: 'var(--color-gold)' }}>
                   {t.admin}
                 </Link>
               )}
               {user ? (
-                <Link to="/my-appointments" className="text-sm font-medium"
+                <Link to="/my-appointments" className="hidden md:flex text-sm font-medium"
                   style={{ color: 'rgba(255,255,255,0.65)' }}>
                   {t.myAppointments}
                 </Link>
               ) : (
-                <Link to="/login" className="text-sm font-medium"
+                <Link to="/login" className="hidden md:flex text-sm font-medium"
                   style={{ color: 'rgba(255,255,255,0.65)' }}>
                   {t.login}
                 </Link>
               )}
-              <Link to={bookHref} className="btn-primary text-sm px-5 py-2">
+              <Link to={bookHref} className="btn-primary text-sm px-4 py-2">
                 {t.bookNow}
               </Link>
+              {/* Mobile hamburger — inside navbar when scrolled */}
+              <button
+                onClick={() => setMenuOpen(true)}
+                className="md:hidden flex flex-col justify-center items-center gap-1.5 w-9 h-9 rounded-lg"
+                style={{ color: 'white' }}
+              >
+                <span className="block w-4.5 h-0.5 bg-white rounded-full" />
+                <span className="block w-4.5 h-0.5 bg-white rounded-full" />
+                <span className="block w-3 h-0.5 bg-white rounded-full self-end" />
+              </button>
             </div>
           </nav>
         ) : (
