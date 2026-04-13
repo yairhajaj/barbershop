@@ -28,7 +28,8 @@ export function Confirmation() {
   const [appointment, setAppointment] = useState(null)
   const [errorMsg, setErrorMsg]       = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
-  const [pushBanner, setPushBanner]   = useState(false) // show after booking
+  const [pushBanner, setPushBanner]   = useState(false)
+  const [wantsReminder, setWantsReminder] = useState(true)
 
   useEffect(() => {
     if (!bookingState.slotStart) { navigate('/book/service', { replace: true }); return }
@@ -42,13 +43,14 @@ export function Confirmation() {
     setStatus('loading')
     try {
       const apptData = {
-        customer_id: user.id,
-        service_id:  bookingState.serviceId,
-        staff_id:    bookingState.staffId ?? null,
-        start_at:    bookingState.slotStart,
-        end_at:      bookingState.slotEnd,
-        notes:       '',
-        status:      'confirmed',
+        customer_id:       user.id,
+        service_id:        bookingState.serviceId,
+        staff_id:          bookingState.staffId ?? null,
+        start_at:          bookingState.slotStart,
+        end_at:            bookingState.slotEnd,
+        notes:             '',
+        status:            'confirmed',
+        reminder_opted_in: wantsReminder,
       }
 
       let appt
@@ -300,6 +302,24 @@ export function Confirmation() {
             </label>
           </div>
         )}
+
+        {/* Reminder opt-in */}
+        <label className="flex items-start gap-3 cursor-pointer rounded-2xl p-4 mb-2"
+          style={{ background: 'var(--color-card)', border: `1.5px solid ${wantsReminder ? 'var(--color-gold)' : 'var(--color-border)'}` }}>
+          <div className="relative mt-0.5 flex-shrink-0" onClick={() => setWantsReminder(r => !r)}>
+            <div className="w-11 h-6 rounded-full transition-all duration-200"
+              style={{ background: wantsReminder ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+              <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
+                style={{ right: wantsReminder ? '2px' : 'calc(100% - 22px)' }} />
+            </div>
+          </div>
+          <div>
+            <p className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>🔔 קבל תזכורת לפני התור</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              נשלח אליך הודעה ב-WhatsApp / Push לפני מועד התור
+            </p>
+          </div>
+        </label>
 
         {status === 'error' && (
           <div className="rounded-2xl p-3 text-sm mb-4"

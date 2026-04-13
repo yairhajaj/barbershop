@@ -20,6 +20,13 @@ const DEFAULT_SETTINGS = {
   shabbat_lat: 31.7683,
   shabbat_lng: 35.2137,
   shabbat_offset_minutes: 18,
+  reminder_enabled:   false,
+  reminder_channel:   'whatsapp',
+  reminder_1_hours:   24,
+  reminder_2_enabled: false,
+  reminder_2_hours:   2,
+  reminder_3_enabled: false,
+  reminder_3_hours:   1,
 }
 
 export function useBusinessSettings() {

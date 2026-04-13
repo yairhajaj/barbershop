@@ -354,6 +354,119 @@ export function Settings() {
           </div>
         </section>
 
+        {/* ── Automatic Reminders ── */}
+        <section className="card p-6">
+          <h2 className="font-semibold text-lg mb-1">🔔 תזכורות אוטומטיות</h2>
+          <p className="text-sm text-muted mb-5">שלח ללקוחות תזכורת לפני התור — רק למי שאישר לקבל</p>
+
+          <div className="space-y-5">
+            {/* Enable toggle */}
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-sm font-medium">הפעל תזכורות אוטומטיות</span>
+              <div className="relative" onClick={() => setForm(f => ({ ...f, reminder_enabled: !f.reminder_enabled }))}>
+                <div className="w-11 h-6 rounded-full transition-all duration-200"
+                  style={{ background: form.reminder_enabled ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
+                    style={{ right: form.reminder_enabled ? '2px' : 'calc(100% - 22px)' }} />
+                </div>
+              </div>
+            </label>
+
+            {form.reminder_enabled && (<>
+              {/* Channel */}
+              <div>
+                <label className="block text-sm font-medium mb-2">ערוץ שליחה</label>
+                <div className="flex gap-2">
+                  {[
+                    { key: 'whatsapp', label: '📱 WhatsApp' },
+                    { key: 'push',     label: '🔔 Push' },
+                    { key: 'both',     label: '📨 שניהם' },
+                  ].map(ch => (
+                    <button key={ch.key} type="button"
+                      onClick={() => setForm(f => ({ ...f, reminder_channel: ch.key }))}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all"
+                      style={{
+                        borderColor: form.reminder_channel === ch.key ? 'var(--color-gold)' : 'var(--color-border)',
+                        background: form.reminder_channel === ch.key ? 'rgba(201,169,110,0.1)' : 'transparent',
+                        color: form.reminder_channel === ch.key ? 'var(--color-gold)' : 'var(--color-muted)',
+                      }}>
+                      {ch.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reminder 1 — always on */}
+              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+                <span className="text-sm font-medium flex-1">תזכורת 1 (תמיד פעיל)</span>
+                <input
+                  type="number" min="1" max="168"
+                  className="input w-20 py-1 text-center"
+                  value={form.reminder_1_hours ?? 24}
+                  onChange={e => setForm(f => ({ ...f, reminder_1_hours: Number(e.target.value) }))}
+                />
+                <span className="text-sm text-muted">שעות לפני</span>
+              </div>
+
+              {/* Reminder 2 */}
+              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+                <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                  <div className="relative" onClick={() => setForm(f => ({ ...f, reminder_2_enabled: !f.reminder_2_enabled }))}>
+                    <div className="w-9 h-5 rounded-full transition-all"
+                      style={{ background: form.reminder_2_enabled ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                        style={{ right: form.reminder_2_enabled ? '2px' : 'calc(100% - 18px)' }} />
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium">תזכורת 2</span>
+                </label>
+                <input
+                  type="number" min="1" max="72"
+                  className="input w-20 py-1 text-center"
+                  disabled={!form.reminder_2_enabled}
+                  value={form.reminder_2_hours ?? 2}
+                  onChange={e => setForm(f => ({ ...f, reminder_2_hours: Number(e.target.value) }))}
+                  style={{ opacity: form.reminder_2_enabled ? 1 : 0.4 }}
+                />
+                <span className="text-sm text-muted">שעות לפני</span>
+              </div>
+
+              {/* Reminder 3 */}
+              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+                <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                  <div className="relative" onClick={() => setForm(f => ({ ...f, reminder_3_enabled: !f.reminder_3_enabled }))}>
+                    <div className="w-9 h-5 rounded-full transition-all"
+                      style={{ background: form.reminder_3_enabled ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                        style={{ right: form.reminder_3_enabled ? '2px' : 'calc(100% - 18px)' }} />
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium">תזכורת 3</span>
+                </label>
+                <input
+                  type="number" min="1" max="24"
+                  className="input w-20 py-1 text-center"
+                  disabled={!form.reminder_3_enabled}
+                  value={form.reminder_3_hours ?? 1}
+                  onChange={e => setForm(f => ({ ...f, reminder_3_hours: Number(e.target.value) }))}
+                  style={{ opacity: form.reminder_3_enabled ? 1 : 0.4 }}
+                />
+                <span className="text-sm text-muted">שעות לפני</span>
+              </div>
+
+              {/* Cron notice */}
+              <div className="rounded-xl p-3 text-sm" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <p className="font-semibold mb-0.5" style={{ color: '#b45309' }}>⚠️ נדרש הגדרת Cron</p>
+                <p style={{ color: '#92400e' }}>
+                  כדי שהתזכורות יישלחו אוטומטית, יש להגדיר cron job ב-
+                  <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="underline mx-1">cron-job.org</a>
+                  שיקרא ל-Edge Function כל 30 דקות.
+                </p>
+              </div>
+            </>)}
+          </div>
+        </section>
+
         <button type="submit" disabled={saving} className="btn-primary text-base px-8 py-3">
           {saving ? 'שומר...' : 'שמור הגדרות'}
         </button>
