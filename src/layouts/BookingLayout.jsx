@@ -372,7 +372,7 @@ export function BookingLayout({ children }) {
             ? '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
             : '0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)'
         // Text/icon color
-        const barText = isDark || isGlassBar ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.78)'
+        const barText = isDark || isGlassBar ? '#e8e8e8' : '#222222'
         const barBgActive = isDark || isGlassBar ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
         return (
           <div
@@ -425,7 +425,7 @@ export function BookingLayout({ children }) {
 
 // SVG icon set — clean app-style vector icons (not system emoji)
 function BarIcon({ name, size = 22 }) {
-  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.85, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }
   if (name === 'home') return (
     <svg {...p}>
       <path d="M3 11L12 3l9 8v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9z" />
