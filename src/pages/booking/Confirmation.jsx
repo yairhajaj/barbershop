@@ -6,6 +6,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
+import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { formatDateFull, formatTime, priceDisplay } from '../../lib/utils'
 import { BUSINESS } from '../../config/business'
 
@@ -21,10 +22,13 @@ export function Confirmation() {
   const { createAppointment, createRecurringAppointments } = useAppointments()
   const { settings } = useBusinessSettings()
 
+  const { isSupported: pushSupported, requestPermission: requestPush } = usePushNotifications()
+
   const [status, setStatus]           = useState('idle')
   const [appointment, setAppointment] = useState(null)
   const [errorMsg, setErrorMsg]       = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
+  const [pushBanner, setPushBanner]   = useState(false) // show after booking
 
   useEffect(() => {
     if (!bookingState.slotStart) { navigate('/book/service', { replace: true }); return }
@@ -58,6 +62,10 @@ export function Confirmation() {
       sessionStorage.removeItem('booking_state')
       setAppointment(appt)
       setStatus('success')
+      // Show push permission banner if supported and VAPID key configured
+      if (pushSupported && import.meta.env.VITE_VAPID_PUBLIC_KEY && Notification.permission === 'default') {
+        setPushBanner(true)
+      }
     } catch (err) {
       setErrorMsg(err.message ?? 'שגיאה בקביעת התור')
       setStatus('error')
@@ -169,6 +177,34 @@ export function Confirmation() {
               </div>
             ))}
           </div>
+
+          {/* Push permission banner */}
+          {pushBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl p-4 mb-2 text-right"
+              style={{ background: 'rgba(201,169,110,0.1)', border: '1.5px solid rgba(201,169,110,0.3)' }}
+            >
+              <p className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)' }}>🔔 קבל תזכורות על התורים שלך</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>אפשר התראות ותקבל עדכונים ומבצעים ישירות לנייד</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    const res = await requestPush()
+                    setPushBanner(false)
+                    if (res.ok) alert('✓ התראות הופעלו!')
+                  }}
+                  className="btn-primary text-sm py-2 px-4"
+                >
+                  אפשר התראות
+                </button>
+                <button onClick={() => setPushBanner(false)} className="btn-ghost text-sm py-2 px-3">
+                  לא עכשיו
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           <div className="flex flex-col gap-2.5">
             <button onClick={downloadICS} className="btn-primary justify-center text-sm py-3">

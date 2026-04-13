@@ -27,6 +27,7 @@ import { Products }     from './pages/admin/Products'
 import { Settings }     from './pages/admin/Settings'
 import { Invoices }     from './pages/admin/Invoices'
 import { Appearance }   from './pages/admin/Appearance'
+import { Messages }     from './pages/admin/Messages'
 
 const router = createBrowserRouter([
   {
@@ -105,6 +106,10 @@ const router = createBrowserRouter([
   {
     path: '/admin/appearance',
     element: <AdminLayout><Appearance /></AdminLayout>,
+  },
+  {
+    path: '/admin/messages',
+    element: <AdminLayout><Messages /></AdminLayout>,
   },
   {
     path: '*',
