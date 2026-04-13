@@ -10,6 +10,68 @@ import {
   isSameDay,
 } from 'date-fns'
 import { he } from 'date-fns/locale'
+import SunCalc from 'suncalc'
+
+// ── Shabbat Utilities ────────────────────────────────────────────
+
+/**
+ * Get Shabbat start (Friday sunset minus offset) and end (Saturday sunset + 42 min)
+ * for the given date's week, using the provided location.
+ *
+ * @param {Date}   date
+ * @param {{ lat: number, lng: number, offsetMinutes: number }} config
+ * @returns {{ start: Date, end: Date }}
+ */
+export function getShabbatTimes(date, config = {}) {
+  const { lat = 31.7683, lng = 35.2137, offsetMinutes = 18 } = config
+
+  // Find the Friday of this week
+  const d = new Date(date)
+  const dow = d.getDay()
+  const friday = new Date(d)
+  friday.setDate(d.getDate() - ((dow + 1) % 7))  // go back to Friday
+  friday.setHours(0, 0, 0, 0)
+
+  const saturday = new Date(friday)
+  saturday.setDate(friday.getDate() + 1)
+
+  const fridaySunset = SunCalc.getTimes(friday, lat, lng).sunset
+  const saturdaySunset = SunCalc.getTimes(saturday, lat, lng).sunset
+
+  const shabbatStart = addMinutes(fridaySunset, -offsetMinutes)
+  const shabbatEnd   = addMinutes(saturdaySunset, 42)
+
+  return { start: shabbatStart, end: shabbatEnd }
+}
+
+/**
+ * Returns true if the given date/time falls within Shabbat.
+ * @param {Date} dateTime
+ * @param {{ enabled: boolean, lat: number, lng: number, offsetMinutes: number }} config
+ */
+export function isShabbatTime(dateTime, config = {}) {
+  if (!config?.enabled) return false
+  const { start, end } = getShabbatTimes(dateTime, config)
+  return dateTime >= start && dateTime <= end
+}
+
+/**
+ * Returns true if the entire given date (day) overlaps at all with Shabbat.
+ * Used to show a warning banner on the date picker.
+ */
+export function isShabbatDay(date, config = {}) {
+  if (!config?.enabled) return false
+  const { start, end } = getShabbatTimes(date, config)
+  const dayStart = startOfDay(date)
+  const dayEnd   = endOfDay(date)
+  return (
+    areIntervalsOverlapping(
+      { start: dayStart, end: dayEnd },
+      { start, end },
+      { inclusive: true }
+    )
+  )
+}
 
 // ── Date Formatters ──────────────────────────────────────────────
 
@@ -53,8 +115,12 @@ export function generateSlots({
   blockedTimes = [],
   recurringBreaks = [],
   smartScheduling = { enabled: false },
+  shabbatConfig = { enabled: false },
 }) {
   if (!staffHours?.is_working || businessHours?.is_closed) return []
+
+  // If shabbat mode is on and this entire day is within Shabbat, block everything
+  if (shabbatConfig?.enabled && isShabbatDay(date, shabbatConfig)) return []
 
   const dayStart = parseDateWithTime(date, staffHours.start_time || businessHours.open_time)
   const dayEnd   = parseDateWithTime(date, staffHours.end_time   || businessHours.close_time)
@@ -89,7 +155,17 @@ export function generateSlots({
       )
     })
 
-    if (!isBusy && !isBusyBreak) {
+    // Check if slot overlaps with Shabbat
+    const isShabbat = shabbatConfig?.enabled && (() => {
+      const { start: shStart, end: shEnd } = getShabbatTimes(date, shabbatConfig)
+      return areIntervalsOverlapping(
+        { start: slot.start, end: slot.end },
+        { start: shStart, end: shEnd },
+        { inclusive: false }
+      )
+    })()
+
+    if (!isBusy && !isBusyBreak && !isShabbat) {
       slots.push(slot)
     }
 

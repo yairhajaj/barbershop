@@ -7,7 +7,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useStaff } from '../../hooks/useStaff'
-import { generateSlots, formatTime, dayName } from '../../lib/utils'
+import { generateSlots, formatTime, dayName, isShabbatDay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 
@@ -81,6 +81,12 @@ export function SelectDateTime() {
           startOfDay: settings.smart_start_of_day ?? true,
           endOfDay: settings.smart_end_of_day ?? true,
         },
+        shabbatConfig: {
+          enabled: settings.shabbat_mode,
+          lat: settings.shabbat_lat,
+          lng: settings.shabbat_lng,
+          offsetMinutes: settings.shabbat_offset_minutes,
+        },
       })
       slots.forEach(slot => {
         if (!allSlots.find(s => s.start.getTime() === slot.start.getTime())) {
@@ -108,14 +114,24 @@ export function SelectDateTime() {
     navigate('/book/confirm')
   }
 
-  // Date options (next 30 days, excluding closed days)
+  // Date options (next 30 days, excluding closed days + full Shabbat Saturdays)
   const dateOptions = []
   for (let i = 0; i < DAYS_AHEAD; i++) {
     const d = startOfDay(addDays(new Date(), i))
     const dow = d.getDay()
     const bh = hours.find(h => h.day_of_week === dow)
-    if (!bh?.is_closed) dateOptions.push(d)
+    if (bh?.is_closed) continue
+    if (settings.shabbat_mode && dow === 6) continue
+    dateOptions.push(d)
   }
+
+  const shabbatConfig = {
+    enabled: settings.shabbat_mode,
+    lat: settings.shabbat_lat,
+    lng: settings.shabbat_lng,
+    offsetMinutes: settings.shabbat_offset_minutes,
+  }
+  const isSelectedShabbat = isShabbatDay(selectedDate, shabbatConfig)
 
   return (
     <div className="min-h-screen pt-24 pb-16" style={{ background: 'var(--color-surface)' }}>
@@ -172,6 +188,14 @@ export function SelectDateTime() {
 
         {/* Section label */}
         <p className="text-xs font-bold mb-2 tracking-wide" style={{ color: 'var(--color-muted)' }}>בחר שעה</p>
+
+        {/* Shabbat notice */}
+        {isSelectedShabbat && (
+          <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium"
+            style={{ background: 'rgba(100,90,200,0.08)', color: '#6b5ecc', border: '1.5px solid rgba(100,90,200,0.2)' }}>
+            🕍 מקום זה שומר שבת — לא ניתן לקבוע תורים בשעות שבת
+          </div>
+        )}
 
         {/* Time Slots */}
         {slotsLoading ? (

@@ -165,5 +165,14 @@ export function useAllAppointments({ startDate, endDate, staffId, status } = {})
     setLoading(false)
   }
 
-  return { appointments, loading, error, refetch: fetchAll }
+  async function markNoShow(id) {
+    const { error } = await supabase
+      .from('appointments')
+      .update({ no_show: true, status: 'completed' })
+      .eq('id', id)
+    if (error) throw error
+    await fetchAll()
+  }
+
+  return { appointments, loading, error, refetch: fetchAll, markNoShow }
 }

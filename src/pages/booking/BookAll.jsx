@@ -13,7 +13,7 @@ import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 import { Spinner } from '../../components/ui/Spinner'
-import { generateSlots, formatTime, dayName, priceDisplay } from '../../lib/utils'
+import { generateSlots, formatTime, dayName, priceDisplay, isShabbatDay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 
 const DAYS_AHEAD = 30
@@ -105,6 +105,12 @@ export function BookAll() {
           startOfDay: settings.smart_start_of_day ?? true,
           endOfDay: settings.smart_end_of_day ?? true,
         },
+        shabbatConfig: {
+          enabled: settings.shabbat_mode,
+          lat: settings.shabbat_lat,
+          lng: settings.shabbat_lng,
+          offsetMinutes: settings.shabbat_offset_minutes,
+        },
       })
       s.forEach(slot => {
         if (!allSlots.find(x => x.start.getTime() === slot.start.getTime()))
@@ -162,17 +168,33 @@ export function BookAll() {
     navigate(!user ? '/login?redirect=/book/confirm' : '/book/confirm')
   }
 
-  // Date options (exclude closed days)
+  // Build shabbat config from settings
+  const shabbatConfig = {
+    enabled: settings.shabbat_mode,
+    lat: settings.shabbat_lat,
+    lng: settings.shabbat_lng,
+    offsetMinutes: settings.shabbat_offset_minutes,
+  }
+
+  // Date options (exclude closed days and full Shabbat days)
   const dateOptions = []
   for (let i = 0; i < DAYS_AHEAD; i++) {
     const d = startOfDay(addDays(new Date(), i))
     const bh = hours.find(h => h.day_of_week === d.getDay())
-    if (!bh?.is_closed) dateOptions.push(d)
+    if (bh?.is_closed) continue
+    // Exclude full-Shabbat days (Saturday when shabbat mode is on)
+    if (settings.shabbat_mode && d.getDay() === 6) continue
+    dateOptions.push(d)
   }
 
-  const eligibleServices = (selStaff && selStaff !== null)
+  // Is the selected date within any Shabbat period (e.g., Friday evening)?
+  const selDateIsShabbat = isShabbatDay(selDate, shabbatConfig)
+
+  const allEligible = (selStaff && selStaff !== null)
     ? services.filter(svc => selStaff.staff_services?.some(ss => ss.service_id === svc.id))
     : services
+  const eligibleServices = allEligible.filter(svc => svc.booking_type !== 'by_request')
+  const byRequestServices = allEligible.filter(svc => svc.booking_type === 'by_request')
 
   return (
     <div className="min-h-screen pb-36" style={{ background: 'var(--color-surface)' }}>
@@ -279,36 +301,63 @@ export function BookAll() {
       <div className="px-5 pt-4 pb-4" ref={serviceRef}>
         <SectionLabel>בחר טיפול</SectionLabel>
         {servicesLoading ? <MiniSpinner /> : (
-          <div className="flex flex-wrap gap-2.5">
-            {eligibleServices.map(svc => {
-              const active = selService?.id === svc.id
-              return (
-                <button
-                  key={svc.id}
-                  onClick={() => pickService(svc)}
-                  className="relative flex items-center gap-2 transition-all"
-                  style={{
-                    padding:    '10px 18px',
-                    borderRadius: '999px',
-                    background: active ? 'var(--color-gold)' : '#f2f2f2',
-                    color:      active ? '#fff' : 'var(--color-text)',
-                    fontWeight: 700,
-                    fontSize:   '14px',
-                    border:     'none',
-                    cursor:     'pointer',
-                    boxShadow:  active ? '0 3px 12px rgba(255,133,0,0.35)' : 'none',
-                  }}
-                >
-                  <span>{svc.name}</span>
-                  {svc.price > 0 && (
-                    <span style={{ opacity: 0.75, fontSize: '12px' }}>
-                      ₪{svc.price}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+          <>
+            <div className="flex flex-wrap gap-2.5">
+              {eligibleServices.map(svc => {
+                const active = selService?.id === svc.id
+                return (
+                  <button
+                    key={svc.id}
+                    onClick={() => pickService(svc)}
+                    className="relative flex items-center gap-2 transition-all"
+                    style={{
+                      padding:    '10px 18px',
+                      borderRadius: '999px',
+                      background: active ? 'var(--color-gold)' : '#f2f2f2',
+                      color:      active ? '#fff' : 'var(--color-text)',
+                      fontWeight: 700,
+                      fontSize:   '14px',
+                      border:     'none',
+                      cursor:     'pointer',
+                      boxShadow:  active ? '0 3px 12px rgba(255,133,0,0.35)' : 'none',
+                    }}
+                  >
+                    <span>{svc.name}</span>
+                    {svc.price > 0 && (
+                      <span style={{ opacity: 0.75, fontSize: '12px' }}>
+                        ₪{svc.price}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            {byRequestServices.length > 0 && (
+              <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <p className="text-xs mb-2 font-medium" style={{ color: 'var(--color-muted)' }}>
+                  🔒 שירותים בתיאום מראש בלבד — צור קשר לקביעת תור
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {byRequestServices.map(svc => (
+                    <a
+                      key={svc.id}
+                      href={settings?.phone ? `tel:${settings.phone}` : '#'}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold"
+                      style={{
+                        background: 'rgba(255,133,0,0.10)',
+                        color: 'var(--color-primary)',
+                        border: '1.5px solid var(--color-primary)',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      📞 {svc.name}
+                      {svc.price > 0 && <span style={{ opacity: 0.75, fontSize: '11px' }}>₪{svc.price}</span>}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -325,6 +374,12 @@ export function BookAll() {
           >
             <div className="px-5 pt-4 pb-4" ref={timeRef}>
               <SectionLabel>בחר תור</SectionLabel>
+              {settings.shabbat_mode && selDateIsShabbat && (
+                <div className="mb-3 px-4 py-3 rounded-xl text-sm font-medium"
+                  style={{ background: 'rgba(100,90,200,0.08)', color: '#6b5ecc', border: '1.5px solid rgba(100,90,200,0.2)' }}>
+                  🕍 מקום זה שומר שבת — לא ניתן לקבוע תורים בשעות שבת
+                </div>
+              )}
               {slotsLoading ? <MiniSpinner /> : slots.length === 0 ? (
                 <p className="text-sm py-2" style={{ color: 'var(--color-muted)' }}>
                   אין שעות פנויות — נסה תאריך אחר

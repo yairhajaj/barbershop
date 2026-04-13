@@ -6,7 +6,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 
-const EMPTY = { name: '', description: '', duration_minutes: 30, price: '', is_active: true, display_order: 0 }
+const EMPTY = { name: '', description: '', duration_minutes: 30, price: '', is_active: true, display_order: 0, booking_type: 'online' }
 
 export function Services() {
   const { services, loading, upsertService, deleteService } = useServices()
@@ -63,6 +63,11 @@ export function Services() {
                   <h3 className="font-semibold">{service.name}</h3>
                   {!service.is_active && (
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">לא פעיל</span>
+                  )}
+                  {service.booking_type === 'by_request' && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(255,133,0,0.12)', color: 'var(--color-primary)' }}>
+                      📞 בתיאום בלבד
+                    </span>
                   )}
                 </div>
                 {service.description && (
@@ -139,7 +144,31 @@ export function Services() {
                   onChange={e => setEditService(s => ({ ...s, display_order: Number(e.target.value) }))}
                 />
               </div>
-              <div className="flex items-center gap-2 pt-6">
+              {/* Booking type */}
+              <div>
+                <label className="block text-sm font-medium mb-2">סוג הזמנה</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'online', label: '🌐 הזמנה אונליין' },
+                    { value: 'by_request', label: '📞 בתיאום בלבד' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setEditService(s => ({ ...s, booking_type: opt.value }))}
+                      className="flex-1 py-2 px-3 text-sm rounded-lg border-2 font-medium transition-colors"
+                      style={{
+                        borderColor: editService.booking_type === opt.value ? 'var(--color-primary)' : 'var(--color-border)',
+                        background: editService.booking_type === opt.value ? 'rgba(255,133,0,0.08)' : 'transparent',
+                        color: editService.booking_type === opt.value ? 'var(--color-primary)' : 'var(--color-muted)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="active_svc"

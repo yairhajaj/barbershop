@@ -16,6 +16,10 @@ const DEFAULT_SETTINGS = {
   recurring_appointments_enabled: true,
   recurring_weeks_ahead: 12,
   floating: false,
+  shabbat_mode: false,
+  shabbat_lat: 31.7683,
+  shabbat_lng: 35.2137,
+  shabbat_offset_minutes: 18,
 }
 
 export function useBusinessSettings() {

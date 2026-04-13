@@ -278,6 +278,68 @@ export function Settings() {
           )}
         </section>
 
+        {/* Shabbat Mode */}
+        <section className="card p-6">
+          <h2 className="font-semibold text-lg mb-1">מצב שבת 🕍</h2>
+          <p className="text-sm text-muted mb-4">חסום הזמנות אוטומטית בשעות שבת לפי שקיעת חמה</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="font-medium text-sm">הפעל מצב שבת</p>
+              <p className="text-xs text-muted mt-0.5">
+                שבת מתחילה {form.shabbat_offset_minutes ?? 18} דקות לפני שקיעה בשישי, ומסתיימת 42 דקות אחרי שקיעה בשבת
+              </p>
+            </div>
+            <Toggle
+              checked={form.shabbat_mode ?? false}
+              onChange={v => setForm(f => ({ ...f, shabbat_mode: v }))}
+            />
+          </div>
+          {form.shabbat_mode && (
+            <div className="border-t pt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">קו רוחב (Lat)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.0001"
+                    value={form.shabbat_lat ?? 31.7683}
+                    onChange={e => setForm(f => ({ ...f, shabbat_lat: parseFloat(e.target.value) }))}
+                    placeholder="31.7683"
+                  />
+                  <p className="text-xs text-muted mt-1">ירושלים = 31.7683</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">קו אורך (Lng)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.0001"
+                    value={form.shabbat_lng ?? 35.2137}
+                    onChange={e => setForm(f => ({ ...f, shabbat_lng: parseFloat(e.target.value) }))}
+                    placeholder="35.2137"
+                  />
+                  <p className="text-xs text-muted mt-1">תל אביב = 32.0853, 34.7818</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  דקות לפני שקיעה לכניסת שבת
+                </label>
+                <input
+                  className="input w-24"
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={form.shabbat_offset_minutes ?? 18}
+                  onChange={e => setForm(f => ({ ...f, shabbat_offset_minutes: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted mt-1">ברירת מחדל: 18 דקות (מנהג ירושלים)</p>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Invoice */}
         <section className="card p-6">
           <h2 className="font-semibold text-lg mb-4">חשבוניות</h2>
