@@ -74,6 +74,8 @@ export function Appointments() {
   const [slotMinutes, setSlotMinutesState] = useState(() => lsGet('cal_slot_minutes', 15))
   const [calColumns, setCalColumnsState] = useState(() => lsGet('cal_columns', 3))
   const [serviceColors, setServiceColorsState] = useState(() => lsGet('cal_service_colors', {}))
+  const [calStartHour, setCalStartHourState] = useState(() => lsGet('cal_start_hour', 7))
+  const [calEndHour,   setCalEndHourState]   = useState(() => lsGet('cal_end_hour',   21))
 
   // Pending move confirmation
   const [pendingMove, setPendingMove] = useState(null)
@@ -102,6 +104,12 @@ export function Appointments() {
   }, [])
   const setCalColumns = useCallback(v => {
     setCalColumnsState(v); lsSet('cal_columns', v)
+  }, [])
+  const setCalStartHour = useCallback(v => {
+    setCalStartHourState(v); lsSet('cal_start_hour', v)
+  }, [])
+  const setCalEndHour = useCallback(v => {
+    setCalEndHourState(v); lsSet('cal_end_hour', v)
   }, [])
   const setServiceColor = useCallback((serviceId, color) => {
     setServiceColorsState(prev => {
@@ -413,6 +421,32 @@ export function Appointments() {
                 </div>
               </div>
 
+              {/* Hour range */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 w-32">שעות תצוגה</span>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="input py-1 text-sm w-20"
+                    value={calStartHour}
+                    onChange={e => setCalStartHour(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 5).map(h => (
+                      <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+                    ))}
+                  </select>
+                  <span className="text-gray-500 text-sm font-medium">—</span>
+                  <select
+                    className="input py-1 text-sm w-20"
+                    value={calEndHour}
+                    onChange={e => setCalEndHour(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 13).map(h => (
+                      <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Columns */}
               <div className="flex items-center gap-4 flex-wrap">
                 <span className="text-sm font-medium text-gray-700 w-32">עמודות יומי</span>
@@ -562,6 +596,8 @@ export function Appointments() {
           appointments={appointments.filter(a => isSameDay(new Date(a.start_at), currentDate))}
           staffColumns={staffColumns}
           slotMinutes={slotMinutes}
+          startHour={calStartHour}
+          endHour={calEndHour}
           serviceColors={serviceColors}
           onSelect={setSelectedAppt}
           onMoveRequest={handleMoveRequest}
@@ -1050,13 +1086,13 @@ function WeekView({ days, appointments, serviceColors, onSelect }) {
 }
 
 // ─── Day View (with DnD) ───────────────────────────────────────────────────────
-function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors, onSelect, onMoveRequest, onSlotClick, recurringBreaks = [], blockedTimes = [] }) {
+function DayView({ date, appointments, staffColumns, slotMinutes, startHour = START_HOUR, endHour = END_HOUR, serviceColors, onSelect, onMoveRequest, onSlotClick, recurringBreaks = [], blockedTimes = [] }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
   )
 
-  const totalMinutes = (END_HOUR - START_HOUR) * 60
+  const totalMinutes = (endHour - startHour) * 60
   const slotsCount = totalMinutes / slotMinutes
   const TOTAL_HEIGHT = slotsCount * SLOT_HEIGHT
 
@@ -1066,7 +1102,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors,
     function calcNow() {
       const now = new Date()
       if (!isToday(date)) { setNowTop(null); return }
-      const mins = (now.getHours() - START_HOUR) * 60 + now.getMinutes()
+      const mins = (now.getHours() - startHour) * 60 + now.getMinutes()
       if (mins < 0 || mins > totalMinutes) { setNowTop(null); return }
       setNowTop((mins / slotMinutes) * SLOT_HEIGHT)
     }
@@ -1096,7 +1132,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors,
     if (!appt) return
     const duration = (new Date(appt.end_at) - new Date(appt.start_at)) / 60000
     const newStart = new Date(date)
-    newStart.setHours(START_HOUR + Math.floor(minuteOffset / 60), minuteOffset % 60, 0, 0)
+    newStart.setHours(startHour + Math.floor(minuteOffset / 60), minuteOffset % 60, 0, 0)
     const newEnd = new Date(newStart.getTime() + duration * 60000)
     onMoveRequest(appt, newStart, newEnd, newStaffId)
   }
@@ -1110,8 +1146,8 @@ function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors,
       .forEach(b => {
         const [sh, sm] = b.start_time.split(':').map(Number)
         const [eh, em] = b.end_time.split(':').map(Number)
-        const startMin = (sh - START_HOUR) * 60 + sm
-        const endMin   = (eh - START_HOUR) * 60 + em
+        const startMin = (sh - startHour) * 60 + sm
+        const endMin   = (eh - startHour) * 60 + em
         if (startMin >= totalMinutes || endMin <= 0) return
         blocks.push({ top: (Math.max(startMin,0) / slotMinutes) * SLOT_HEIGHT, height: ((endMin - Math.max(startMin,0)) / slotMinutes) * SLOT_HEIGHT, label: b.label || 'הפסקה' })
       })
@@ -1121,8 +1157,8 @@ function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors,
       .forEach(bt => {
         const start = new Date(bt.start_at)
         const end   = new Date(bt.end_at)
-        const startMin = (start.getHours() - START_HOUR) * 60 + start.getMinutes()
-        const endMin   = (end.getHours()   - START_HOUR) * 60 + end.getMinutes()
+        const startMin = (start.getHours() - startHour) * 60 + start.getMinutes()
+        const endMin   = (end.getHours()   - startHour) * 60 + end.getMinutes()
         if (startMin >= totalMinutes || endMin <= 0) return
         blocks.push({ top: (Math.max(startMin,0) / slotMinutes) * SLOT_HEIGHT, height: ((endMin - Math.max(startMin,0)) / slotMinutes) * SLOT_HEIGHT, label: bt.reason || 'חסום' })
       })
@@ -1174,7 +1210,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors,
                 const isHour   = minuteOff % 60 === 0
                 const isHalf   = !isHour && minuteOff % 30 === 0
                 const top = (minuteOff / slotMinutes) * SLOT_HEIGHT
-                const hour = START_HOUR + Math.floor(minuteOff / 60)
+                const hour = startHour + Math.floor(minuteOff / 60)
                 const min  = minuteOff % 60
                 return (
                   <div key={minuteOff} className="absolute w-full flex items-start justify-center" style={{ top, height: SLOT_HEIGHT }}>
@@ -1225,7 +1261,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, serviceColors,
                   {/* Appointment blocks */}
                   {staffAppts.map(appt => {
                     const startDt = new Date(appt.start_at)
-                    const totalStartMin = (startDt.getHours() - START_HOUR) * 60 + startDt.getMinutes()
+                    const totalStartMin = (startDt.getHours() - startHour) * 60 + startDt.getMinutes()
                     const durationMin   = (new Date(appt.end_at) - startDt) / 60000
                     const top    = (totalStartMin / slotMinutes) * SLOT_HEIGHT
                     const height = Math.max((durationMin / slotMinutes) * SLOT_HEIGHT, 28)
@@ -1292,19 +1328,21 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
 
 // ─── BreakBlock ────────────────────────────────────────────────────────────────
 function BreakBlock({ top, height, label }) {
+  const h = Math.max(height, 16)
   return (
     <div
-      className="absolute inset-x-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none"
+      className="absolute inset-x-0 flex items-center justify-center overflow-hidden pointer-events-none select-none"
       style={{
         top,
-        height: Math.max(height, 16),
-        background: 'repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 6px, #e9eaec 6px, #e9eaec 12px)',
-        borderTop: '1px solid #d1d5db',
-        borderBottom: '1px solid #d1d5db',
+        height: h,
+        zIndex: 3,  // above DroppableSlots (auto) and appointments (2) — but pointer-events-none so clicks pass through
+        background: 'repeating-linear-gradient(135deg, #f0f1f3 0px, #f0f1f3 5px, #e2e4e7 5px, #e2e4e7 10px)',
+        borderTop: '1.5px solid #c8ccd2',
+        borderBottom: '1.5px solid #c8ccd2',
       }}
     >
-      {height >= 24 && (
-        <span className="text-[10px] font-semibold text-gray-400 px-1 text-center truncate w-full text-center">
+      {h >= 20 && (
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', textAlign: 'center', padding: '0 4px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: '100%', display: 'block' }}>
           {label}
         </span>
       )}
