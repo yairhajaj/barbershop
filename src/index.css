@@ -434,3 +434,166 @@
     background: rgba(255,255,255,0.12);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT STYLES — control shapes, shadows, animations (not colors)
+══════════════════════════════════════════════════════════════════ */
+
+/* ── LAYOUT: flat (minimalist) ── */
+[data-layout="flat"] {
+  --radius-card: 6px;
+  --radius-btn: 4px;
+  --shadow-card: none;
+  --shadow-elevated: 0 1px 4px rgba(0,0,0,0.1);
+  --ui-transition: 140ms ease;
+  --ui-btn-shadow: none;
+}
+
+[data-layout="flat"] .card {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  border: 1.5px solid var(--color-border) !important;
+}
+
+[data-layout="flat"] .btn-primary {
+  border-radius: 4px !important;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  box-shadow: none !important;
+  transition: all 140ms ease !important;
+}
+
+[data-layout="flat"] .btn-primary:hover {
+  transform: none !important;
+  filter: brightness(1.08);
+  box-shadow: none !important;
+}
+
+[data-layout="flat"] .btn-primary:active {
+  filter: brightness(0.95);
+  transform: none !important;
+}
+
+[data-layout="flat"] .btn-outline {
+  border-radius: 4px !important;
+  border-width: 1.5px;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+}
+
+[data-layout="flat"] .btn-ghost {
+  border-radius: 4px !important;
+}
+
+[data-layout="flat"] .input {
+  border-radius: 4px !important;
+  border-width: 1.5px;
+}
+
+/* ── LAYOUT: cards (modern cards) ── */
+[data-layout="cards"] {
+  --radius-card: 1rem;
+  --radius-btn: 0.75rem;
+  --shadow-card: 0 2px 16px rgba(0,0,0,0.07);
+  --shadow-elevated: 0 8px 32px rgba(0,0,0,0.12);
+  --ui-transition: 220ms ease-out;
+}
+
+[data-layout="cards"] .card {
+  border-radius: 1rem !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;
+  border: none !important;
+}
+
+[data-layout="cards"] .btn-primary {
+  border-radius: 0.75rem !important;
+  font-weight: 700;
+  box-shadow: 0 2px 10px var(--color-accent-glow) !important;
+  transition: all 220ms ease-out !important;
+}
+
+[data-layout="cards"] .btn-primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px var(--color-accent-glow) !important;
+}
+
+[data-layout="cards"] .btn-primary:active {
+  transform: translateY(0) scale(0.98) !important;
+  transition-duration: 80ms !important;
+}
+
+[data-layout="cards"] .btn-outline {
+  border-radius: 0.75rem !important;
+}
+
+[data-layout="cards"] .btn-ghost {
+  border-radius: 0.75rem !important;
+}
+
+[data-layout="cards"] .input {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* ── LAYOUT: premium (dynamic luxury) ── */
+[data-layout="premium"] {
+  --radius-card: 1.75rem;
+  --radius-btn: 9999px;
+  --shadow-card: 0 4px 28px rgba(0,0,0,0.09);
+  --shadow-elevated: 0 16px 56px rgba(0,0,0,0.18);
+  --ui-transition: 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-layout="premium"] .card {
+  border-radius: 1.75rem !important;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.09) !important;
+  border: none !important;
+}
+
+[data-layout="premium"] .btn-primary {
+  border-radius: 9999px !important;
+  font-weight: 700;
+  padding: 0.875rem 2rem !important;
+  box-shadow: 0 4px 18px var(--color-accent-glow) !important;
+  transition: all 320ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  letter-spacing: 0.01em;
+}
+
+[data-layout="premium"] .btn-primary:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 10px 32px var(--color-accent-glow) !important;
+  filter: brightness(1.07);
+}
+
+[data-layout="premium"] .btn-primary:active {
+  transform: scale(0.96) !important;
+  transition-duration: 100ms !important;
+}
+
+[data-layout="premium"] .btn-outline {
+  border-radius: 9999px !important;
+  border-width: 2px;
+  padding: 0.75rem 1.75rem !important;
+}
+
+[data-layout="premium"] .btn-ghost {
+  border-radius: 9999px !important;
+}
+
+[data-layout="premium"] .input {
+  border-radius: 9999px !important;
+  padding: 0.875rem 1.375rem !important;
+  border-width: 2px;
+}
+
+/* Premium stagger animation keyframe */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-layout="premium"] .premium-item {
+  animation: slideUpFade 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

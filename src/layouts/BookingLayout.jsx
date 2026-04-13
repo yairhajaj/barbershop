@@ -40,15 +40,8 @@ export function BookingLayout({ children }) {
     navigate('/')
   }
 
-  if (layout === 'app') {
-    return <AppLayout children={children} user={user} profile={profile} handleSignOut={handleSignOut} t={t} lang={lang} toggleLang={toggleLang} location={location} bookHref={bookHref} />
-  }
-
-  if (layout === 'minimal') {
-    return <MinimalLayout children={children} user={user} profile={profile} handleSignOut={handleSignOut} t={t} lang={lang} toggleLang={toggleLang} location={location} navigate={navigate} bookHref={bookHref} />
-  }
-
-  // Default layout
+  // All 3 layout styles (flat/cards/premium) use the same HTML structure
+  // Visual differences are handled purely by CSS variables and [data-layout] selectors
   // Mobile menu drawer (used when navbar is hidden at top of homepage)
   return (
     <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
@@ -359,108 +352,3 @@ export function BookingLayout({ children }) {
   )
 }
 
-// ── APP LAYOUT ────────────────────────────────────────────────────
-function AppLayout({ children, user, profile, handleSignOut, t, lang, toggleLang, location, bookHref }) {
-  const tabs = [
-    { to: '/',                   icon: '⌂', label: 'בית' },
-    { to: bookHref,              icon: '✂', label: t.bookNow },
-    { to: '/my-appointments',    icon: '📅', label: lang === 'he' ? 'התורים' : 'Appts' },
-    { to: user ? '#' : '/login', icon: user ? '↩' : '⎗', label: user ? t.logout : t.login, action: user ? handleSignOut : null },
-  ]
-
-  return (
-    <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="min-h-screen pb-20" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
-      <header className="fixed top-0 right-0 left-0 z-40 h-14 flex items-center justify-between px-4 border-b"
-        style={{ background: '#111', borderColor: 'rgba(255,255,255,0.08)' }}
-      >
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm"
-            style={{ background: 'var(--color-gold)', color: '#fff' }}>
-            {BUSINESS.logoText}
-          </div>
-          <span className="font-bold text-sm" style={{ color: '#fff' }}>
-            {BUSINESS.name}
-          </span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <button onClick={toggleLang} className="text-xs font-semibold px-2 py-1 rounded-full border"
-            style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)' }}>
-            {lang === 'he' ? 'EN' : 'עב'}
-          </button>
-          {profile?.role === 'admin' && (
-            <Link to="/admin" className="text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)' }}>
-              {t.admin}
-            </Link>
-          )}
-        </div>
-      </header>
-
-      <main className="pt-14">{children}</main>
-
-      {/* Bottom Tab Bar */}
-      <nav className="fixed bottom-0 right-0 left-0 z-40 border-t flex"
-        style={{ background: '#111', borderColor: 'rgba(255,255,255,0.08)', paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        {tabs.map(tab => {
-          const active = location.pathname === tab.to
-          return (
-            <Link
-              key={tab.to}
-              to={tab.action ? '#' : tab.to}
-              onClick={tab.action || undefined}
-              className="flex-1 flex flex-col items-center gap-1 py-3 text-center transition-all"
-              style={{ color: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.5)' }}
-            >
-              <span className="text-lg leading-none">{tab.icon}</span>
-              <span className="text-[10px] font-medium leading-none">{tab.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
-    </div>
-  )
-}
-
-// ── MINIMAL LAYOUT ────────────────────────────────────────────────
-function MinimalLayout({ children, user, profile, handleSignOut, t, lang, toggleLang, location, navigate, bookHref }) {
-  return (
-    <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="min-h-screen" style={{ background: '#fff', color: '#111' }}>
-      <header className="sticky top-0 z-40 h-14 border-b flex items-center px-6" style={{ background: '#fff', borderColor: '#f0f0f0' }}>
-        <div className="max-w-2xl mx-auto w-full flex items-center justify-between">
-          <Link to="/" className="font-bold text-base" style={{ letterSpacing: '-0.02em', color: '#111' }}>
-            {BUSINESS.name}
-          </Link>
-          <div className="flex items-center gap-4">
-            <button onClick={toggleLang} className="text-xs font-medium px-2 py-1 rounded border" style={{ borderColor: '#e5e5e5', color: '#666' }}>
-              {lang === 'he' ? 'EN' : 'עב'}
-            </button>
-            {user ? (
-              <>
-                <Link to="/my-appointments" className="text-sm" style={{ color: '#666' }}>{t.myAppointments}</Link>
-                {profile?.role === 'admin' && <Link to="/admin" className="text-sm font-semibold" style={{ color: '#111' }}>{t.admin}</Link>}
-                <button onClick={handleSignOut} className="text-sm" style={{ color: '#999' }}>{t.logout}</button>
-              </>
-            ) : (
-              <Link to="/login" className="text-sm" style={{ color: '#666' }}>{t.login}</Link>
-            )}
-            <Link to={bookHref} className="text-sm font-bold px-4 py-2 rounded-full"
-              style={{ background: '#111', color: '#fff' }}>
-              {t.bookNow}
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main>{children}</main>
-
-      <footer className="border-t py-8 mt-16" style={{ borderColor: '#f0f0f0' }}>
-        <div className="max-w-2xl mx-auto px-6 text-center text-sm" style={{ color: '#999' }}>
-          {BUSINESS.address} · {BUSINESS.phone}
-          <br />
-          © {new Date().getFullYear()} {BUSINESS.name}
-        </div>
-      </footer>
-    </div>
-  )
-}

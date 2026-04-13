@@ -444,15 +444,26 @@ export function Appearance() {
             const active = activeLayout === lay.id
             return (
               <button key={lay.id} type="button" onClick={() => selectLayout(lay.id)}
-                className="p-5 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
-                style={{ borderColor: active ? 'var(--color-gold)' : 'var(--color-border)', background: active ? 'rgba(201,169,110,0.08)' : 'var(--color-card)' }}
+                className="p-5 border-2 text-right transition-all"
+                style={{
+                  borderRadius: '1rem',
+                  borderColor: active ? 'var(--color-gold)' : 'var(--color-border)',
+                  background: active ? 'rgba(201,169,110,0.08)' : 'var(--color-card)',
+                  transform: active ? 'scale(1.02)' : 'scale(1)',
+                  transition: 'all 0.2s ease',
+                }}
               >
-                <div className="w-full h-24 rounded-xl overflow-hidden mb-3 border" style={{ borderColor: 'var(--color-border)' }}>
+                {/* Visual preview of the style */}
+                <div className="w-full h-28 overflow-hidden mb-3" style={{ borderRadius: '0.5rem', background: 'rgba(0,0,0,0.04)', border: '1px solid var(--color-border)' }}>
                   <LayoutPreviewMini id={lay.id} />
                 </div>
-                <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{lay.name}</div>
-                <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{lay.desc}</div>
-                {active && <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>}
+                <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-text)' }}>{lay.name}</div>
+                <div className="text-xs leading-snug" style={{ color: 'var(--color-muted)' }}>{lay.desc}</div>
+                {active && (
+                  <div className="text-xs font-bold mt-2 flex items-center gap-1" style={{ color: 'var(--color-gold)' }}>
+                    <span>✓</span> פעיל
+                  </div>
+                )}
               </button>
             )
           })}
@@ -560,50 +571,63 @@ export function Appearance() {
 
 // Mini previews for each layout
 function LayoutPreviewMini({ id }) {
-  if (id === 'luxury') return (
-    <div className="w-full h-full bg-black flex flex-col">
-      <div className="h-4 bg-black border-b border-white/10 flex items-center px-2 gap-1">
-        <div className="w-8 h-1.5 rounded-full bg-yellow-500/80" />
-        <div className="flex-1" />
-        <div className="w-6 h-1.5 rounded-full bg-white/20" />
+  if (id === 'flat') return (
+    <div className="w-full h-full flex flex-col bg-white p-3 gap-2">
+      {/* Flat header */}
+      <div className="flex items-center justify-between pb-2" style={{ borderBottom: '1.5px solid #e5e5e5' }}>
+        <div className="w-10 h-2 bg-gray-900" style={{ borderRadius: 1 }} />
+        <div className="w-8 h-4 bg-gray-900 flex items-center justify-center" style={{ borderRadius: 2 }}>
+          <div className="w-5 h-1.5 bg-white" style={{ borderRadius: 1 }} />
+        </div>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center gap-1">
-        <div className="w-16 h-2 rounded-full bg-white/30" />
-        <div className="w-10 h-1.5 rounded-full bg-yellow-500/50" />
-        <div className="w-12 h-4 rounded-lg bg-yellow-600/70 mt-1" />
-      </div>
-    </div>
-  )
-  if (id === 'app') return (
-    <div className="w-full h-full bg-neutral-900 flex flex-col">
-      <div className="h-4 bg-neutral-900 border-b border-white/10 flex items-center px-2 gap-1">
-        <div className="w-6 h-1.5 rounded-full bg-yellow-500/80" />
-        <div className="flex-1" />
-      </div>
-      <div className="flex-1 flex flex-col gap-1 p-2">
-        <div className="w-full h-3 rounded-lg bg-white/10" />
-        <div className="w-full h-3 rounded-lg bg-white/10" />
-        <div className="w-3/4 h-3 rounded-lg bg-white/10" />
-      </div>
-      <div className="h-7 bg-black border-t border-white/10 flex items-center justify-around px-2">
-        {['⌂','✂','📅','⎗'].map(icon => (
-          <span key={icon} className="text-[8px] opacity-60">{icon}</span>
+      {/* Flat content rows */}
+      <div className="space-y-1.5">
+        {[80, 65, 75].map((w, i) => (
+          <div key={i} className="flex items-center justify-between px-2 py-1.5" style={{ border: '1.5px solid #e5e5e5', borderRadius: 3 }}>
+            <div className="h-1.5 bg-gray-300" style={{ width: `${w}%`, borderRadius: 1 }} />
+            <div className="h-3 w-6 bg-gray-900" style={{ borderRadius: 2 }} />
+          </div>
         ))}
       </div>
     </div>
   )
-  return (
-    <div className="w-full h-full bg-white flex flex-col">
-      <div className="h-4 bg-white border-b border-gray-200 flex items-center px-2">
-        <div className="w-8 h-1.5 rounded-full bg-gray-900" />
-        <div className="flex-1" />
-        <div className="w-10 h-2 rounded-md bg-gray-900" />
+
+  if (id === 'cards') return (
+    <div className="w-full h-full flex flex-col p-2 gap-2" style={{ background: '#f5f5f5' }}>
+      {/* Cards header */}
+      <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderRadius: 10 }}>
+        <div className="w-8 h-2 rounded-full bg-gray-800" />
+        <div className="w-10 h-3 rounded-lg bg-orange-400" style={{ borderRadius: 6 }} />
       </div>
-      <div className="flex-1 flex flex-col gap-1.5 p-2">
-        <div className="w-24 h-3 rounded bg-gray-900" />
-        <div className="w-16 h-2 rounded bg-gray-400" />
-        {[1,2,3].map(i => (
-          <div key={i} className="w-full h-2.5 rounded border border-gray-200" />
+      {/* Cards content */}
+      <div className="space-y-1.5">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+            <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: '55%' }} />
+            <div className="h-4 w-8 bg-orange-400 rounded-lg" style={{ borderRadius: 6 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  // premium
+  return (
+    <div className="w-full h-full flex flex-col p-2 gap-2" style={{ background: '#f8f8f8' }}>
+      {/* Premium header */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-white" style={{ borderRadius: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+        <div className="w-7 h-7 rounded-full bg-orange-400" style={{ boxShadow: '0 2px 6px rgba(255,122,0,0.35)' }} />
+        <div className="h-5 px-3 bg-orange-400 flex items-center" style={{ borderRadius: 999, boxShadow: '0 2px 8px rgba(255,122,0,0.35)' }}>
+          <div className="w-8 h-1.5 bg-white rounded-full opacity-90" />
+        </div>
+      </div>
+      {/* Premium items — pill shaped */}
+      <div className="space-y-1.5">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-white" style={{ borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+            <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: '50%' }} />
+            <div className="h-4 w-10 bg-orange-400" style={{ borderRadius: 999 }} />
+          </div>
         ))}
       </div>
     </div>

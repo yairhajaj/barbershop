@@ -148,12 +148,13 @@ export function SelectDateTime() {
                 <button
                   key={date.toISOString()}
                   onClick={() => setSelectedDate(date)}
-                  className="flex flex-col items-center px-3 py-2.5 rounded-2xl font-semibold text-xs transition-all min-w-[58px] border-2"
+                  className="flex flex-col items-center px-3 py-2.5 font-semibold text-xs transition-all min-w-[58px] border-2"
                   style={{
                     background:   active ? 'var(--color-gold)'   : 'var(--color-card)',
                     borderColor:  active ? 'var(--color-gold)'   : 'var(--color-border)',
                     color:        active ? '#fff'                : 'var(--color-text)',
                     boxShadow:    active ? '0 2px 12px rgba(255,122,0,0.25)' : 'none',
+                    borderRadius: 'var(--radius-btn)',
                   }}
                 >
                   <span className="text-[10px] font-semibold mb-0.5" style={{ opacity: active ? 1 : 0.6 }}>
@@ -195,11 +196,13 @@ export function SelectDateTime() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.02 }}
                 onClick={() => selectSlot(slot)}
-                className="py-3 px-2 rounded-2xl border-2 transition-all text-sm font-bold text-center"
+                className="py-3 px-2 border-2 transition-all text-sm font-bold text-center"
                 style={{
                   background: 'var(--color-card)',
                   borderColor: 'var(--color-border)',
                   color: 'var(--color-text)',
+                  borderRadius: 'var(--radius-btn)',
+                  transition: 'all var(--ui-transition, 200ms ease)',
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background = 'var(--color-gold)'

@@ -42,22 +42,25 @@ export const THEMES = [
 
 export const LAYOUTS = [
   {
-    id: 'luxury',
-    name: 'יוקרה',
-    desc: 'Dark mode מלא — כמו אפליקציית יוקרה',
-    icon: '✦',
-  },
-  {
-    id: 'app',
-    name: 'מובייל נייטיב',
-    desc: 'ניווט תחתי — כמו אפליקציית iOS',
-    icon: '⬡',
-  },
-  {
-    id: 'minimal',
+    id: 'flat',
     name: 'מינימלי',
-    desc: 'לבן ונקי — עיצוב סקנדינבי',
-    icon: '○',
+    desc: 'שטוח ונקי — ללא צללים, קצוות חדים, אוורירי',
+    icon: '▭',
+    preview: { radius: 4, shadow: false, pill: false },
+  },
+  {
+    id: 'cards',
+    name: 'כרטיסים',
+    desc: 'פינות מעוגלות, צללים עדינים, מבנה מסודר',
+    icon: '⬭',
+    preview: { radius: 14, shadow: true, pill: false },
+  },
+  {
+    id: 'premium',
+    name: 'פרימיום',
+    desc: 'כפתורי pill, אנימציות חלקות, חוויית יוקרה',
+    icon: '◯',
+    preview: { radius: 999, shadow: true, pill: true },
   },
 ]
 
@@ -70,14 +73,14 @@ async function getSettingsId() {
 
 export function ThemeProvider({ children }) {
   const [theme,  setThemeState]  = useState('orange')
-  const [layout, setLayoutState] = useState('luxury')
+  const [layout, setLayoutState] = useState('cards')
   const [loaded, setLoaded] = useState(false)
 
   // Load from Supabase on mount (syncs all devices)
   useEffect(() => {
     supabase.from('business_settings').select('theme, layout').single().then(({ data }) => {
       const t = data?.theme  || 'orange'
-      const l = data?.layout || 'luxury'
+      const l = data?.layout || 'cards'
       setThemeState(t)
       setLayoutState(l)
       applyToDOM(t, l)
