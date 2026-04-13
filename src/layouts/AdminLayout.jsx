@@ -31,7 +31,7 @@ export function AdminLayout({ children }) {
   }
 
   return (
-    <div dir="rtl" className="flex min-h-screen bg-gray-50">
+    <div dir="rtl" className="flex min-h-screen bg-gray-50" data-admin="true">
       {/* Sidebar — desktop */}
       <aside className="hidden lg:flex flex-col w-64 bg-[var(--color-primary)] text-white fixed top-0 bottom-0 right-0">
         {/* Logo */}

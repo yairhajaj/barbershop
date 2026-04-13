@@ -585,6 +585,54 @@
   min-height: 65vh !important;
 }
 
+/* ── Admin panel: reset ALL luxury overrides — admin always stays light ── */
+[data-layout="luxury"] [data-admin="true"] {
+  --color-surface: #f9fafb;
+  --color-card:    #ffffff;
+  --color-border:  rgba(0,0,0,0.08);
+  --color-text:    #111111;
+  --color-muted:   #888888;
+  --color-navbar:  #111111;
+  --radius-card:   0.75rem;
+  --radius-btn:    0.5rem;
+  --shadow-card:   0 2px 8px rgba(0,0,0,0.07);
+}
+[data-layout="luxury"] [data-admin="true"],
+[data-layout="luxury"] [data-admin="true"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Reset body bg when inside admin */
+[data-layout="luxury"] [data-admin="true"] .card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
+  border-radius: 0.75rem !important;
+}
+[data-layout="luxury"] [data-admin="true"] .btn-primary {
+  border-radius: 0.5rem !important;
+  text-transform: none !important;
+  font-size: 1rem !important;
+  letter-spacing: normal !important;
+  padding: 0.75rem 1.75rem !important;
+  box-shadow: none !important;
+}
+[data-layout="luxury"] [data-admin="true"] .input {
+  border-radius: 0.5rem !important;
+  background: #fff !important;
+  border: 1.5px solid rgba(0,0,0,0.12) !important;
+  color: #111 !important;
+  padding: 0.75rem 1rem !important;
+}
+[data-layout="luxury"] [data-admin="true"] .input::placeholder {
+  color: #999 !important;
+}
+/* Reset badge / pill backgrounds in admin */
+[data-layout="luxury"] [data-admin="true"] [style*="rgba(0,0,0,0.05)"],
+[data-layout="luxury"] [data-admin="true"] [style*="rgba(0,0,0,0.06)"] {
+  background: rgba(0,0,0,0.05) !important;
+}
+
 /* ── LAYOUT: luxury — Cinematic Dark / Glassmorphism ── */
 [data-layout="luxury"] {
   --radius-card: 1.5rem;
