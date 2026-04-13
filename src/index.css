@@ -591,8 +591,13 @@
   --radius-btn: 9999px;
   --shadow-card: 0 8px 40px rgba(0,0,0,0.35);
   --shadow-elevated: 0 20px 60px rgba(0,0,0,0.5);
-  --color-text: #f0f0f0;
-  --color-muted: rgba(255,255,255,0.52);
+  /* Override ALL color vars so inline style="color: var(--color-text)" reads dark values */
+  --color-surface: #0a0a0a;
+  --color-card:    #161616;
+  --color-border:  rgba(255,255,255,0.1);
+  --color-text:    #f0f0f0;
+  --color-muted:   rgba(255,255,255,0.52);
+  --color-navbar:  rgba(8,8,8,0.88);
 }
 
 [data-layout="luxury"] body {
@@ -600,7 +605,13 @@
   color: #f0f0f0;
 }
 
-/* Override CSS color vars for luxury — applies everywhere via inheritance */
+/* Badge / pill labels with rgba(0,0,0,0.05) bg become invisible on dark — fix */
+[data-layout="luxury"] [style*="rgba(0,0,0,0.05)"],
+[data-layout="luxury"] [style*="rgba(0,0,0,0.06)"],
+[data-layout="luxury"] [style*="rgba(0,0,0,0.07)"],
+[data-layout="luxury"] [style*="rgba(0,0,0,0.08)"] {
+  background: rgba(255,255,255,0.08) !important;
+}
 
 /* Typography — dramatic ONLY in hero, not admin/booking steps */
 [data-layout="luxury"] .hero-section h1 {
