@@ -178,7 +178,10 @@ export function HomePage() {
       <section id="services" className="py-10 px-4" style={{ background: 'var(--color-surface)' }}>
         <div className="max-w-xl mx-auto">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-black" style={{ color: 'var(--color-text)', letterSpacing: '-0.01em' }}>השירותים שלנו</h2>
+            <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+              השירותים שלנו
+            </h2>
             <Link to={bookHref} className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>הכל ←</Link>
           </div>
 
@@ -219,7 +222,10 @@ export function HomePage() {
       {!staffLoading && staff.length > 0 && (
         <section id="team" className="py-10" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)' }}>
           <div className="px-4 max-w-xl mx-auto mb-4">
-            <h2 className="text-xl font-black" style={{ color: 'var(--color-text)', letterSpacing: '-0.01em' }}>הצוות שלנו</h2>
+            <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+              הצוות שלנו
+            </h2>
           </div>
 
           {/* Horizontal scroll strip */}
@@ -299,7 +305,10 @@ export function HomePage() {
         <section className="py-10 px-4" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)' }}>
           <div className="max-w-xl mx-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-black" style={{ color: 'var(--color-text)', letterSpacing: '-0.01em' }}>🛍️ מוצרים מומלצים</h2>
+              <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+                מוצרים מומלצים
+              </h2>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
               {featuredProducts.map((product, i) => (
@@ -330,7 +339,10 @@ export function HomePage() {
       {reviews.length > 0 && (
         <section className="py-10 px-4" style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
           <div className="max-w-xl mx-auto">
-            <h2 className="text-xl font-black mb-5" style={{ color: 'var(--color-text)', letterSpacing: '-0.01em' }}>מה אומרים הלקוחות ✨</h2>
+            <h2 className="text-[22px] font-black flex items-center gap-2.5 mb-5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+              מה אומרים הלקוחות
+            </h2>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
               {reviews.slice(0, 10).map((review, i) => (
                 <motion.div
@@ -359,7 +371,10 @@ export function HomePage() {
       {/* ── CONTACT ───────────────────────────────────────────────── */}
       <section id="contact" className="py-10 px-4" style={{ background: 'var(--color-surface)' }}>
         <div className="max-w-xl mx-auto">
-          <h2 className="text-xl font-black mb-5" style={{ color: 'var(--color-text)', letterSpacing: '-0.01em' }}>מצאו אותנו</h2>
+          <h2 className="text-[22px] font-black flex items-center gap-2.5 mb-5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+            <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+            מצאו אותנו
+          </h2>
 
           <div className="rounded-2xl p-5 mb-5 space-y-3" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
             {[
