@@ -400,7 +400,7 @@ export function BookingLayout({ children }) {
               textAlign: 'center',
             }}
           >
-            <BarIcon name="scissors" size={22} />
+            <BarIcon name="scissors" size={24} color="#fff" />
             <span className="text-[10px] font-bold leading-none">הזמן תור</span>
           </Link>
           {user
@@ -416,9 +416,9 @@ export function BookingLayout({ children }) {
   )
 }
 
-// SVG icon set — clean app-style vector icons (not system emoji)
-function BarIcon({ name, size = 22 }) {
-  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }
+// SVG icon set — color passed directly to stroke (not via currentColor, avoids CSS overrides)
+function BarIcon({ name, size = 26, color = '#222' }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
   if (name === 'home') return (
     <svg {...p}>
       <path d="M3 11L12 3l9 8v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9z" />
@@ -461,24 +461,22 @@ function BarIcon({ name, size = 22 }) {
 }
 
 function BottomBarButton({ to, icon, label, active, barText, barBgActive }) {
+  const iconColor = active ? 'var(--color-gold)' : barText
   return (
     <Link
       to={to}
-      className="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-2xl transition-all relative"
-      style={{
-        color: active ? 'var(--color-gold)' : barText,
-        minWidth: 56,
-        background: active ? barBgActive : 'transparent',
-      }}
+      className="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-2xl relative"
+      style={{ minWidth: 58, background: active ? barBgActive : 'transparent' }}
     >
       {active && (
         <span
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
+          className="absolute left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
           style={{ background: 'var(--color-gold)', top: '-1px' }}
         />
       )}
-      <BarIcon name={icon} size={22} />
-      <span className="text-[10px] font-semibold leading-none text-center">{label}</span>
+      {/* Color passed directly to SVG stroke — bypasses any CSS color inheritance issues */}
+      <BarIcon name={icon} size={26} color={iconColor} />
+      <span className="text-[10px] font-semibold leading-none text-center" style={{ color: iconColor }}>{label}</span>
     </Link>
   )
 }
