@@ -894,28 +894,7 @@
   border-bottom: 1px solid rgba(200,150,160,0.12) !important;
 }
 
-/* ── Mobile bottom bar — light theme override ── */
-[data-theme="orange"] .mobile-bottom-bar nav,
-[data-theme="app-copy"] .mobile-bottom-bar nav,
-[data-theme="rose"] .mobile-bottom-bar nav,
-[data-theme="sage"] .mobile-bottom-bar nav {
-  background: rgba(255,255,255,0.90) !important;
-  border-color: rgba(0,0,0,0.07) !important;
-  box-shadow: 0 -2px 0 rgba(255,255,255,0.9), 0 8px 48px rgba(0,0,0,0.12), 0 24px 64px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95) !important;
-}
-[data-theme="orange"] .mobile-bottom-bar a:not([style*="background"]),
-[data-theme="app-copy"] .mobile-bottom-bar a:not([style*="background"]),
-[data-theme="rose"] .mobile-bottom-bar a:not([style*="background"]),
-[data-theme="sage"] .mobile-bottom-bar a:not([style*="background"]) {
-  color: rgba(0,0,0,0.36) !important;
-}
-/* Active indicator on light themes */
-[data-theme="orange"] .mobile-bottom-bar a[style*="background: rgba(255,255,255,0.07)"],
-[data-theme="app-copy"] .mobile-bottom-bar a[style*="background: rgba(255,255,255,0.07)"],
-[data-theme="rose"] .mobile-bottom-bar a[style*="background: rgba(255,255,255,0.07)"],
-[data-theme="sage"] .mobile-bottom-bar a[style*="background: rgba(255,255,255,0.07)"] {
-  background: rgba(0,0,0,0.04) !important;
-}
+/* ── Mobile bottom bar — theming handled via inline JSX styles (no CSS overrides needed) ── */
 
 /* ── BACKWARDS COMPATIBILITY ALIASES ── */
 /* DB may store old IDs flat/cards/premium — remap them */

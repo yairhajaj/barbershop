@@ -352,69 +352,140 @@ export function BookingLayout({ children }) {
       </footer>
 
       {/* ── Mobile floating bottom bar — hidden on desktop ── */}
-      <div
-        className="mobile-bottom-bar md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{ padding: '0 10px calc(10px + env(safe-area-inset-bottom, 0px))' }}
-      >
-        <nav style={{
-          background: 'rgba(12,12,12,0.88)',
-          backdropFilter: 'blur(32px) saturate(1.6)',
-          WebkitBackdropFilter: 'blur(32px) saturate(1.6)',
-          border: '1px solid rgba(255,255,255,0.11)',
-          borderRadius: '26px',
-          boxShadow: '0 -2px 0 rgba(255,255,255,0.06), 0 8px 48px rgba(0,0,0,0.45), 0 24px 64px rgba(0,0,0,0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          padding: '10px 6px',
-        }}>
-          <BottomBarButton to="/" icon="🏡" label="בית" active={location.pathname === '/'} />
-          {/* Central book button — elevated pill */}
-          <Link
-            to={bookHref}
-            className="flex flex-col items-center gap-0.5 px-5 py-2.5 rounded-2xl"
-            style={{
-              background: 'var(--color-gold)',
-              color: '#fff',
-              boxShadow: '0 8px 32px var(--color-accent-glow), 0 4px 16px rgba(0,0,0,0.35), 0 0 0 1.5px rgba(255,255,255,0.18) inset',
-              transform: 'translateY(-6px)',
-            }}
+      {/* ── Mobile floating bottom bar ── */}
+      {(() => {
+        const isDark = theme === 'midnight' || layout === 'luxury'
+        const isGlassBar = layout === 'glass'
+        // Bar appearance
+        const navBg = isGlassBar
+          ? (isDark ? 'rgba(10,11,30,0.52)' : 'rgba(255,255,255,0.24)')
+          : isDark
+            ? 'rgba(12,12,12,0.90)'
+            : 'rgba(255,255,255,0.92)'
+        const navBorder = isGlassBar
+          ? (isDark ? 'rgba(129,140,248,0.2)' : 'rgba(255,255,255,0.42)')
+          : isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'
+        const navBlur = isGlassBar ? 'blur(40px) saturate(2)' : 'blur(32px) saturate(1.5)'
+        const navShadow = isGlassBar
+          ? '0 8px 40px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.45)'
+          : isDark
+            ? '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
+            : '0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)'
+        // Text/icon color
+        const barText = isDark || isGlassBar ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.35)'
+        const barBgActive = isDark || isGlassBar ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
+        return (
+          <div
+            className="mobile-bottom-bar md:hidden fixed bottom-0 left-0 right-0 z-50"
+            style={{ padding: '0 10px calc(10px + env(safe-area-inset-bottom, 0px))' }}
           >
-            <span className="text-2xl leading-none">💈</span>
-            <span className="text-[10px] font-bold leading-tight">הזמן תור</span>
-          </Link>
-          {user
-            ? <BottomBarButton to="/my-appointments" icon="🗓️" label="התורים שלי" active={location.pathname === '/my-appointments'} />
-            : <BottomBarButton to="/login" icon="🔑" label="כניסה" active={location.pathname.startsWith('/login')} />
-          }
-          {isAdmin && (
-            <BottomBarButton to="/admin" icon="🛠️" label="ניהול" active={location.pathname.startsWith('/admin')} />
-          )}
-        </nav>
-      </div>
+            <nav style={{
+              background: navBg,
+              backdropFilter: navBlur,
+              WebkitBackdropFilter: navBlur,
+              border: `1px solid ${navBorder}`,
+              borderRadius: '26px',
+              boxShadow: navShadow,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-around',
+              padding: '10px 6px',
+            }}>
+              <BottomBarButton to="/" icon="home" label="בית" active={location.pathname === '/'} barText={barText} barBgActive={barBgActive} />
+              {/* Central book button — elevated pill */}
+              <Link
+                to={bookHref}
+                className="flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl"
+                style={{
+                  background: 'var(--color-gold)',
+                  color: '#fff',
+                  boxShadow: '0 10px 36px var(--color-accent-glow), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.22)',
+                  transform: 'translateY(-8px)',
+                  minWidth: 64,
+                  textAlign: 'center',
+                }}
+              >
+                <BarIcon name="scissors" size={22} />
+                <span className="text-[10px] font-bold leading-none">הזמן תור</span>
+              </Link>
+              {user
+                ? <BottomBarButton to="/my-appointments" icon="calendar" label="התורים שלי" active={location.pathname === '/my-appointments'} barText={barText} barBgActive={barBgActive} />
+                : <BottomBarButton to="/login" icon="person" label="כניסה" active={location.pathname.startsWith('/login')} barText={barText} barBgActive={barBgActive} />
+              }
+              {isAdmin && (
+                <BottomBarButton to="/admin" icon="settings" label="ניהול" active={location.pathname.startsWith('/admin')} barText={barText} barBgActive={barBgActive} />
+              )}
+            </nav>
+          </div>
+        )
+      })()}
     </div>
   )
 }
 
-function BottomBarButton({ to, icon, label, active }) {
+// SVG icon set — clean app-style vector icons (not system emoji)
+function BarIcon({ name, size = 22 }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.85, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  if (name === 'home') return (
+    <svg {...p}>
+      <path d="M3 11L12 3l9 8v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9z" />
+      <path d="M9 22V13h6v9" />
+    </svg>
+  )
+  if (name === 'calendar') return (
+    <svg {...p}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="8" cy="15" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="15" r="1" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="15" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+  if (name === 'person') return (
+    <svg {...p}>
+      <circle cx="12" cy="7" r="4" />
+      <path d="M4 21v-1a8 8 0 0116 0v1" />
+    </svg>
+  )
+  if (name === 'settings') return (
+    <svg {...p}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+    </svg>
+  )
+  if (name === 'scissors') return (
+    <svg {...p} strokeWidth={2.2}>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <line x1="20" y1="4" x2="8.12" y2="15.88" />
+      <line x1="14.47" y1="14.48" x2="20" y2="20" />
+      <line x1="8.12" y1="8.12" x2="12" y2="12" />
+    </svg>
+  )
+  return null
+}
+
+function BottomBarButton({ to, icon, label, active, barText, barBgActive }) {
   return (
     <Link
       to={to}
-      className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all relative"
+      className="flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-2xl transition-all relative"
       style={{
-        color: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.5)',
-        minWidth: 54,
-        background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
+        color: active ? 'var(--color-gold)' : barText,
+        minWidth: 56,
+        background: active ? barBgActive : 'transparent',
       }}
     >
-      <span className="text-2xl leading-none">{icon}</span>
-      <span className="text-[10px] font-semibold leading-tight">{label}</span>
       {active && (
         <span
-          className="absolute top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
-          style={{ background: 'var(--color-gold)' }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
+          style={{ background: 'var(--color-gold)', top: '-1px' }}
         />
       )}
+      <BarIcon name={icon} size={22} />
+      <span className="text-[10px] font-semibold leading-none text-center">{label}</span>
     </Link>
   )
 }
