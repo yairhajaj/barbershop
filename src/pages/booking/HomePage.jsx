@@ -20,7 +20,6 @@ export function HomePage() {
   const { settings } = useBusinessSettings()
   const { user, profile } = useAuth()
   const { theme } = useTheme()
-  const bookHref = (theme === 'orange' || theme === 'app-copy') ? '/book/all' : '/book/service'
 
   const [portfolioMember, setPortfolioMember] = useState(null)
 
@@ -39,6 +38,19 @@ export function HomePage() {
   const portfolioMode = settings?.portfolio_view_mode
     || localStorage.getItem('portfolio_view_mode')
     || 'grid'
+
+  // booking flow: 'multistep' | 'all-in-one'
+  const bookingFlow = settings?.booking_flow
+    || localStorage.getItem('booking_flow')
+    || 'multistep'
+  const bookHref = bookingFlow === 'all-in-one' ? '/book/all' : '/book/service'
+
+  // Service card link — skip service step if multistep, pre-select if all-in-one
+  function serviceHref(serviceId) {
+    return bookingFlow === 'all-in-one'
+      ? `/book/all?service=${serviceId}`
+      : `/book/staff?service=${serviceId}`
+  }
 
   return (
     <>
@@ -143,7 +155,7 @@ export function HomePage() {
               {services.map((service, i) => (
                 <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                   <Link
-                    to={`/book/staff?service=${service.id}`}
+                    to={serviceHref(service.id)}
                     className="flex items-center justify-between p-4 rounded-2xl border-2 transition-all group"
                     style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,122,0,0.1)' }}

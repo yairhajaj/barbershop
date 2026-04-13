@@ -135,16 +135,6 @@ export function SelectDateTime() {
           ← חזרה
         </button>
 
-        {/* Smart Scheduling notice */}
-        {settings.smart_scheduling_enabled && (
-          <div
-            className="rounded-2xl p-3 mb-5 text-sm flex items-center gap-2"
-            style={{ background: 'rgba(255,122,0,0.08)', border: '1px solid rgba(255,122,0,0.2)', color: 'var(--color-gold)' }}
-          >
-            ⚡ מצב חיסכון בזמן פעיל — מוצגים חריצים צמודים לתורים קיימים
-          </div>
-        )}
-
         {/* Section label */}
         <p className="text-xs font-bold mb-2 tracking-wide" style={{ color: 'var(--color-muted)' }}>בחר יום</p>
 

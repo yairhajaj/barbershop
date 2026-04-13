@@ -68,6 +68,22 @@ export function Appearance() {
     saveSettings({ hero_type: type }).catch(() => {})
   }
 
+  // ── Booking flow ───────────────────────────────────────────────
+  const [bookingFlow, setBookingFlow] = useState(
+    localStorage.getItem('booking_flow') || 'multistep'
+  )
+
+  useEffect(() => {
+    if (settings?.booking_flow) setBookingFlow(settings.booking_flow)
+  }, [settings?.booking_flow])
+
+  async function handleSaveBookingFlow(flow) {
+    setBookingFlow(flow)
+    localStorage.setItem('booking_flow', flow)
+    saveSettings({ booking_flow: flow }).catch(() => {})
+    toast({ message: flow === 'multistep' ? 'מצב רב-שלבי פעיל ✓' : 'מצב עמוד אחד פעיל ✓', type: 'success' })
+  }
+
   // ── Portfolio mode ─────────────────────────────────────────────
   const [portfolioMode, setPortfolioMode] = useState(
     localStorage.getItem('portfolio_view_mode') || 'grid'
@@ -310,6 +326,56 @@ export function Appearance() {
               <button onClick={() => handleSaveLogo(null)} className="text-xs text-red-500 hover:underline">הסר</button>
             )}
           </div>
+        </div>
+      </motion.section>
+
+      {/* ── BOOKING FLOW ────────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">סגנון תהליך הזמנה</h2>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>איך הלקוח יקבע תור — בשני הכפתורים בדף הבית</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              id: 'multistep',
+              icon: '📋',
+              title: 'רב-שלבי',
+              desc: 'שלב אחר שלב עם סרגל התקדמות',
+              steps: ['שירות', 'ספר', 'תאריך', 'פרטים'],
+            },
+            {
+              id: 'all-in-one',
+              icon: '⚡',
+              title: 'עמוד אחד',
+              desc: 'הכל על דף אחד — מהיר וגולל',
+              steps: ['ספר → תאריך → שירות → שעה'],
+            },
+          ].map(opt => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => handleSaveBookingFlow(opt.id)}
+              className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
+              style={{
+                borderColor: bookingFlow === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
+                background:  bookingFlow === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
+              }}
+            >
+              <div className="text-3xl mb-2">{opt.icon}</div>
+              <div className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)' }}>{opt.title}</div>
+              <div className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+              <div className="flex flex-wrap gap-1">
+                {opt.steps.map((s, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--color-muted)' }}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+              {bookingFlow === opt.id && (
+                <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
+              )}
+            </button>
+          ))}
         </div>
       </motion.section>
 

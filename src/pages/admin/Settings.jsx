@@ -278,37 +278,6 @@ export function Settings() {
           )}
         </section>
 
-        {/* Calendar Settings */}
-        <section className="card p-6">
-          <h2 className="font-semibold text-lg mb-4">הגדרות יומן</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">תצוגת ברירת מחדל</label>
-              <select
-                className="input"
-                value={form.calendar_default_view}
-                onChange={e => setForm(f => ({ ...f, calendar_default_view: e.target.value }))}
-              >
-                <option value="day">יומי</option>
-                <option value="week">שבועי</option>
-                <option value="list">רשימה</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">עמודות ספרים ביומן</label>
-              <input
-                className="input"
-                type="number"
-                min="1"
-                max="10"
-                value={form.calendar_columns}
-                onChange={e => setForm(f => ({ ...f, calendar_columns: Number(e.target.value) }))}
-              />
-              <p className="text-xs text-muted mt-1">מספר ספרים בתצוגה היומית</p>
-            </div>
-          </div>
-        </section>
-
         {/* Invoice */}
         <section className="card p-6">
           <h2 className="font-semibold text-lg mb-4">חשבוניות</h2>

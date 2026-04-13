@@ -3,7 +3,7 @@
  * Staff → Date → Service → Time all on one scrollable page
  */
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { addDays, startOfDay, isSameDay, addMinutes, isToday, isBefore } from 'date-fns'
 import { useAuth } from '../../contexts/AuthContext'
@@ -20,6 +20,7 @@ const DAYS_AHEAD = 30
 
 export function BookAll() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
 
   const { staff, loading: staffLoading } = useStaff({ activeOnly: true })
@@ -32,6 +33,14 @@ export function BookAll() {
   const [selDate,    setSelDate]     = useState(startOfDay(new Date()))
   const [selService, setSelService]  = useState(null)
   const [selSlot,    setSelSlot]     = useState(null)
+
+  // Pre-select service from URL param (e.g. /book/all?service=ID)
+  useEffect(() => {
+    const serviceId = searchParams.get('service')
+    if (!serviceId || services.length === 0) return
+    const found = services.find(s => s.id === serviceId)
+    if (found) setSelService(found)
+  }, [searchParams, services])
 
   const [blockedTimes, setBlockedTimes] = useState([])
   const [slots, setSlots]               = useState([])
@@ -282,25 +291,6 @@ export function BookAll() {
                     boxShadow:  active ? '0 3px 12px rgba(255,133,0,0.35)' : 'none',
                   }}
                 >
-                  {/* Duration badge */}
-                  <span
-                    className="absolute flex items-center justify-center"
-                    style={{
-                      top: '-6px',
-                      right: '-4px',
-                      minWidth: '22px',
-                      height: '18px',
-                      padding: '0 5px',
-                      borderRadius: '999px',
-                      background: active ? '#fff' : '#111',
-                      color: active ? 'var(--color-gold)' : '#fff',
-                      fontSize: '10px',
-                      fontWeight: 900,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {svc.duration_minutes}
-                  </span>
                   <span>{svc.name}</span>
                   {svc.price > 0 && (
                     <span style={{ opacity: 0.75, fontSize: '12px' }}>
@@ -387,6 +377,9 @@ export function BookAll() {
               <div className="flex items-center justify-between mb-3">
                 <div style={{ fontSize: '13px', color: '#888' }}>
                   {selService.name} · {formatTime(selSlot.start)}
+                  {selService.duration_minutes && (
+                    <span> · ⏱ {selService.duration_minutes} דק׳</span>
+                  )}
                 </div>
                 {selService.price > 0 && (
                   <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--color-gold)' }}>
