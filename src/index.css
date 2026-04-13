@@ -600,17 +600,14 @@
   color: #f0f0f0;
 }
 
-/* Typography — dramatic */
-[data-layout="luxury"] h1 {
-  font-size: clamp(2.5rem, 7vw, 3.75rem) !important;
-  letter-spacing: -0.04em !important;
+/* Override CSS color vars for luxury — applies everywhere via inheritance */
+
+/* Typography — dramatic ONLY in hero, not admin/booking steps */
+[data-layout="luxury"] .hero-section h1 {
+  font-size: clamp(2.2rem, 6vw, 3.5rem) !important;
+  letter-spacing: -0.02em !important;
   font-weight: 900;
-  line-height: 1.05;
-}
-[data-layout="luxury"] h2 {
-  font-size: 1.625rem !important;
-  letter-spacing: -0.025em !important;
-  font-weight: 800;
+  line-height: 1.08;
 }
 
 /* Cards — glassmorphism */
@@ -725,8 +722,9 @@
   border-bottom: 1px solid rgba(255,255,255,0.07) !important;
 }
 
-/* Time slots */
-[data-layout="luxury"] .grid button {
+/* Time slots — only target booking datetime grid */
+[data-layout="luxury"] .grid.grid-cols-3 button,
+[data-layout="luxury"] .grid.grid-cols-4 button {
   border-radius: 9999px !important;
   background: rgba(255,255,255,0.05) !important;
   border: 1px solid rgba(255,255,255,0.1) !important;
