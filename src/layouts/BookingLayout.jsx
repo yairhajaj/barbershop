@@ -38,20 +38,21 @@ export function BookingLayout({ children }) {
   // Bottom bar — computed once per render, never inside JSX (avoids stale-closure on auth/theme change)
   const barIsDark = theme === 'midnight' || layout === 'luxury'
   const barIsGlass = layout === 'glass'
+  // Glass bar: light theme → white-glass bar + DARK text. Dark theme → dark-glass bar + LIGHT text.
+  // Never mix light text with light/transparent background — that's the "invisible icon" bug.
   const barNavBg = barIsGlass
-    ? (barIsDark ? 'rgba(10,11,30,0.52)' : 'rgba(255,255,255,0.24)')
+    ? (barIsDark ? 'rgba(10,11,30,0.80)' : 'rgba(255,255,255,0.85)')
     : barIsDark ? 'rgba(12,12,12,0.90)' : 'rgba(255,255,255,0.92)'
   const barNavBorder = barIsGlass
-    ? (barIsDark ? 'rgba(129,140,248,0.2)' : 'rgba(255,255,255,0.42)')
+    ? (barIsDark ? 'rgba(129,140,248,0.25)' : 'rgba(0,0,0,0.08)')
     : barIsDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'
-  const barNavBlur = barIsGlass ? 'blur(40px) saturate(2)' : 'blur(32px) saturate(1.5)'
-  const barNavShadow = barIsGlass
-    ? '0 8px 40px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.45)'
-    : barIsDark
-      ? '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
-      : '0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)'
-  const barText = barIsDark || barIsGlass ? '#e8e8e8' : '#222222'
-  const barBgActive = barIsDark || barIsGlass ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'
+  const barNavBlur = 'blur(32px) saturate(1.8)'
+  const barNavShadow = barIsDark
+    ? '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
+    : '0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95)'
+  // Text color follows ONLY the dark/light axis — never white text on a glass/transparent bar
+  const barText = barIsDark ? '#e8e8e8' : '#1a1a1a'
+  const barBgActive = barIsDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)'
 
   async function handleSignOut() {
     await signOut()
