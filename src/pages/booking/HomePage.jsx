@@ -49,12 +49,12 @@ export function HomePage() {
   const floating = settings?.floating ?? (localStorage.getItem('floating') === 'true')
   const heroH = typeof window !== 'undefined' ? window.innerHeight * 0.7 : 600
   const { scrollY } = useScroll()
-  // Background: subtle parallax + slow Ken Burns zoom
-  const bgY     = useTransform(scrollY, [0, heroH], ['0%', '10%'])
-  const bgScale = useTransform(scrollY, [0, heroH], [1, 1.08])
-  // Hero content: fade out + rise — feels high-end, not just fade
-  const heroContentOpacity = useTransform(scrollY, [0, heroH * 0.42], [1, 0])
-  const heroContentY       = useTransform(scrollY, [0, heroH * 0.42], ['0px', '-28px'])
+  // Background stays perfectly still — elegance through restraint.
+  // Only the overlay darkens slowly (cinematic, not gimmicky).
+  const overlayOpacity = useTransform(scrollY, [0, heroH * 0.65], [0.55, 0.82])
+  // Hero text: clean fade + very gentle lift
+  const heroContentOpacity = useTransform(scrollY, [0, heroH * 0.38], [1, 0])
+  const heroContentY       = useTransform(scrollY, [0, heroH * 0.38], ['0px', '-18px'])
 
   // Service card link — skip service step if multistep, pre-select if all-in-one
   function serviceHref(serviceId) {
@@ -67,31 +67,33 @@ export function HomePage() {
     <div className={floating ? 'relative' : undefined}>
       {/* ── HERO ──────────────────────────────────────────────────── */}
       <section className={`hero-section min-h-[70vh] flex flex-col items-center justify-center ${floating ? 'sticky top-0 z-0' : 'relative overflow-hidden'}`}>
-        {/* Background layer — parallax + scale when floating */}
+        {/* Background — completely still, acts as a stage */}
         <div className="absolute inset-0 overflow-hidden">
+          {heroType === 'video' && heroSrc ? (
+            <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
+          ) : heroType === 'image' && heroSrc ? (
+            <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
+          ) : (
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111 0%, #222 100%)' }} />
+          )}
+          {/* Overlay darkens as you scroll — cinematic, no blur needed */}
           <motion.div
             className="absolute inset-0"
-            style={floating ? { y: bgY, scale: bgScale } : {}}
+            style={floating ? { opacity: overlayOpacity } : { opacity: 0.55 }}
+            initial={false}
           >
-            {heroType === 'video' && heroSrc ? (
-              <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
-            ) : heroType === 'image' && heroSrc ? (
-              <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
-            ) : (
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #111 0%, #222 100%)' }} />
-            )}
+            <div className="w-full h-full" style={{ background: '#000' }} />
           </motion.div>
-          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.55)' }} />
-          {/* Premium gradient fade — hero bleeds seamlessly into content */}
+          {/* Thin gradient at bottom — seamless content entry, not a blur effect */}
           {floating && (
             <div
               className="absolute bottom-0 left-0 right-0 pointer-events-none"
-              style={{ height: '160px', background: 'linear-gradient(to top, var(--color-surface) 0%, transparent 100%)' }}
+              style={{ height: '56px', background: 'linear-gradient(to top, var(--color-surface), transparent)' }}
             />
           )}
         </div>
 
-        {/* Content layer — fades + rises when floating */}
+        {/* Content — fades + lifts cleanly */}
         <motion.div
           className="relative z-10 text-center text-white px-6 w-full max-w-lg mx-auto"
           style={floating ? { opacity: heroContentOpacity, y: heroContentY } : {}}
