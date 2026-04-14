@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { BUSINESS } from '../../config/business'
@@ -11,6 +11,9 @@ import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
+import { supabase } from '../../lib/supabase'
+import { format } from 'date-fns'
+import { he } from 'date-fns/locale'
 
 export function HomePage() {
   const { services, loading: servicesLoading } = useServices({ activeOnly: true })
@@ -20,6 +23,26 @@ export function HomePage() {
   const { settings } = useBusinessSettings()
   const { user, profile } = useAuth()
   const { theme, layout } = useTheme()
+
+  // Upcoming appointment — direct query so it's always fresh and never blocked by hook re-fetch timing
+  const [nextAppointment, setNextAppointment] = useState(undefined) // undefined = loading, null = none
+
+  useEffect(() => {
+    if (!user) { setNextAppointment(null); return }
+    setNextAppointment(undefined) // loading
+    supabase
+      .from('appointments')
+      .select('*, services ( id, name, duration_minutes, price ), staff ( id, name, photo_url )')
+      .eq('customer_id', user.id)
+      .in('status', ['confirmed', 'pending_reschedule'])
+      .gte('start_at', new Date().toISOString())
+      .order('start_at', { ascending: true })
+      .limit(1)
+      .then(({ data, error }) => {
+        console.log('[HomePage] next appt query →', { data, error, userId: user.id })
+        setNextAppointment(data?.[0] ?? null)
+      })
+  }, [user?.id])
 
   const [portfolioMember, setPortfolioMember] = useState(null)
 
@@ -175,49 +198,142 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ── SERVICES ──────────────────────────────────────────────── */}
+      {/* ── NEXT APPOINTMENT or SERVICES ─────────────────────────── */}
       <section id="services" className="py-10 px-4" style={{ background: 'var(--color-surface)' }}>
         <div className="max-w-xl mx-auto">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-              <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
-              השירותים שלנו
-            </h2>
-            <Link to={bookHref} className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>הכל ←</Link>
-          </div>
 
-          {servicesLoading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: 'var(--color-card)' }} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5 booking-item-list">
-              {services.map((service, i) => (
-                <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
+          {/* Skeleton while loading next appointment */}
+          {user && nextAppointment === undefined && (
+            <div className="rounded-3xl h-44 animate-pulse" style={{ background: 'var(--color-card)' }} />
+          )}
+
+          {/* Show upcoming appointment card when user has one */}
+          {user && nextAppointment ? (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+                  התור הקרוב שלך
+                </h2>
+                <Link to="/my-appointments" className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>כל התורים ←</Link>
+              </div>
+
+              <div
+                className="rounded-3xl p-5 border-2"
+                style={{ background: 'var(--color-card)', borderColor: 'var(--color-gold)', boxShadow: '0 4px 24px rgba(201,169,110,0.12)' }}
+              >
+                {/* Date + time */}
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--color-gold)' }}>
+                      {format(new Date(nextAppointment.start_at), 'EEEE', { locale: he })}
+                    </div>
+                    <div className="text-2xl font-black" style={{ color: 'var(--color-text)' }}>
+                      {format(new Date(nextAppointment.start_at), 'd בMMMM', { locale: he })}
+                    </div>
+                    <div className="text-base font-semibold mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                      🕐 {format(new Date(nextAppointment.start_at), 'HH:mm')}
+                      {nextAppointment.end_at && (
+                        <span> – {format(new Date(nextAppointment.end_at), 'HH:mm')}</span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Staff photo */}
+                  {nextAppointment.staff?.photo_url ? (
+                    <img
+                      src={nextAppointment.staff.photo_url}
+                      alt={nextAppointment.staff.name}
+                      className="w-14 h-14 rounded-full object-cover border-2"
+                      style={{ borderColor: 'var(--color-gold)' }}
+                    />
+                  ) : (
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-black"
+                      style={{ background: 'var(--color-gold)', color: '#fff' }}
+                    >
+                      ✂
+                    </div>
+                  )}
+                </div>
+
+                {/* Service + staff */}
+                <div className="flex flex-col gap-1 mb-4">
+                  {nextAppointment.services?.name && (
+                    <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+                      ✂ {nextAppointment.services.name}
+                    </div>
+                  )}
+                  {nextAppointment.staff?.name && (
+                    <div className="text-sm" style={{ color: 'var(--color-muted)' }}>
+                      👤 {nextAppointment.staff.name}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
                   <Link
-                    to={serviceHref(service.id)}
-                    className="flex items-center justify-between p-4 rounded-2xl border-2 transition-all group"
-                    style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,122,0,0.1)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
+                    to={bookHref}
+                    className="flex-1 text-center text-sm font-bold py-2.5 rounded-2xl transition-all"
+                    style={{ background: 'var(--color-gold)', color: '#fff' }}
                   >
-                    <div>
-                      <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{service.name}</div>
-                      <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>⏱ {minutesToDisplay(service.duration_minutes)}</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-base font-black" style={{ color: 'var(--color-gold)' }}>{priceDisplay(service.price)}</span>
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--color-gold)', color: '#fff' }}>←</div>
-                    </div>
+                    קבע תור נוסף
                   </Link>
-                </motion.div>
-              ))}
-            </div>
+                  <Link
+                    to="/my-appointments"
+                    className="flex-1 text-center text-sm font-bold py-2.5 rounded-2xl border transition-all"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                  >
+                    ניהול תורים
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          ) : nextAppointment === null && (
+            <>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+                  השירותים שלנו
+                </h2>
+                <Link to={bookHref} className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>הכל ←</Link>
+              </div>
+
+              {servicesLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: 'var(--color-card)' }} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5 booking-item-list">
+                  {services.map((service, i) => (
+                    <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
+                      <Link
+                        to={serviceHref(service.id)}
+                        className="flex items-center justify-between p-4 rounded-2xl border-2 transition-all group"
+                        style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,122,0,0.1)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
+                      >
+                        <div>
+                          <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{service.name}</div>
+                          <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>⏱ {minutesToDisplay(service.duration_minutes)}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-base font-black" style={{ color: 'var(--color-gold)' }}>{priceDisplay(service.price)}</span>
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--color-gold)', color: '#fff' }}>←</div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
+
 
       {/* ── TEAM — horizontal carousel ────────────────────────────── */}
       {!staffLoading && staff.length > 0 && (
