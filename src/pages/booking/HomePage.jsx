@@ -601,8 +601,9 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black flex flex-col select-none"
+      className="fixed inset-0 bg-black flex flex-col select-none"
       style={{
+        zIndex: 200,
         height: '100dvh',          // fills real viewport on mobile (accounts for browser chrome)
         touchAction: 'manipulation', // prevents double-tap zoom on mobile
         overscrollBehavior: 'none',
@@ -721,8 +722,8 @@ function GridModal({ member, photos, loading, onClose, bookHref }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ background: 'rgba(0,0,0,0.75)' }}
+      className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ zIndex: 200, background: 'rgba(0,0,0,0.75)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
@@ -830,8 +831,8 @@ function LightboxViewer({ photos, startIdx, onClose }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.95)' }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: 250, background: 'rgba(0,0,0,0.95)' }}
       onClick={handleClick}
     >
       <AnimatePresence mode="wait">
