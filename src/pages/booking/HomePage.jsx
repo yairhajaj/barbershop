@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { BUSINESS } from '../../config/business'
@@ -606,7 +607,7 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
     }
   }
 
-  return (
+  return createPortal(
     <>
       {/* Dim overlay — tapping it closes */}
       <motion.div
@@ -737,7 +738,8 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
           </Link>
         </div>
       </motion.div>
-    </>
+    </>,
+    document.body   // Portal — renders outside any transform context
   )
 }
 
@@ -745,11 +747,11 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
 function GridModal({ member, photos, loading, onClose, bookHref }) {
   const [lightbox, setLightbox] = useState(null)
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ zIndex: 200, background: 'rgba(0,0,0,0.75)' }}
+      style={{ zIndex: 9999, background: 'rgba(0,0,0,0.75)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
@@ -832,7 +834,8 @@ function GridModal({ member, photos, loading, onClose, bookHref }) {
           />
         )}
       </AnimatePresence>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }
 
