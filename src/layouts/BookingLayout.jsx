@@ -364,8 +364,10 @@ export function BookingLayout({ children }) {
               </div>
             </div>
           </div>
-          <div className="border-t mt-8 pt-6 text-center text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}>
-            © {new Date().getFullYear()} {BUSINESS.name}
+          <div className="border-t mt-8 pt-6 text-center text-xs flex items-center justify-center gap-3" style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}>
+            <span>© {new Date().getFullYear()} {BUSINESS.name}</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <a href="/privacy" className="hover:underline" style={{ color: 'var(--color-muted)' }}>מדיניות פרטיות</a>
           </div>
         </div>
       </footer>

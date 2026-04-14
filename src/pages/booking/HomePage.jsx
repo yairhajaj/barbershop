@@ -437,18 +437,7 @@ export function HomePage() {
         )}
       </AnimatePresence>
 
-      {/* ── FOOTER ───────────────────────────────────────────────── */}
-      <footer className="text-center py-6 mt-4">
-        <a
-          href="/privacy"
-          className="text-xs"
-          style={{ color: 'var(--color-muted)', opacity: 0.6 }}
-        >
-          מדיניות פרטיות
-        </a>
-      </footer>
-
-      </div>{/* end floating content wrapper */}
+</div>{/* end floating content wrapper */}
     </div>
   )
 }
