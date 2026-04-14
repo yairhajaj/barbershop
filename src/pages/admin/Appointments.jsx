@@ -128,6 +128,17 @@ export function Appointments() {
   const [bookWlLockStaff,    setBookWlLockStaff]    = useState(false)
   const [bookChangeConfirm,  setBookChangeConfirm]  = useState(null) // { type, newId, newName, origName }
 
+  // Reschedule appointment sheet
+  const [rescheduleOpen,   setRescheduleOpen]   = useState(false)
+  const [rescheduleAppt,   setRescheduleAppt]   = useState(null)
+  const [rescheduleDate,   setRescheduleDate]   = useState('')
+  const [rescheduleStaff,  setRescheduleStaff]  = useState('')
+  const [rescheduleSlot,   setRescheduleSlot]   = useState(null)   // { start, end }
+  const [rescheduleSlots,  setRescheduleSlots]  = useState([])
+  const [rescheduleRec,    setRescheduleRec]    = useState(new Set())
+  const [rescheduleLoading,setRescheduleLoading]= useState(false)
+  const [savingReschedule, setSavingReschedule] = useState(false)
+
   // Blocked times for current range
   const [allBlockedTimes, setAllBlockedTimes] = useState([])
 
@@ -572,6 +583,99 @@ export function Appointments() {
     const dateStr = format(date, 'yyyy-MM-dd')
     setBookForm(f => ({ ...f, staffId, date: dateStr, startTime: timeStr }))
     setBookOpen(true)
+  }
+
+  // ── Reschedule ────────────────────────────────────────────────────────────────
+  function openReschedule(appt) {
+    setRescheduleAppt(appt)
+    setRescheduleDate(format(new Date(appt.start_at), 'yyyy-MM-dd'))
+    setRescheduleStaff(appt.staff_id ?? '')
+    setRescheduleSlot(null)
+    setRescheduleSlots([])
+    setRescheduleRec(new Set())
+    setRescheduleOpen(true)
+    setSelectedAppt(null)
+  }
+
+  useEffect(() => {
+    if (!rescheduleOpen || !rescheduleAppt || !rescheduleDate || !rescheduleStaff) {
+      setRescheduleSlots([]); setRescheduleRec(new Set()); return
+    }
+    setRescheduleLoading(true)
+    ;(async () => {
+      try {
+        const date     = new Date(rescheduleDate + 'T12:00:00')
+        const dow      = date.getDay()
+        const dayStart = startOfDay(date)
+        const dayEnd   = endOfDay(date)
+
+        const [{ data: dayAppts }, { data: dayBlocked }] = await Promise.all([
+          supabase.from('appointments')
+            .select('start_at, end_at, status, id')
+            .eq('staff_id', rescheduleStaff)
+            .in('status', ['confirmed'])
+            .gte('start_at', dayStart.toISOString())
+            .lte('start_at', dayEnd.toISOString()),
+          supabase.from('blocked_times')
+            .select('start_at, end_at')
+            .eq('staff_id', rescheduleStaff)
+            .lte('start_at', dayEnd.toISOString())
+            .gte('end_at', dayStart.toISOString()),
+        ])
+
+        // Exclude the appointment being rescheduled from "busy" slots
+        const filteredAppts = (dayAppts ?? []).filter(a => a.id !== rescheduleAppt.id)
+
+        const member   = staff.find(s => s.id === rescheduleStaff)
+        const staffDay = member?.staff_hours?.find(h => h.day_of_week === dow)
+        const bizDay   = businessHours.find(h => h.day_of_week === dow)
+        const svc      = services.find(s => s.id === rescheduleAppt.service_id)
+        const duration = svc?.duration_minutes ?? Math.round((new Date(rescheduleAppt.end_at) - new Date(rescheduleAppt.start_at)) / 60000)
+
+        const params = {
+          date, durationMinutes: duration,
+          staffHours: staffDay, businessHours: bizDay,
+          existingAppointments: filteredAppts,
+          blockedTimes: dayBlocked ?? [],
+          recurringBreaks,
+        }
+
+        const allSlots = generateSlots(params)
+        const recSlots = generateSlots({ ...params, smartScheduling: { enabled: true, adjacent: true, startOfDay: true, endOfDay: true, freeCount: 0, appointmentCount: filteredAppts.length } })
+        const recSet   = new Set(recSlots.map(s => s.start.getTime()))
+
+        const now = new Date()
+        const filtered = allSlots.filter(s => date.toDateString() !== now.toDateString() || s.start > now)
+
+        setRescheduleSlots(filtered)
+        setRescheduleRec(recSet)
+      } finally {
+        setRescheduleLoading(false)
+      }
+    })()
+  }, [rescheduleOpen, rescheduleDate, rescheduleStaff, rescheduleAppt])
+
+  async function handleReschedule() {
+    if (!rescheduleAppt || !rescheduleSlot) return
+    setSavingReschedule(true)
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          start_at: rescheduleSlot.start.toISOString(),
+          end_at:   rescheduleSlot.end.toISOString(),
+          staff_id: rescheduleStaff,
+        })
+        .eq('id', rescheduleAppt.id)
+      if (error) throw error
+      toast({ message: 'מועד התור עודכן בהצלחה', type: 'success' })
+      setRescheduleOpen(false)
+      setRescheduleAppt(null)
+    } catch (err) {
+      toast({ message: err.message, type: 'error' })
+    } finally {
+      setSavingReschedule(false)
+    }
   }
 
   async function handleSaveEvent(e) {
@@ -1030,8 +1134,19 @@ export function Appointments() {
               )
             })()}
 
+            {/* Reschedule button — always shown for non-cancelled */}
+            {selectedAppt.status !== 'cancelled' && (
+              <button
+                onClick={() => openReschedule(selectedAppt)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+                style={{ background: 'rgba(255,122,0,0.08)', color: 'var(--color-gold)', border: '1.5px solid rgba(255,122,0,0.25)' }}
+              >
+                📅 שנה מועד התור
+              </button>
+            )}
+
             {selectedAppt.status === 'confirmed' && (
-              <div className="flex gap-2 pt-2 flex-wrap">
+              <div className="flex gap-2 pt-1 flex-wrap">
                 <button
                   onClick={() => handleComplete(selectedAppt.id)}
                   className="btn-primary flex-1 justify-center text-sm py-2"
@@ -1061,6 +1176,168 @@ export function Appointments() {
           </div>
         )}
       </Modal>
+
+      {/* ── Reschedule Bottom Sheet ── */}
+      <AnimatePresence>
+        {rescheduleOpen && rescheduleAppt && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+            onClick={e => e.target === e.currentTarget && setRescheduleOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
+              style={{ background: 'var(--color-card)', maxHeight: '92vh', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px rgba(0,0,0,0.2)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 sm:hidden flex-shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                <div>
+                  <h2 className="text-base font-black" style={{ color: 'var(--color-text)' }}>📅 שנה מועד התור</h2>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                    {rescheduleAppt.profiles?.name} · {rescheduleAppt.services?.name}
+                  </p>
+                </div>
+                <button onClick={() => setRescheduleOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                  style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>×</button>
+              </div>
+
+              {/* Current appointment info */}
+              <div className="mx-5 mt-4 px-4 py-3 rounded-xl text-sm flex items-center gap-3"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <span className="text-lg">🕐</span>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--color-muted)' }}>מועד נוכחי</p>
+                  <p className="font-bold" style={{ color: 'var(--color-text)' }}>
+                    {formatDate(rescheduleAppt.start_at)} · {formatTime(rescheduleAppt.start_at)}–{formatTime(rescheduleAppt.end_at)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+                {/* Staff chips */}
+                <div>
+                  <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>ספר</p>
+                  <div className="flex flex-wrap gap-2">
+                    {staff.map(s => {
+                      const active = rescheduleStaff === s.id
+                      return (
+                        <button key={s.id} type="button"
+                          onClick={() => { setRescheduleStaff(s.id); setRescheduleSlot(null) }}
+                          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold transition-all"
+                          style={{
+                            background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                            color:      active ? '#fff'              : 'var(--color-text)',
+                            border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                            boxShadow:  active ? '0 2px 10px rgba(255,122,0,0.28)' : 'none',
+                          }}>
+                          <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
+                            style={{ background: active ? 'rgba(255,255,255,0.25)' : 'var(--color-gold)', color: '#fff' }}>
+                            {s.name[0]}
+                          </span>
+                          {s.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Date scroll */}
+                <div>
+                  <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>תאריך חדש</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+                    {Array.from({ length: 30 }, (_, i) => addDays(new Date(), i)).map(d => {
+                      const val    = format(d, 'yyyy-MM-dd')
+                      const active = rescheduleDate === val
+                      return (
+                        <button key={val} type="button"
+                          onClick={() => { setRescheduleDate(val); setRescheduleSlot(null) }}
+                          className="flex-shrink-0 flex flex-col items-center rounded-2xl px-3 py-2 transition-all"
+                          style={{
+                            background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                            color:      active ? '#fff'              : 'var(--color-text)',
+                            border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                            minWidth:   '52px',
+                          }}>
+                          <span className="text-[10px] font-bold opacity-80">{dayName(d)}</span>
+                          <span className="text-sm font-black">{format(d, 'd')}</span>
+                          <span className="text-[10px] opacity-70">{format(d, 'M/yy')}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Slot grid */}
+                {rescheduleDate && rescheduleStaff && (
+                  <div>
+                    <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>
+                      שעה פנויה
+                      {rescheduleRec.size > 0 && <span className="mr-1.5 font-normal">· ⭐ = מומלץ</span>}
+                    </p>
+                    {rescheduleLoading ? (
+                      <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+                    ) : rescheduleSlots.length === 0 ? (
+                      <p className="text-sm text-center py-4" style={{ color: 'var(--color-muted)' }}>אין שעות פנויות ביום זה</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {rescheduleSlots.map(slot => {
+                          const timeStr  = `${String(slot.start.getHours()).padStart(2,'0')}:${String(slot.start.getMinutes()).padStart(2,'0')}`
+                          const isRec    = rescheduleRec.has(slot.start.getTime())
+                          const isActive = rescheduleSlot?.start.getTime() === slot.start.getTime()
+                          return (
+                            <button key={timeStr} type="button"
+                              onClick={() => setRescheduleSlot(slot)}
+                              className="py-2 rounded-xl text-xs font-bold transition-all"
+                              style={{
+                                background: isActive  ? 'var(--color-gold)'             : isRec ? 'rgba(255,122,0,0.1)' : 'var(--color-surface)',
+                                color:      isActive  ? '#fff'                           : isRec ? 'var(--color-gold)'   : 'var(--color-text)',
+                                border:     `1.5px solid ${isActive ? 'var(--color-gold)' : isRec ? 'rgba(255,122,0,0.35)' : 'var(--color-border)'}`,
+                                boxShadow:  isActive  ? '0 2px 8px rgba(255,122,0,0.3)' : 'none',
+                              }}>
+                              {isRec && !isActive && <span className="mr-0.5">⭐</span>}{timeStr}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                {rescheduleSlot && (
+                  <p className="text-xs text-center mb-2 font-medium" style={{ color: 'var(--color-muted)' }}>
+                    {formatDate(rescheduleSlot.start.toISOString())} ·{' '}
+                    {String(rescheduleSlot.start.getHours()).padStart(2,'0')}:{String(rescheduleSlot.start.getMinutes()).padStart(2,'0')}
+                    {' '}→{' '}
+                    {String(rescheduleSlot.end.getHours()).padStart(2,'0')}:{String(rescheduleSlot.end.getMinutes()).padStart(2,'0')}
+                  </p>
+                )}
+                <button type="button" onClick={handleReschedule}
+                  disabled={savingReschedule || !rescheduleSlot}
+                  className="btn-primary w-full justify-center py-3 text-sm font-bold disabled:opacity-40">
+                  {savingReschedule
+                    ? <Spinner size="sm" className="border-white border-t-transparent" />
+                    : rescheduleSlot ? '✓ עדכן מועד' : 'בחר שעה לעדכון'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Block Hours — Bottom Sheet ── */}
       <AnimatePresence>
