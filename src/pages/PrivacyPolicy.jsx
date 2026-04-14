@@ -7,7 +7,7 @@ export function PrivacyPolicy() {
           <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: 'DM Serif Display, serif', letterSpacing: 2 }}>HAJAJ</h1>
           <p className="text-sm tracking-widest text-gray-400 uppercase mb-6">Where Hair Becomes Art</p>
           <h2 className="text-xl font-semibold text-gray-800">מדיניות פרטיות</h2>
-          <p className="text-sm text-gray-400 mt-1">עדכון אחרון: אפריל 2025</p>
+          <p className="text-sm text-gray-400 mt-1">עדכון אחרון: אפריל 2026</p>
         </div>
 
         <div className="space-y-8 text-gray-700 text-sm leading-relaxed">
@@ -15,7 +15,7 @@ export function PrivacyPolicy() {
           <section>
             <h3 className="font-semibold text-gray-900 text-base mb-2">1. כללי</h3>
             <p>
-              אפליקציית HAJAJ ("האפליקציה") מופעלת על ידי מספריית HAJAJ ("אנחנו", "המפעיל").
+              אפליקציית HAJAJ ("האפליקציה") מופעלת על ידי מספרת HAJAJ ("אנחנו", "המפעיל").
               מדיניות פרטיות זו מסבירה אילו מידע אנו אוספים, כיצד אנו משתמשים בו וכיצד אנו מגינים עליו.
               שימוש באפליקציה מהווה הסכמה למדיניות זו.
             </p>
