@@ -1,0 +1,77 @@
+workflows:
+
+  # ── Android Release ──────────────────────────────────────────────
+  android-release:
+    name: Android Release (AAB)
+    max_build_duration: 60
+    environment:
+      node: 20
+      java: 17
+      groups:
+        - android_signing   # keystore_file, keystore_password, key_alias, key_password
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build web app
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync android
+      - name: Build release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal   # internal → alpha → beta → production
+
+  # ── iOS Release ──────────────────────────────────────────────────
+  ios-release:
+    name: iOS Release (IPA)
+    max_build_duration: 90
+    environment:
+      node: 20
+      xcode: latest
+      cocoapods: default
+      groups:
+        - apple_credentials   # APP_STORE_CONNECT_API_KEY, CERTIFICATE_PRIVATE_KEY, etc.
+      vars:
+        BUNDLE_ID: com.barbershop.app
+        APP_STORE_APP_ID: PLACEHOLDER   # ← Replace after creating app in App Store Connect
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build web app
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Install CocoaPods
+        script: |
+          cd ios/App
+          pod install
+      - name: Set up signing
+        script: |
+          xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath $CM_BUILD_DIR/App.xcarchive \
+            archive
+          xcodebuild -exportArchive \
+            -archivePath $CM_BUILD_DIR/App.xcarchive \
+            -exportOptionsPlist /tmp/exportOptions.plist \
+            -exportPath $CM_BUILD_DIR/output
+    artifacts:
+      - "**/*.ipa"
+      - "**/*.dSYM.zip"
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_API_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
