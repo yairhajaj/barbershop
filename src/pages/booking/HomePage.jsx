@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { BUSINESS } from '../../config/business'
@@ -571,23 +571,38 @@ function PortfolioViewer({ member, mode, onClose, bookHref }) {
 // ── Story viewer (Instagram-style) ──────────────────────────────────
 function StoryViewer({ member, photos, loading, onClose, bookHref }) {
   const [idx, setIdx] = useState(0)
-  // Store pointer-down X so we can decide on pointer-up (works on both mouse & touch)
-  const pointerX = useState(null)
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
 
   const total = photos.length
   const photo = photos[idx] ?? null
 
-  function handlePointerDown(e) {
+  // Lock body scroll while story is open
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+      document.documentElement.style.overflow = ''
+    }
+  }, [])
+
+  function handleTouchStart(e) {
     if (e.target.closest('button') || e.target.closest('a')) return
-    pointerX[1](e.clientX)
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
   }
 
-  function handlePointerUp(e) {
+  function handleTouchEnd(e) {
     if (e.target.closest('button') || e.target.closest('a')) return
-    const downX = pointerX[0]
-    if (downX === null) return
-    pointerX[1](null)
-    const x = downX
+    if (touchStartX.current === null) return
+    const dx = Math.abs(e.changedTouches[0].clientX - touchStartX.current)
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+    // ignore swipe gestures — only taps
+    if (dx > 15 || dy > 15) { touchStartX.current = null; return }
+    const x = touchStartX.current
+    touchStartX.current = null
     const w = window.innerWidth
     if (total === 0) return
     if (x > w * 0.4) {
@@ -600,28 +615,30 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black flex flex-col select-none"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 bg-black flex flex-col select-none overflow-hidden"
       style={{
-        zIndex: 200,
-        height: '100dvh',          // fills real viewport on mobile (accounts for browser chrome)
-        touchAction: 'manipulation', // prevents double-tap zoom on mobile
+        zIndex: 9999,
+        height: '100dvh',
+        touchAction: 'none',         // block ALL default touch gestures (scroll, zoom)
         overscrollBehavior: 'none',
+        userSelect: 'none',
       }}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Progress bars */}
       {total > 0 && (
-        <div className="absolute top-0 inset-x-0 z-20 flex gap-1 px-3 pt-3">
+        <div className="absolute top-0 inset-x-0 z-20 flex gap-1 px-3 pt-3"
+          style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
           {photos.map((_, i) => (
             <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.3)' }}>
               <div
                 className="h-full rounded-full transition-all duration-200"
-                style={{
-                  background: '#fff',
-                  width: i < idx ? '100%' : i === idx ? '50%' : '0%',
-                }}
+                style={{ background: '#fff', width: i < idx ? '100%' : i === idx ? '50%' : '0%' }}
               />
             </div>
           ))}
@@ -629,7 +646,8 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
       )}
 
       {/* Header */}
-      <div className="absolute top-5 inset-x-0 z-20 flex items-center justify-between px-4 pt-3">
+      <div className="absolute inset-x-0 z-20 flex items-center justify-between px-4"
+        style={{ top: 'calc(max(12px, env(safe-area-inset-top)) + 10px)' }}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }}>
             {member.photo_url
@@ -642,16 +660,17 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
           </div>
         </div>
         <button
+          onTouchEnd={e => { e.stopPropagation(); onClose() }}
           onClick={e => { e.stopPropagation(); onClose() }}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-white text-2xl"
-          style={{ background: 'rgba(255,255,255,0.15)' }}
+          className="w-10 h-10 flex items-center justify-center rounded-full text-white text-2xl"
+          style={{ background: 'rgba(255,255,255,0.18)', touchAction: 'auto' }}
         >
           ×
         </button>
       </div>
 
-      {/* Image */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden">
+      {/* Image — fills remaining space */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
         {loading ? (
           <div className="w-8 h-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
         ) : total === 0 ? (
@@ -665,11 +684,10 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
               key={photo?.id ?? idx}
               src={photo?.image_url}
               alt={photo?.caption || ''}
-              className="max-w-full max-h-full object-contain"
-              style={{ maxHeight: '80vh' }}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.04 }}
+              className="w-full h-full object-cover"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
               draggable={false}
             />
@@ -679,34 +697,21 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
 
       {/* Caption */}
       {photo?.caption && (
-        <div className="absolute bottom-20 inset-x-0 px-6 text-center pointer-events-none">
-          <p className="text-white text-sm bg-black/50 inline-block px-4 py-1.5 rounded-full">{photo.caption}</p>
+        <div className="absolute bottom-24 inset-x-0 px-6 text-center pointer-events-none z-10">
+          <p className="text-white text-sm bg-black/60 inline-block px-4 py-2 rounded-full">{photo.caption}</p>
         </div>
-      )}
-
-      {/* Tap hints (shown briefly) */}
-      {total > 1 && (
-        <>
-          <div className="absolute left-0 top-16 bottom-16 w-1/3 flex items-center justify-start pl-4 pointer-events-none opacity-0">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">→</div>
-          </div>
-          <div className="absolute right-0 top-16 bottom-16 w-1/3 flex items-center justify-end pr-4 pointer-events-none opacity-0">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">←</div>
-          </div>
-        </>
       )}
 
       {/* Book CTA */}
       <div
-        className="p-4"
+        className="absolute bottom-0 inset-x-0 z-20 p-4"
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-        onPointerDown={e => e.stopPropagation()}
-        onPointerUp={e => e.stopPropagation()}
       >
         <Link
           to={`/book/service?staff=${member.id}`}
           onClick={onClose}
-          className="btn-primary w-full justify-center py-3"
+          className="btn-primary w-full justify-center py-3.5 text-base font-black"
+          style={{ touchAction: 'auto' }}
         >
           ✂ קבע תור עם {member.name}
         </Link>
