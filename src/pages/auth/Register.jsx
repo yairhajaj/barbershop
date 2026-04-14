@@ -123,6 +123,12 @@ export function Register() {
           >
             {loading ? <Spinner size="sm" className="border-white border-t-transparent" /> : 'צור חשבון'}
           </button>
+
+          <p className="text-center text-xs text-muted mt-3" style={{ opacity: 0.7 }}>
+            בהרשמה אתה מסכים ל
+            <a href="/privacy" className="underline mx-1" style={{ color: 'var(--color-gold)' }}>מדיניות הפרטיות</a>
+            שלנו
+          </p>
         </form>
 
         <p className="text-center text-sm text-muted mt-6">
