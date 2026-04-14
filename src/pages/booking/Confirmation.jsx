@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BookingProgress } from '../../components/booking/BookingProgress'
 import { Spinner } from '../../components/ui/Spinner'
@@ -13,7 +13,13 @@ import { supabase } from '../../lib/supabase'
 
 export function Confirmation() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, profile } = useAuth()
+
+  // Payment redirect params
+  const paymentResult = searchParams.get('payment')   // 'success' | null
+  const paymentApptId = searchParams.get('appt_id')  // appointment id from PayPlus redirect
+  const paymentId     = searchParams.get('payment_id')
 
   // Read booking state ONCE at mount — never re-read (so sessionStorage.removeItem doesn't break display)
   const [bookingState] = useState(() =>
@@ -33,7 +39,31 @@ export function Confirmation() {
   const [wantsReminder, setWantsReminder] = useState(true)
 
   useEffect(() => {
-    if (!bookingState.slotStart) { navigate('/book/service', { replace: true }); return }
+    // If coming back from successful PayPlus payment — verify and show success automatically
+    if (paymentResult === 'success' && paymentId && paymentApptId) {
+      setStatus('loading')
+      supabase.functions.invoke('verify-payment', { body: { payment_id: paymentId } })
+        .then(({ data }) => {
+          if (data?.paid) {
+            // Fetch the appointment to display
+            return supabase.from('appointments')
+              .select('*, services(name, price), staff(name)')
+              .eq('id', paymentApptId)
+              .single()
+          }
+          throw new Error('התשלום לא אומת')
+        })
+        .then(({ data: appt }) => {
+          setAppointment(appt)
+          setStatus('success')
+        })
+        .catch(err => {
+          setErrorMsg(err.message)
+          setStatus('error')
+        })
+      return
+    }
+    if (!bookingState.slotStart && !paymentResult) { navigate('/book/service', { replace: true }); return }
     if (!user) navigate('/login?redirect=/book/confirm', { replace: true })
   }, [user])
 

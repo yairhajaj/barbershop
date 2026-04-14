@@ -3,11 +3,13 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BookingProgress } from '../../components/booking/BookingProgress'
 import { useAuth } from '../../contexts/AuthContext'
+import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { formatDateFull, formatTime } from '../../lib/utils'
 
 export function CustomerDetails() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
+  const { settings } = useBusinessSettings()
   const bookingState = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
 
   const [form, setForm] = useState({
@@ -61,12 +63,15 @@ export function CustomerDetails() {
 
     sessionStorage.setItem('booking_state', JSON.stringify({
       ...bookingState,
-      customerName:  form.name,
-      customerPhone: form.phone,
-      customerEmail: form.email,
-      customerNotes: form.notes,
+      customerName:   form.name,
+      customerPhone:  form.phone,
+      customerEmail:  form.email,
+      customerNotes:  form.notes,
+      paymentEnabled: !!settings?.payment_enabled,
     }))
-    navigate('/book/confirm')
+    // Navigate to payment if enabled, otherwise straight to confirm
+    const nextStep = settings?.payment_enabled ? '/book/payment' : '/book/confirm'
+    navigate(nextStep)
   }
 
   const slotStart = bookingState.slotStart ? new Date(bookingState.slotStart) : null

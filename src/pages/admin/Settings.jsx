@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 import { useToast } from '../../components/ui/Toast'
@@ -444,6 +444,83 @@ export function Settings() {
           </div>
         </section>
 
+        {/* ── Payment Settings ───────────────────────────────────────── */}
+        <section className="card p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">💳</span>
+            <h2 className="font-semibold text-lg">תשלום אונליין</h2>
+          </div>
+          <p className="text-sm text-muted mb-5">
+            אפשר ללקוחות לשלם בעת ההזמנה דרך מערכת PayPlus. הכסף מועבר ישירות לחשבון שלך.
+          </p>
+
+          <ToggleRow
+            label="הפעל סליקה בהזמנה"
+            desc="לקוחות ישלמו עם אישור התור"
+            checked={!!form?.payment_enabled}
+            onChange={v => setForm(f => ({ ...f, payment_enabled: v }))}
+          />
+
+          {form?.payment_enabled && (
+            <div className="mt-5 space-y-5">
+
+              {/* Step 1 */}
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid rgba(201,169,110,0.25)' }}>
+                <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-gold)' }}>שלב 1 — פתח חשבון PayPlus</p>
+                <p className="text-xs text-muted mb-3">
+                  צריך חשבון PayPlus כדי לקבל תשלומים. ההרשמה חינמית, העמלה ~1.5% מכל עסקה.
+                </p>
+                <a
+                  href="https://www.payplus.co.il"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                  style={{ background: 'var(--color-gold)', color: '#fff' }}
+                >
+                  פתח חשבון PayPlus ↗
+                </a>
+              </div>
+
+              {/* Step 2 */}
+              <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-sm font-bold mb-3">שלב 2 — הדבק את המפתחות מ-PayPlus</p>
+                <p className="text-xs text-muted mb-4">
+                  בדשבורד PayPlus: הגדרות → API → העתק את מפתח ה-API והמפתח הסודי
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-muted">מפתח API (UID)</label>
+                    <input
+                      type="text"
+                      className="input w-full font-mono text-sm"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      value={form?.payplus_api_key ?? ''}
+                      onChange={e => setForm(f => ({ ...f, payplus_api_key: e.target.value }))}
+                      dir="ltr"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-muted">מפתח סודי (Secret Key)</label>
+                    <PaymentKeyInput
+                      value={form?.payplus_secret_key ?? ''}
+                      onChange={v => setForm(f => ({ ...f, payplus_secret_key: v }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 info */}
+              <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-sm font-bold mb-1">שלב 3 — שמור והפעל</p>
+                <p className="text-xs text-muted">
+                  לחץ "שמור הגדרות" למטה. מכאן לקוחות יועברו לדף תשלום מאובטח של PayPlus לאחר בחירת התור.
+                </p>
+              </div>
+
+            </div>
+          )}
+        </section>
+
         <button type="submit" disabled={saving} className="btn-primary text-base px-8 py-3">
           {saving ? 'שומר...' : 'שמור הגדרות'}
         </button>
@@ -558,6 +635,31 @@ function Toggle({ checked, onChange }) {
         style={{ right: checked ? '2px' : 'calc(100% - 22px)' }}
       />
     </button>
+  )
+}
+
+function PaymentKeyInput({ value, onChange }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="relative">
+      <input
+        type={show ? 'text' : 'password'}
+        className="input w-full font-mono text-sm pr-3 pl-10"
+        placeholder="הדבק כאן את המפתח הסודי"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        dir="ltr"
+        autoComplete="off"
+      />
+      <button
+        type="button"
+        onClick={() => setShow(s => !s)}
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-muted hover:text-gray-700 text-base px-1"
+        tabIndex={-1}
+      >
+        {show ? '🙈' : '👁'}
+      </button>
+    </div>
   )
 }
 

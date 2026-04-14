@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { to: '/admin/staff',        label: 'ספרים',       icon: '✂' },
   { to: '/admin/services',     label: 'שירותים',     icon: '📋' },
   { to: '/admin/products',     label: 'מוצרים',      icon: '🛍️' },
+  { to: '/admin/payments',     label: 'תשלומים',     icon: '💳' },
   { to: '/admin/invoices',     label: 'חשבוניות',    icon: '🧾' },
   { to: '/admin/messages',     label: 'הודעות',      icon: '📨' },
   { to: '/admin/appearance',   label: 'עיצוב',       icon: '🎨' },

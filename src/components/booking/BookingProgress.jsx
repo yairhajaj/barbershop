@@ -2,32 +2,32 @@
 // by checking sessionStorage (branchName is set only when >1 branch chosen).
 // Each page passes its own step KEY so the component figures out the number.
 
-const SINGLE_STEPS = [
-  { key: 'service', label: 'שירות' },
-  { key: 'staff',   label: 'ספר'   },
-  { key: 'time',    label: 'שעה'   },
-  { key: 'confirm', label: 'אישור' },
-]
-
-const MULTI_STEPS = [
-  { key: 'branch',  label: 'סניף'  },
-  { key: 'service', label: 'שירות' },
-  { key: 'staff',   label: 'ספר'   },
-  { key: 'time',    label: 'שעה'   },
-  { key: 'confirm', label: 'אישור' },
-]
+function buildSteps(hasBranch, hasPayment) {
+  const steps = []
+  if (hasBranch)  steps.push({ key: 'branch',  label: 'סניף'   })
+  steps.push({ key: 'service', label: 'שירות' })
+  steps.push({ key: 'staff',   label: 'ספר'   })
+  steps.push({ key: 'time',    label: 'שעה'   })
+  if (hasPayment) steps.push({ key: 'payment', label: 'תשלום'  })
+  steps.push({ key: 'confirm', label: 'אישור'  })
+  return steps
+}
 
 // Accept either a numeric step (legacy) or a string key
 // Pages can pass currentStep="service" or currentStep={2} (old style)
 export function BookingProgress({ currentStep }) {
-  // Detect multi-branch from booking state
+  // Detect multi-branch + payment from booking state
   let hasBranch = false
+  let hasPayment = false
   try {
     const bs = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
-    hasBranch = !!bs.branchName
+    hasBranch  = !!bs.branchName
+    hasPayment = !!bs.paymentEnabled
   } catch { /* noop */ }
+  // If we're on the payment step itself, always show payment step
+  if (currentStep === 'payment') hasPayment = true
 
-  const STEPS = hasBranch ? MULTI_STEPS : SINGLE_STEPS
+  const STEPS = buildSteps(hasBranch, hasPayment)
 
   // Map step to index
   let activeIndex

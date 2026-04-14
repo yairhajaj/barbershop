@@ -10,6 +10,7 @@ import { SelectStaff }     from './pages/booking/SelectStaff'
 import { SelectDateTime }  from './pages/booking/SelectDateTime'
 import { CustomerDetails } from './pages/booking/CustomerDetails'
 import { Confirmation }    from './pages/booking/Confirmation'
+import { Payment }         from './pages/booking/Payment'
 
 // Customer
 import { MyAppointments } from './pages/customer/MyAppointments'
@@ -31,6 +32,7 @@ import { Messages }     from './pages/admin/Messages'
 import { Branches }        from './pages/admin/Branches'
 import { Customers }       from './pages/admin/Customers'
 import { Waitlist }        from './pages/admin/Waitlist'
+import { Payments }        from './pages/admin/Payments'
 import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
 import { SelectBranch }    from './pages/booking/SelectBranch'
 import { PrivacyPolicy }   from './pages/PrivacyPolicy'
@@ -79,6 +81,10 @@ const router = createBrowserRouter([
   {
     path: '/book/details',
     element: <BookingLayout><CustomerDetails /></BookingLayout>,
+  },
+  {
+    path: '/book/payment',
+    element: <BookingLayout><Payment /></BookingLayout>,
   },
   {
     path: '/book/confirm',
@@ -132,6 +138,10 @@ const router = createBrowserRouter([
   {
     path: '/admin/waitlist',
     element: <AdminLayout><Waitlist /></AdminLayout>,
+  },
+  {
+    path: '/admin/payments',
+    element: <AdminLayout><Payments /></AdminLayout>,
   },
   {
     path: '/waitlist/confirm',

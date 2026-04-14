@@ -33,7 +33,9 @@
       "Bash(node -e \"const {he} = require\\('date-fns/locale'\\); console.log\\('ok'\\)\")",
       "Bash(grep -B 2 -A 10 \"\\\\.select\\\\\\(\\\\`\" /c/Users/yairh/barbershop-app/src/hooks/useAppointments.js)",
       "Bash(grep -r \"profiles.*select\\\\|services.*select\\\\|staff.*select\" /c/Users/yairh/barbershop-app/src/hooks/*.js -A 3)",
-      "Bash(grep -r \"FOREIGN\\\\|REFERENCES\" /c/Users/yairh/barbershop-app/supabase/migrations/*.sql)"
+      "Bash(grep -r \"FOREIGN\\\\|REFERENCES\" /c/Users/yairh/barbershop-app/supabase/migrations/*.sql)",
+      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\yairh\\\\barbershop-app\\\\src\\\\pages\\\\admin\\\\Settings.jsx' | Measure-Object -Line\")",
+      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\yairh\\\\barbershop-app\\\\src\\\\pages\\\\admin\\\\Settings.jsx' | Select-Object -Last 20\")"
     ]
   }
 }

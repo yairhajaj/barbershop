@@ -28,6 +28,10 @@ const DEFAULT_SETTINGS = {
   reminder_3_enabled: false,
   reminder_3_hours:   1,
   waitlist_enabled:   false,
+  // Payments (PayPlus)
+  payment_enabled:    false,
+  payplus_api_key:    '',
+  payplus_secret_key: '',
 }
 
 export function useBusinessSettings() {
