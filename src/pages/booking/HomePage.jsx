@@ -609,87 +609,93 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
 
   return createPortal(
     <>
-      {/* Dim overlay — tapping it closes */}
+      {/* Blurred overlay */}
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
         className="fixed inset-0"
-        style={{ zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        style={{ zIndex: 9998, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}
         onClick={onClose}
       />
 
-      {/* Sheet — slides up from bottom */}
+      {/* Floating glass card */}
       <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 280 }}
-        className="fixed bottom-0 left-0 right-0 flex flex-col select-none overflow-hidden"
+        initial={{ opacity: 0, scale: 0.88, y: 40 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.88, y: 40 }}
+        transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+        className="fixed flex flex-col select-none overflow-hidden"
         style={{
           zIndex: 9999,
-          height: '91dvh',
-          borderRadius: '28px 28px 0 0',
-          background: '#0d0d0d',
+          inset: '5dvh 14px',          // floats with margin on all sides
+          maxWidth: 480,
+          margin: '0 auto',
+          borderRadius: 32,
+          background: 'rgba(15,15,15,0.72)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: '1px solid rgba(255,255,255,0.13)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.06) inset',
           touchAction: 'none',
         }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.25)' }} />
-        </div>
-
-        {/* Progress bars */}
-        {total > 1 && (
-          <div className="flex gap-1.5 px-4 pb-3 flex-shrink-0">
-            {photos.map((_, i) => (
-              <div key={i} className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: 'var(--color-gold)' }}
-                  animate={{ width: i < idx ? '100%' : i === idx ? '60%' : '0%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Member header */}
-        <div className="flex items-center justify-between px-4 pb-3 flex-shrink-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2"
-              style={{ borderColor: 'var(--color-gold)', background: 'rgba(255,255,255,0.08)' }}>
-              {member.photo_url
-                ? <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
-                : <span className="w-full h-full flex items-center justify-center font-black text-white">{member.name[0]}</span>}
+            {/* Avatar with gold ring */}
+            <div className="relative flex-shrink-0">
+              <div className="w-11 h-11 rounded-full overflow-hidden"
+                style={{ border: '2px solid var(--color-gold)', background: 'rgba(255,255,255,0.08)' }}>
+                {member.photo_url
+                  ? <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+                  : <span className="w-full h-full flex items-center justify-center font-black text-white text-base">{member.name[0]}</span>}
+              </div>
             </div>
             <div>
-              <p className="font-black text-sm text-white leading-tight">{member.name}</p>
-              {total > 0 && (
-                <p className="text-xs" style={{ color: 'var(--color-gold)' }}>{idx + 1} / {total} תמונות</p>
-              )}
+              <p className="font-black text-[15px] text-white leading-tight">{member.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                {total > 0 ? `${idx + 1} / ${total} תמונות` : 'תיק עבודות'}
+              </p>
             </div>
           </div>
           <button
             onClick={e => { e.stopPropagation(); onClose() }}
             onTouchEnd={e => { e.stopPropagation(); onClose() }}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-lg font-bold"
-            style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)', touchAction: 'auto' }}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-xl leading-none"
+            style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', touchAction: 'auto', border: '1px solid rgba(255,255,255,0.1)' }}
           >×</button>
         </div>
 
-        {/* Photo */}
-        <div className="flex-1 mx-4 rounded-2xl overflow-hidden relative" style={{ minHeight: 0 }}>
+        {/* Progress dots */}
+        {total > 1 && (
+          <div className="flex gap-1.5 px-5 pb-3 flex-shrink-0">
+            {photos.map((_, i) => (
+              <motion.div
+                key={i}
+                className="h-[3px] rounded-full flex-1"
+                animate={{
+                  background: i < idx ? 'var(--color-gold)' : i === idx ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)',
+                  scaleX: i === idx ? 1 : 1,
+                }}
+                transition={{ duration: 0.25 }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Photo — rounded, with subtle inner shadow */}
+        <div className="flex-1 mx-4 overflow-hidden relative" style={{ minHeight: 0, borderRadius: 20, background: 'rgba(0,0,0,0.3)' }}>
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+              <div className="w-9 h-9 rounded-full border-2 border-t-transparent animate-spin"
                 style={{ borderColor: 'var(--color-gold)', borderTopColor: 'transparent' }} />
             </div>
           ) : total === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="text-5xl">📷</div>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>עדיין אין תמונות עבודות</p>
+              <span className="text-5xl">📷</span>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>עדיין אין תמונות</p>
             </div>
           ) : (
             <AnimatePresence mode="wait">
@@ -698,48 +704,54 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
                 src={photo?.image_url}
                 alt={photo?.caption || ''}
                 className="absolute inset-0 w-full h-full object-cover"
-                initial={{ opacity: 0, scale: 1.04 }}
+                initial={{ opacity: 0, scale: 1.05 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.22 }}
                 draggable={false}
               />
             </AnimatePresence>
           )}
 
-          {/* Caption overlay */}
+          {/* Caption pill */}
           {photo?.caption && (
-            <div className="absolute bottom-3 inset-x-3 pointer-events-none">
-              <p className="text-white text-xs text-center px-3 py-1.5 rounded-xl"
-                style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
+            <div className="absolute bottom-3 inset-x-3 pointer-events-none flex justify-center">
+              <p className="text-white text-xs px-4 py-1.5 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)' }}>
                 {photo.caption}
               </p>
             </div>
           )}
 
-          {/* Tap zones hint — invisible but clickable */}
+          {/* Tap zones */}
           {total > 1 && (
             <>
-              <div className="absolute inset-y-0 left-0 w-2/5 pointer-events-auto" />
-              <div className="absolute inset-y-0 right-0 w-3/5 pointer-events-auto" />
+              <div className="absolute inset-y-0 left-0 w-2/5" />
+              <div className="absolute inset-y-0 right-0 w-3/5" />
             </>
           )}
         </div>
 
-        {/* Book CTA */}
-        <div className="px-4 pt-3 flex-shrink-0" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        {/* CTA */}
+        <div className="px-4 pt-4 pb-5 flex-shrink-0">
           <Link
             to={`/book/service?staff=${member.id}`}
             onClick={onClose}
-            className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-base"
-            style={{ background: 'var(--color-gold)', color: '#fff', touchAction: 'auto' }}
+            className="flex items-center justify-center gap-2 w-full py-4 font-black text-[15px]"
+            style={{
+              background: 'var(--color-gold)',
+              color: '#fff',
+              borderRadius: 18,
+              touchAction: 'auto',
+              boxShadow: '0 4px 24px rgba(201,169,110,0.35)',
+            }}
           >
             ✂ קבע תור עם {member.name}
           </Link>
         </div>
       </motion.div>
     </>,
-    document.body   // Portal — renders outside any transform context
+    document.body
   )
 }
 
