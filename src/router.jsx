@@ -33,6 +33,7 @@ import { Customers }       from './pages/admin/Customers'
 import { Waitlist }        from './pages/admin/Waitlist'
 import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
 import { SelectBranch }    from './pages/booking/SelectBranch'
+import { PrivacyPolicy }   from './pages/PrivacyPolicy'
 
 const router = createBrowserRouter([
   {
@@ -135,6 +136,10 @@ const router = createBrowserRouter([
   {
     path: '/waitlist/confirm',
     element: <BookingLayout><WaitlistConfirm /></BookingLayout>,
+  },
+  {
+    path: '/privacy',
+    element: <PrivacyPolicy />,
   },
   {
     path: '*',
