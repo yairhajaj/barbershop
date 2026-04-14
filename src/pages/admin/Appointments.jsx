@@ -811,24 +811,35 @@ export function Appointments() {
                       return (
                         <div key={svc.id} className="flex items-center gap-3 flex-wrap">
                           <span className="text-sm text-gray-600 w-36 truncate">{svc.name}</span>
-                          <div className="flex gap-1.5 flex-wrap">
-                            {COLOR_PRESETS.map(color => (
-                              <button
-                                key={color}
-                                onClick={() => setServiceColor(svc.id, color)}
-                                title={color}
-                                className="w-6 h-6 rounded-full transition-transform hover:scale-110 border-2"
-                                style={{
-                                  backgroundColor: color,
-                                  borderColor: currentColor === color ? '#fff' : 'transparent',
-                                  outline: currentColor === color ? `2px solid ${color}` : 'none',
-                                }}
-                              />
-                            ))}
+                          <div className="flex gap-2 flex-wrap items-center">
+                            {COLOR_PRESETS.map(color => {
+                              const isSelected = currentColor === color
+                              return (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() => setServiceColor(svc.id, color)}
+                                  title={color}
+                                  className="w-7 h-7 rounded-full transition-all hover:scale-110 flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    backgroundColor: color,
+                                    boxShadow: isSelected ? `0 0 0 3px #fff, 0 0 0 5px ${color}` : '0 1px 3px rgba(0,0,0,0.2)',
+                                    transform: isSelected ? 'scale(1.15)' : undefined,
+                                  }}
+                                >
+                                  {isSelected && (
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  )}
+                                </button>
+                              )
+                            })}
                           </div>
+                          {/* Live preview chip */}
                           <span
-                            className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
-                            style={{ backgroundColor: currentColor }}
+                            className="text-xs px-2.5 py-1 rounded-full text-white font-bold flex-shrink-0 transition-all"
+                            style={{ backgroundColor: currentColor, boxShadow: `0 2px 8px ${currentColor}55` }}
                           >
                             {svc.name}
                           </span>
@@ -1985,72 +1996,87 @@ function ListViewAppointments({ appointments, onSelect }) {
 
 // ─── Week View ─────────────────────────────────────────────────────────────────
 function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist }) {
-  const HOURS = Array.from({ length: endHour - startHour }, (_, i) => i + startHour)
+  const HOUR_PX     = 72                           // pixels per hour
+  const TOTAL_H     = (endHour - startHour) * HOUR_PX
+  const HOURS       = Array.from({ length: endHour - startHour }, (_, i) => i + startHour)
   const activeAppts = appointments.filter(a => a.status !== 'cancelled')
-  const [waitlistModal, setWaitlistModal] = useState(null) // { date, entries }
+  const [waitlistModal, setWaitlistModal] = useState(null)
 
-  // Returns true if this day+hour is fully/partially covered by a recurring break or blocked time
-  function getBreaksForCell(day, hour) {
+  // pixel offset from top of grid
+  function minsToY(totalMins) { return (totalMins / 60) * HOUR_PX }
+  function apptTop(appt) {
+    const s = new Date(appt.start_at)
+    return Math.max(0, minsToY((s.getHours() - startHour) * 60 + s.getMinutes()))
+  }
+  function apptHeight(appt) {
+    const dur = (new Date(appt.end_at) - new Date(appt.start_at)) / 60000
+    return Math.max(minsToY(dur), 20)
+  }
+
+  // Blocked/break bands for a single day
+  function getBands(day) {
     const dow = day.getDay()
-    const results = []
-
+    const bands = []
     recurringBreaks
       .filter(b => b.is_active && (b.day_of_week === null || b.day_of_week === dow))
       .forEach(b => {
-        const [sh] = b.start_time.split(':').map(Number)
-        const [eh] = b.end_time.split(':').map(Number)
-        if (hour >= sh && hour < eh) results.push(b.label || 'הפסקה')
+        const [sh, sm = 0] = b.start_time.split(':').map(Number)
+        const [eh, em = 0] = b.end_time.split(':').map(Number)
+        const top = minsToY((sh - startHour) * 60 + sm)
+        const h   = minsToY((eh - sh) * 60 + (em - sm))
+        if (h > 0) bands.push({ top, height: h, label: b.label || 'הפסקה' })
       })
-
     blockedTimes
       .filter(bt => isSameDay(new Date(bt.start_at), day))
       .forEach(bt => {
-        const sh = new Date(bt.start_at).getHours()
-        const eh = new Date(bt.end_at).getHours()
-        if (hour >= sh && hour < eh) results.push(bt.reason || 'חסום')
+        const s   = new Date(bt.start_at)
+        const e   = new Date(bt.end_at)
+        const top = minsToY((s.getHours() - startHour) * 60 + s.getMinutes())
+        const h   = minsToY((e - s) / 60000)
+        if (h > 0) bands.push({ top, height: h, label: bt.reason || 'חסום' })
       })
-
-    return results
+    return bands
   }
 
   return (
     <>
-    <div className="card overflow-hidden">
-      {/* Header */}
-      <div className="grid border-b border-gray-200" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
-        <div />
+    <div className="card overflow-hidden select-none">
+
+      {/* ── Column headers ── */}
+      <div className="grid border-b border-gray-200 sticky top-0 z-10 bg-white"
+        style={{ gridTemplateColumns: '44px repeat(7, minmax(0,1fr))' }}>
+        <div className="border-r border-gray-100" />
         {days.map(day => {
-          const isNow  = isSameDay(day, new Date())
-          const count  = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
-          const dateKey = format(day, 'yyyy-MM-dd')
+          const isNow     = isSameDay(day, new Date())
+          const count     = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
+          const dateKey   = format(day, 'yyyy-MM-dd')
           const wlEntries = waitlistByDate[dateKey] ?? []
           const wlCount   = wlEntries.length
           return (
-            <div
-              key={day.toISOString()}
-              className="p-2 text-center border-r border-gray-100 last:border-0"
+            <div key={day.toISOString()}
+              className="py-2 px-1 text-center border-r border-gray-100 last:border-0"
               style={{ background: isNow ? 'rgba(255,133,0,0.06)' : undefined }}
             >
-              <div className="text-xs font-semibold" style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-muted)' }}>
+              <div className="text-[10px] font-bold uppercase tracking-wide"
+                style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-muted)' }}>
                 {format(day, 'EEE', { locale: he })}
               </div>
-              <div className="text-xl font-black" style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-text)' }}>
+              <div className="text-lg font-black leading-tight"
+                style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-text)' }}>
                 {format(day, 'd')}
               </div>
-              <div className="flex items-center justify-center gap-1 mt-0.5 flex-wrap">
+              <div className="flex items-center justify-center gap-1 flex-wrap mt-0.5">
                 {count > 0 && (
-                  <div className="inline-flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                  <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none"
                     style={{ background: isNow ? 'var(--color-primary)' : '#e5e7eb', color: isNow ? '#fff' : '#6b7280' }}>
                     {count}
-                  </div>
+                  </span>
                 )}
                 {wlCount > 0 && (
-                  <button
+                  <button type="button"
                     onClick={() => setWaitlistModal({ date: day, entries: wlEntries })}
-                    title={`${wlCount} ברשימת המתנה`}
-                    className="inline-flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 py-0.5 transition-opacity hover:opacity-75"
-                    style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.3)' }}
-                  >
+                    className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none hover:opacity-75"
+                    style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.3)' }}>
                     📋{wlCount}
                   </button>
                 )}
@@ -2060,71 +2086,97 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
         })}
       </div>
 
-      {/* Body */}
-      <div className="overflow-auto max-h-[620px]">
-        {HOURS.map(hour => (
-          <div
-            key={hour}
-            className="grid"
-            style={{ gridTemplateColumns: '52px repeat(7, 1fr)', minHeight: '56px', borderBottom: '1.5px solid #ebebeb' }}
-          >
-            <div className="text-xs font-bold text-gray-400 pt-1.5 text-center select-none border-r border-gray-200"
-              style={{ fontSize: 11 }}>{hour}:00</div>
-            {days.map(day => {
-              const dayAppts = activeAppts.filter(a => {
-                const start = new Date(a.start_at)
-                return isSameDay(start, day) && start.getHours() === hour
-              })
-              const isNow   = isSameDay(day, new Date())
-              const breaks  = getBreaksForCell(day, hour)
-              const hasBreak = breaks.length > 0
+      {/* ── Time grid ── */}
+      <div className="overflow-auto" style={{ maxHeight: '72vh' }}>
+        <div className="grid relative" style={{ gridTemplateColumns: '44px repeat(7, minmax(0,1fr))', height: TOTAL_H }}>
 
-              return (
-                <div
-                  key={day.toISOString()}
-                  className="border-r border-gray-100 last:border-0 relative overflow-hidden"
-                  style={{
-                    background: hasBreak && !dayAppts.length
-                      ? 'repeating-linear-gradient(135deg, #f0f1f3 0px, #f0f1f3 5px, #e2e4e7 5px, #e2e4e7 10px)'
-                      : isNow ? 'rgba(255,133,0,0.02)' : undefined,
-                  }}
-                >
-                  {/* Break label (when no appointments overlap) */}
-                  {hasBreak && !dayAppts.length && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>
-                        {breaks[0]}
-                      </span>
-                    </div>
-                  )}
-                  {/* Thin stripe overlay even when there are appointments */}
-                  {hasBreak && dayAppts.length > 0 && (
-                    <div className="absolute inset-0 pointer-events-none" style={{
-                      background: 'repeating-linear-gradient(135deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 4px, transparent 4px, transparent 8px)',
-                      zIndex: 0,
-                    }} />
-                  )}
-                  <div className="p-0.5 relative" style={{ zIndex: 1 }}>
-                    {dayAppts.map(appt => {
-                      const color = appt.no_show ? '#ef4444' : (serviceColors[appt.service_id] || DEFAULT_COLOR)
-                      return (
-                        <button
-                          key={appt.id}
-                          onClick={() => onSelect(appt)}
-                          className="w-full text-right px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 mb-0.5"
-                          style={{ background: color, color: '#fff' }}
-                        >
-                          <div className="truncate">{appt.profiles?.name}</div>
-                          <div className="opacity-80 truncate">{appt.services?.name}</div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
+          {/* Time labels column */}
+          <div className="relative border-r border-gray-200" style={{ zIndex: 2 }}>
+            {HOURS.map(h => (
+              <div key={h} className="absolute flex items-start justify-end pr-1.5 w-full"
+                style={{ top: (h - startHour) * HOUR_PX - 8, height: 16 }}>
+                <span className="text-[10px] font-bold text-gray-400 leading-none">{h}:00</span>
+              </div>
+            ))}
           </div>
-        ))}
+
+          {/* Day columns */}
+          {days.map(day => {
+            const isNow   = isSameDay(day, new Date())
+            const dayAppts = activeAppts.filter(a => isSameDay(new Date(a.start_at), day))
+            const bands   = getBands(day)
+
+            return (
+              <div key={day.toISOString()} className="relative border-r border-gray-100 last:border-0"
+                style={{ background: isNow ? 'rgba(255,133,0,0.015)' : undefined }}>
+
+                {/* Hour grid lines */}
+                {HOURS.map(h => (
+                  <div key={h} className="absolute left-0 right-0 pointer-events-none"
+                    style={{
+                      top:         (h - startHour) * HOUR_PX,
+                      borderTop:   h % 2 === 0 ? '1px solid #e5e7eb' : '1px dashed #f0f0f0',
+                      height:      HOUR_PX,
+                    }}
+                  />
+                ))}
+
+                {/* Break / blocked bands */}
+                {bands.map((band, i) => (
+                  <div key={i} className="absolute left-0 right-0 flex items-center justify-center pointer-events-none overflow-hidden"
+                    style={{
+                      top:        band.top,
+                      height:     band.height,
+                      background: 'repeating-linear-gradient(135deg,#f0f1f3 0px,#f0f1f3 5px,#e4e5e7 5px,#e4e5e7 10px)',
+                      opacity:    0.7,
+                    }}>
+                    <span className="text-[9px] font-bold text-gray-400 rotate-0 px-1 truncate">{band.label}</span>
+                  </div>
+                ))}
+
+                {/* Appointments — absolute positioned, height = duration */}
+                {dayAppts.map(appt => {
+                  const color  = appt.no_show ? '#ef4444' : (serviceColors[appt.service_id] || DEFAULT_COLOR)
+                  const top    = apptTop(appt)
+                  const height = apptHeight(appt)
+                  const dur    = (new Date(appt.end_at) - new Date(appt.start_at)) / 60000
+                  const tiny   = height < 36  // very short — only show name
+
+                  return (
+                    <button
+                      key={appt.id}
+                      type="button"
+                      onClick={() => onSelect(appt)}
+                      className="absolute text-right transition-all hover:brightness-110 hover:z-20 active:scale-95"
+                      style={{
+                        top,
+                        height,
+                        left:         2,
+                        right:        2,
+                        background:   color,
+                        color:        '#fff',
+                        borderRadius: 6,
+                        padding:      tiny ? '2px 4px' : '3px 5px',
+                        overflow:     'hidden',
+                        zIndex:       10,
+                        boxShadow:    '0 1px 4px rgba(0,0,0,0.18)',
+                        fontSize:     tiny ? 9 : 10,
+                        fontWeight:   700,
+                        lineHeight:   1.3,
+                      }}
+                    >
+                      <div className="truncate">{appt.profiles?.name}</div>
+                      {!tiny && <div className="truncate opacity-80">{appt.services?.name}</div>}
+                      {height >= 52 && (
+                        <div className="truncate opacity-70">{dur}ד׳</div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
 
@@ -2138,16 +2190,12 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
       >
         <div className="space-y-2 max-h-80 overflow-y-auto">
           {waitlistModal.entries.map(entry => (
-            <div
-              key={entry.id}
+            <div key={entry.id}
               className="flex items-center justify-between rounded-xl p-3 text-sm"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-            >
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
-                  style={{ background: 'var(--color-gold)', color: '#fff' }}
-                >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                  style={{ background: 'var(--color-gold)', color: '#fff' }}>
                   {entry.profiles?.name?.[0] ?? '?'}
                 </div>
                 <div>
@@ -2161,23 +2209,18 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {onScheduleWaitlist && (
-                  <button
+                  <button type="button"
                     onClick={() => { setWaitlistModal(null); onScheduleWaitlist(entry) }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                    style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}
-                    title="פתח שיבוץ"
-                  >
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold"
+                    style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}>
                     📅 שיבוץ
                   </button>
                 )}
                 {entry.profiles?.phone && (
-                  <a
-                    href={`https://wa.me/${entry.profiles.phone.replace(/\D/g,'').replace(/^0/,'972')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <a href={`https://wa.me/${entry.profiles.phone.replace(/\D/g,'').replace(/^0/,'972')}`}
+                    target="_blank" rel="noopener noreferrer"
                     className="text-xs font-bold px-2 py-1.5 rounded-lg"
-                    style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366' }}
-                  >
+                    style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366' }}>
                     💬
                   </a>
                 )}
