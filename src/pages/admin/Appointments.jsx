@@ -1996,24 +1996,33 @@ function ListViewAppointments({ appointments, onSelect }) {
 
 // ─── Week View ─────────────────────────────────────────────────────────────────
 function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist }) {
-  const HOUR_PX     = 72                           // pixels per hour
-  const TOTAL_H     = (endHour - startHour) * HOUR_PX
-  const HOURS       = Array.from({ length: endHour - startHour }, (_, i) => i + startHour)
+  const SLOT_PX   = 24                                   // px per 15-minute slot
+  const HOUR_PX   = SLOT_PX * 4                         // 96px per hour
+  const TOTAL_H   = (endHour - startHour) * HOUR_PX     // total grid height
   const activeAppts = appointments.filter(a => a.status !== 'cancelled')
   const [waitlistModal, setWaitlistModal] = useState(null)
 
-  // pixel offset from top of grid
-  function minsToY(totalMins) { return (totalMins / 60) * HOUR_PX }
+  // minutes → px from top of grid
+  function minsToY(mins) { return (mins / 15) * SLOT_PX }
+
   function apptTop(appt) {
     const s = new Date(appt.start_at)
     return Math.max(0, minsToY((s.getHours() - startHour) * 60 + s.getMinutes()))
   }
   function apptHeight(appt) {
     const dur = (new Date(appt.end_at) - new Date(appt.start_at)) / 60000
-    return Math.max(minsToY(dur), 20)
+    return Math.max(minsToY(dur), SLOT_PX)   // min 1 slot tall
   }
 
-  // Blocked/break bands for a single day
+  // All 15-min slots across the day
+  const totalSlots = (endHour - startHour) * 4
+  const slots = Array.from({ length: totalSlots }, (_, i) => {
+    const totalMins = startHour * 60 + i * 15
+    const h = Math.floor(totalMins / 60)
+    const m = totalMins % 60
+    return { i, h, m, isHour: m === 0, isHalf: m === 30 }
+  })
+
   function getBands(day) {
     const dow = day.getDay()
     const bands = []
@@ -2040,12 +2049,13 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
 
   return (
     <>
-    <div className="card overflow-hidden select-none">
+    <div className="card overflow-hidden select-none" style={{ border: '1px solid var(--color-border)' }}>
 
-      {/* ── Column headers ── */}
-      <div className="grid border-b border-gray-200 sticky top-0 z-10 bg-white"
-        style={{ gridTemplateColumns: '44px repeat(7, minmax(0,1fr))' }}>
-        <div className="border-r border-gray-100" />
+      {/* ── Column headers (sticky) ── */}
+      <div className="flex border-b border-gray-200 sticky top-0 z-20 bg-white"
+        style={{ borderColor: 'var(--color-border)' }}>
+        {/* time gutter */}
+        <div className="flex-shrink-0 border-r border-gray-200" style={{ width: 52 }} />
         {days.map(day => {
           const isNow     = isSameDay(day, new Date())
           const count     = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
@@ -2054,9 +2064,8 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
           const wlCount   = wlEntries.length
           return (
             <div key={day.toISOString()}
-              className="py-2 px-1 text-center border-r border-gray-100 last:border-0"
-              style={{ background: isNow ? 'rgba(255,133,0,0.06)' : undefined }}
-            >
+              className="flex-1 py-2 px-1 text-center border-r border-gray-100 last:border-0 min-w-0"
+              style={{ background: isNow ? 'rgba(255,133,0,0.07)' : undefined }}>
               <div className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-muted)' }}>
                 {format(day, 'EEE', { locale: he })}
@@ -2065,7 +2074,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
                 style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-text)' }}>
                 {format(day, 'd')}
               </div>
-              <div className="flex items-center justify-center gap-1 flex-wrap mt-0.5">
+              <div className="flex items-center justify-center gap-1 mt-0.5">
                 {count > 0 && (
                   <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none"
                     style={{ background: isNow ? 'var(--color-primary)' : '#e5e7eb', color: isNow ? '#fff' : '#6b7280' }}>
@@ -2086,89 +2095,113 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
         })}
       </div>
 
-      {/* ── Time grid ── */}
-      <div className="overflow-auto" style={{ maxHeight: '72vh' }}>
-        <div className="grid relative" style={{ gridTemplateColumns: '44px repeat(7, minmax(0,1fr))', height: TOTAL_H }}>
+      {/* ── Scrollable body ── */}
+      <div className="overflow-auto" style={{ maxHeight: '75vh' }}>
+        <div className="flex" style={{ height: TOTAL_H }}>
 
-          {/* Time labels column */}
-          <div className="relative border-r border-gray-200" style={{ zIndex: 2 }}>
-            {HOURS.map(h => (
-              <div key={h} className="absolute flex items-start justify-end pr-1.5 w-full"
-                style={{ top: (h - startHour) * HOUR_PX - 8, height: 16 }}>
-                <span className="text-[10px] font-bold text-gray-400 leading-none">{h}:00</span>
+          {/* Time-label gutter */}
+          <div className="flex-shrink-0 relative border-r border-gray-200" style={{ width: 52, height: TOTAL_H }}>
+            {slots.filter(s => s.isHour || s.isHalf).map(s => (
+              <div key={s.i}
+                className="absolute right-0 left-0 flex items-center justify-end pr-1.5"
+                style={{ top: s.i * SLOT_PX - 7, height: 14, pointerEvents: 'none' }}>
+                <span style={{
+                  fontSize: s.isHour ? 11 : 9,
+                  fontWeight: s.isHour ? 700 : 500,
+                  color: s.isHour ? '#6b7280' : '#b0b5be',
+                  lineHeight: 1,
+                }}>
+                  {String(s.h).padStart(2,'0')}:{String(s.m).padStart(2,'0')}
+                </span>
               </div>
             ))}
           </div>
 
           {/* Day columns */}
           {days.map(day => {
-            const isNow   = isSameDay(day, new Date())
+            const isNow    = isSameDay(day, new Date())
             const dayAppts = activeAppts.filter(a => isSameDay(new Date(a.start_at), day))
-            const bands   = getBands(day)
+            const bands    = getBands(day)
 
             return (
-              <div key={day.toISOString()} className="relative border-r border-gray-100 last:border-0"
-                style={{ background: isNow ? 'rgba(255,133,0,0.015)' : undefined }}>
+              <div key={day.toISOString()}
+                className="flex-1 relative border-r border-gray-100 last:border-0 min-w-0"
+                style={{
+                  height: TOTAL_H,
+                  background: isNow ? 'rgba(255,133,0,0.015)' : 'transparent',
+                }}>
 
-                {/* Hour grid lines */}
-                {HOURS.map(h => (
-                  <div key={h} className="absolute left-0 right-0 pointer-events-none"
+                {/* 15-minute slot lines */}
+                {slots.map(s => (
+                  <div key={s.i}
+                    className="absolute left-0 right-0 pointer-events-none"
                     style={{
-                      top:         (h - startHour) * HOUR_PX,
-                      borderTop:   h % 2 === 0 ? '1px solid #e5e7eb' : '1px dashed #f0f0f0',
-                      height:      HOUR_PX,
+                      top:       s.i * SLOT_PX,
+                      height:    SLOT_PX,
+                      borderTop: s.isHour
+                        ? '1.5px solid #d1d5db'
+                        : s.isHalf
+                          ? '1px dashed #e2e4e8'
+                          : '1px dotted #eceef1',
                     }}
                   />
                 ))}
 
                 {/* Break / blocked bands */}
                 {bands.map((band, i) => (
-                  <div key={i} className="absolute left-0 right-0 flex items-center justify-center pointer-events-none overflow-hidden"
+                  <div key={i}
+                    className="absolute left-0 right-0 overflow-hidden pointer-events-none flex items-center justify-center"
                     style={{
                       top:        band.top,
                       height:     band.height,
-                      background: 'repeating-linear-gradient(135deg,#f0f1f3 0px,#f0f1f3 5px,#e4e5e7 5px,#e4e5e7 10px)',
-                      opacity:    0.7,
+                      background: 'repeating-linear-gradient(135deg,#f0f1f3 0,#f0f1f3 4px,#e2e4e7 4px,#e2e4e7 8px)',
+                      opacity:    0.75,
+                      zIndex:     1,
                     }}>
-                    <span className="text-[9px] font-bold text-gray-400 rotate-0 px-1 truncate">{band.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>{band.label}</span>
                   </div>
                 ))}
 
-                {/* Appointments — absolute positioned, height = duration */}
+                {/* Appointments */}
                 {dayAppts.map(appt => {
                   const color  = appt.no_show ? '#ef4444' : (serviceColors[appt.service_id] || DEFAULT_COLOR)
                   const top    = apptTop(appt)
                   const height = apptHeight(appt)
-                  const dur    = (new Date(appt.end_at) - new Date(appt.start_at)) / 60000
-                  const tiny   = height < 36  // very short — only show name
+                  const dur    = Math.round((new Date(appt.end_at) - new Date(appt.start_at)) / 60000)
+                  // how many 15-min slots tall
+                  const slots15 = Math.round(dur / 15)
+                  const showService = height >= SLOT_PX * 2     // ≥ 30 min
+                  const showDur     = height >= SLOT_PX * 3     // ≥ 45 min
 
                   return (
                     <button
                       key={appt.id}
                       type="button"
                       onClick={() => onSelect(appt)}
-                      className="absolute text-right transition-all hover:brightness-110 hover:z-20 active:scale-95"
+                      className="absolute text-right hover:brightness-110 hover:z-30 active:scale-95 transition-all"
                       style={{
                         top,
-                        height,
+                        height:       height - 2,        // 2px gap so slot lines show through
                         left:         2,
                         right:        2,
+                        zIndex:       10,
                         background:   color,
                         color:        '#fff',
-                        borderRadius: 6,
-                        padding:      tiny ? '2px 4px' : '3px 5px',
+                        borderRadius: 5,
                         overflow:     'hidden',
-                        zIndex:       10,
-                        boxShadow:    '0 1px 4px rgba(0,0,0,0.18)',
-                        fontSize:     tiny ? 9 : 10,
+                        padding:      '2px 5px',
+                        boxShadow:    '0 1px 4px rgba(0,0,0,0.22)',
+                        fontSize:     10,
                         fontWeight:   700,
-                        lineHeight:   1.3,
+                        lineHeight:   1.25,
                       }}
                     >
-                      <div className="truncate">{appt.profiles?.name}</div>
-                      {!tiny && <div className="truncate opacity-80">{appt.services?.name}</div>}
-                      {height >= 52 && (
-                        <div className="truncate opacity-70">{dur}ד׳</div>
+                      <div className="truncate leading-tight">{appt.profiles?.name}</div>
+                      {showService && (
+                        <div className="truncate opacity-80" style={{ fontSize: 9 }}>{appt.services?.name}</div>
+                      )}
+                      {showDur && (
+                        <div className="opacity-60" style={{ fontSize: 9 }}>{dur}ד׳</div>
                       )}
                     </button>
                   )
