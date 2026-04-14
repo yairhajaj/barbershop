@@ -577,15 +577,11 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
   const total = photos.length
   const photo = photos[idx] ?? null
 
-  // Lock body scroll while story is open
+  // Lock body scroll while open
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-      document.documentElement.style.overflow = ''
-    }
+    return () => { document.body.style.overflow = prev }
   }, [])
 
   function handleTouchStart(e) {
@@ -599,124 +595,149 @@ function StoryViewer({ member, photos, loading, onClose, bookHref }) {
     if (touchStartX.current === null) return
     const dx = Math.abs(e.changedTouches[0].clientX - touchStartX.current)
     const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
-    // ignore swipe gestures — only taps
-    if (dx > 15 || dy > 15) { touchStartX.current = null; return }
+    if (dx > 18 || dy > 18) { touchStartX.current = null; return }
     const x = touchStartX.current
     touchStartX.current = null
-    const w = window.innerWidth
     if (total === 0) return
-    if (x > w * 0.4) {
-      if (idx < total - 1) setIdx(i => i + 1)
-      else onClose()
+    if (x > window.innerWidth * 0.4) {
+      if (idx < total - 1) setIdx(i => i + 1); else onClose()
     } else {
       if (idx > 0) setIdx(i => i - 1)
     }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.97 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 bg-black flex flex-col select-none overflow-hidden"
-      style={{
-        zIndex: 9999,
-        height: '100dvh',
-        touchAction: 'none',         // block ALL default touch gestures (scroll, zoom)
-        overscrollBehavior: 'none',
-        userSelect: 'none',
-      }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Progress bars */}
-      {total > 0 && (
-        <div className="absolute top-0 inset-x-0 z-20 flex gap-1 px-3 pt-3"
-          style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
-          {photos.map((_, i) => (
-            <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.3)' }}>
-              <div
-                className="h-full rounded-full transition-all duration-200"
-                style={{ background: '#fff', width: i < idx ? '100%' : i === idx ? '50%' : '0%' }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+    <>
+      {/* Dim overlay — tapping it closes */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0"
+        style={{ zIndex: 9998, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        onClick={onClose}
+      />
 
-      {/* Header */}
-      <div className="absolute inset-x-0 z-20 flex items-center justify-between px-4"
-        style={{ top: 'calc(max(12px, env(safe-area-inset-top)) + 10px)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            {member.photo_url
-              ? <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
-              : <span className="w-full h-full flex items-center justify-center font-black text-white text-base">{member.name[0]}</span>}
-          </div>
-          <div>
-            <p className="text-white font-black text-sm leading-tight">{member.name}</p>
-            {total > 0 && <p className="text-white/60 text-xs">{idx + 1} / {total}</p>}
-          </div>
-        </div>
-        <button
-          onTouchEnd={e => { e.stopPropagation(); onClose() }}
-          onClick={e => { e.stopPropagation(); onClose() }}
-          className="w-10 h-10 flex items-center justify-center rounded-full text-white text-2xl"
-          style={{ background: 'rgba(255,255,255,0.18)', touchAction: 'auto' }}
-        >
-          ×
-        </button>
-      </div>
-
-      {/* Image — fills remaining space */}
-      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-        {loading ? (
-          <div className="w-8 h-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
-        ) : total === 0 ? (
-          <div className="text-center">
-            <div className="text-5xl mb-3">📷</div>
-            <p className="text-white/60 text-sm">עדיין אין תמונות עבודות</p>
-          </div>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={photo?.id ?? idx}
-              src={photo?.image_url}
-              alt={photo?.caption || ''}
-              className="w-full h-full object-cover"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              draggable={false}
-            />
-          </AnimatePresence>
-        )}
-      </div>
-
-      {/* Caption */}
-      {photo?.caption && (
-        <div className="absolute bottom-24 inset-x-0 px-6 text-center pointer-events-none z-10">
-          <p className="text-white text-sm bg-black/60 inline-block px-4 py-2 rounded-full">{photo.caption}</p>
-        </div>
-      )}
-
-      {/* Book CTA */}
-      <div
-        className="absolute bottom-0 inset-x-0 z-20 p-4"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      {/* Sheet — slides up from bottom */}
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+        className="fixed bottom-0 left-0 right-0 flex flex-col select-none overflow-hidden"
+        style={{
+          zIndex: 9999,
+          height: '91dvh',
+          borderRadius: '28px 28px 0 0',
+          background: '#0d0d0d',
+          touchAction: 'none',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
-        <Link
-          to={`/book/service?staff=${member.id}`}
-          onClick={onClose}
-          className="btn-primary w-full justify-center py-3.5 text-base font-black"
-          style={{ touchAction: 'auto' }}
-        >
-          ✂ קבע תור עם {member.name}
-        </Link>
-      </div>
-    </motion.div>
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.25)' }} />
+        </div>
+
+        {/* Progress bars */}
+        {total > 1 && (
+          <div className="flex gap-1.5 px-4 pb-3 flex-shrink-0">
+            {photos.map((_, i) => (
+              <div key={i} className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.2)' }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: 'var(--color-gold)' }}
+                  animate={{ width: i < idx ? '100%' : i === idx ? '60%' : '0%' }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Member header */}
+        <div className="flex items-center justify-between px-4 pb-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2"
+              style={{ borderColor: 'var(--color-gold)', background: 'rgba(255,255,255,0.08)' }}>
+              {member.photo_url
+                ? <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+                : <span className="w-full h-full flex items-center justify-center font-black text-white">{member.name[0]}</span>}
+            </div>
+            <div>
+              <p className="font-black text-sm text-white leading-tight">{member.name}</p>
+              {total > 0 && (
+                <p className="text-xs" style={{ color: 'var(--color-gold)' }}>{idx + 1} / {total} תמונות</p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); onClose() }}
+            onTouchEnd={e => { e.stopPropagation(); onClose() }}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-lg font-bold"
+            style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)', touchAction: 'auto' }}
+          >×</button>
+        </div>
+
+        {/* Photo */}
+        <div className="flex-1 mx-4 rounded-2xl overflow-hidden relative" style={{ minHeight: 0 }}>
+          {loading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+                style={{ borderColor: 'var(--color-gold)', borderTopColor: 'transparent' }} />
+            </div>
+          ) : total === 0 ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="text-5xl">📷</div>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>עדיין אין תמונות עבודות</p>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={photo?.id ?? idx}
+                src={photo?.image_url}
+                alt={photo?.caption || ''}
+                className="absolute inset-0 w-full h-full object-cover"
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                draggable={false}
+              />
+            </AnimatePresence>
+          )}
+
+          {/* Caption overlay */}
+          {photo?.caption && (
+            <div className="absolute bottom-3 inset-x-3 pointer-events-none">
+              <p className="text-white text-xs text-center px-3 py-1.5 rounded-xl"
+                style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}>
+                {photo.caption}
+              </p>
+            </div>
+          )}
+
+          {/* Tap zones hint — invisible but clickable */}
+          {total > 1 && (
+            <>
+              <div className="absolute inset-y-0 left-0 w-2/5 pointer-events-auto" />
+              <div className="absolute inset-y-0 right-0 w-3/5 pointer-events-auto" />
+            </>
+          )}
+        </div>
+
+        {/* Book CTA */}
+        <div className="px-4 pt-3 flex-shrink-0" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <Link
+            to={`/book/service?staff=${member.id}`}
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-base"
+            style={{ background: 'var(--color-gold)', color: '#fff', touchAction: 'auto' }}
+          >
+            ✂ קבע תור עם {member.name}
+          </Link>
+        </div>
+      </motion.div>
+    </>
   )
 }
 
