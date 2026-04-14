@@ -3,10 +3,11 @@ import { Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { useBranch } from '../contexts/BranchContext'
+import { useBusinessSettings } from '../hooks/useBusinessSettings'
 import { BUSINESS } from '../config/business'
 import { PageSpinner } from '../components/ui/Spinner'
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { to: '/admin',              label: 'לוח בקרה',    icon: '⊞' },
   { to: '/admin/appointments', label: 'יומן תורים',  icon: '📅' },
   { to: '/admin/customers',    label: 'לקוחות',      icon: '👥' },
@@ -14,12 +15,13 @@ const NAV_LINKS = [
   { to: '/admin/staff',        label: 'ספרים',       icon: '✂' },
   { to: '/admin/services',     label: 'שירותים',     icon: '📋' },
   { to: '/admin/products',     label: 'מוצרים',      icon: '🛍️' },
-  { to: '/admin/payments',     label: 'תשלומים',     icon: '💳' },
   { to: '/admin/invoices',     label: 'חשבוניות',    icon: '🧾' },
   { to: '/admin/messages',     label: 'הודעות',      icon: '📨' },
   { to: '/admin/appearance',   label: 'עיצוב',       icon: '🎨' },
   { to: '/admin/settings',     label: 'הגדרות',      icon: '⚙' },
 ]
+
+const PAYMENT_LINK = { to: '/admin/payments', label: 'תשלומים', icon: '💳' }
 
 function BranchSwitcher() {
   const { branches, currentBranch, selectBranch } = useBranch()
@@ -87,9 +89,15 @@ function BranchSwitcher() {
 
 export function AdminLayout({ children }) {
   const { user, profile, loading, signOut } = useAuth()
+  const { settings } = useBusinessSettings()
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Build nav links — inject Payments only when payment is enabled
+  const NAV_LINKS = settings?.payment_enabled
+    ? [...BASE_NAV_LINKS.slice(0, 7), PAYMENT_LINK, ...BASE_NAV_LINKS.slice(7)]
+    : BASE_NAV_LINKS
 
   // Scroll to top on every route change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
