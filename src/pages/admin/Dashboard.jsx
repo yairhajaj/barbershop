@@ -287,8 +287,8 @@ export function Dashboard() {
             style={{ background: waitlistEnabled ? 'var(--color-gold)' : '#d1d5db' }}
           >
             <span
-              className="inline-block w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 mt-0.5"
-              style={{ transform: waitlistEnabled ? 'translateX(2px)' : 'translateX(26px)' }}
+              className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+              style={{ right: waitlistEnabled ? '2px' : 'calc(100% - 22px)' }}
             />
           </button>
         </div>

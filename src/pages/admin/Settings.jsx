@@ -561,15 +561,15 @@ function Toggle({ checked, onChange }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${
-        checked ? 'bg-[var(--color-gold)]' : 'bg-gray-200'
-      }`}
+      className="relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 focus:outline-none"
+      style={{ background: checked ? 'var(--color-gold)' : 'rgba(0,0,0,0.15)' }}
     >
       <span
-        className={`inline-block w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 mt-0.5 ${
-          checked ? 'translate-x-0.5' : 'translate-x-5'
-        }`}
+        className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200"
+        style={{ right: checked ? '2px' : 'calc(100% - 22px)' }}
       />
     </button>
   )

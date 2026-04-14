@@ -22,6 +22,9 @@ export function BookingLayout({ children }) {
 
   const isHome = location.pathname === '/'
 
+  // Scroll to top on every route change
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
+
   // Track scroll — only matters on homepage
   useEffect(() => {
     if (!isHome) { setScrolled(false); return }

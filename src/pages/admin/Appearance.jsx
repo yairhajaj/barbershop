@@ -395,8 +395,8 @@ export function Appearance() {
               style={{ background: floating ? 'var(--color-gold)' : '#d1d5db' }}
             >
               <div
-                className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
-                style={{ transform: floating ? 'translateX(-1.625rem)' : 'translateX(0.125rem)' }}
+                className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+                style={{ right: floating ? '2px' : 'calc(100% - 22px)' }}
               />
             </div>
           </div>

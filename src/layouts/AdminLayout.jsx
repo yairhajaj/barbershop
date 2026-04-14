@@ -90,6 +90,9 @@ export function AdminLayout({ children }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Scroll to top on every route change
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
+
   if (loading) return <PageSpinner />
   if (!user || profile?.role !== 'admin') return <Navigate to="/login" replace />
 

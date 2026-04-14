@@ -294,7 +294,7 @@ export function Branches() {
             >
               <div
                 className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
-                style={{ right: form.is_active ? '2px' : 'auto', left: form.is_active ? 'auto' : '2px' }}
+                style={{ right: form.is_active ? '2px' : 'calc(100% - 22px)' }}
               />
             </div>
             <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>סניף פעיל</span>
