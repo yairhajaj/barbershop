@@ -340,20 +340,6 @@ export function Settings() {
           )}
         </section>
 
-        {/* Invoice */}
-        <section className="card p-6">
-          <h2 className="font-semibold text-lg mb-4">חשבוניות</h2>
-          <div>
-            <label className="block text-sm font-medium mb-1">טקסט תחתית חשבונית</label>
-            <textarea
-              className="input resize-none h-20"
-              placeholder="תנאים, מספר עסק, הודעות..."
-              value={form.invoice_footer_text || ''}
-              onChange={e => setForm(f => ({ ...f, invoice_footer_text: e.target.value }))}
-            />
-          </div>
-        </section>
-
         {/* ── Automatic Reminders ── */}
         <section className="card p-6">
           <h2 className="font-semibold text-lg mb-1">🔔 תזכורות אוטומטיות</h2>

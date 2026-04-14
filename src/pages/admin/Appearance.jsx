@@ -196,12 +196,6 @@ export function Appearance() {
           </p>
         </div>
       )}
-      {bucketOk === true && (
-        <div className="rounded-xl px-4 py-2.5 text-sm font-medium" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#16a34a' }}>
-          ✓ Storage מוגדר — העלאת תמונות פעילה
-        </div>
-      )}
-
       {/* Preview banner */}
       <AnimatePresence>
         {hasChanges && (
@@ -223,56 +217,6 @@ export function Appearance() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── BOOKING FLOW ────────────────────────────────────────── */}
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
-        <h2 className="font-semibold text-lg mb-1">סגנון תהליך הזמנה</h2>
-        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>איך הלקוח יקבע תור — בכל כפתורי ההזמנה</p>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            {
-              id: 'multistep',
-              icon: '📋',
-              title: 'רב-שלבי',
-              desc: 'שלב אחר שלב עם סרגל התקדמות',
-              steps: ['שירות', 'ספר', 'תאריך', 'פרטים'],
-            },
-            {
-              id: 'all-in-one',
-              icon: '⚡',
-              title: 'עמוד אחד',
-              desc: 'הכל על דף אחד — מהיר וגולל',
-              steps: ['ספר → תאריך → שירות → שעה'],
-            },
-          ].map(opt => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => handleSaveBookingFlow(opt.id)}
-              className="p-4 rounded-2xl border-2 text-right transition-all"
-              style={{
-                borderColor: bookingFlow === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
-                background:  bookingFlow === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
-              }}
-            >
-              <div className="text-2xl mb-2">{opt.icon}</div>
-              <div className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)' }}>{opt.title}</div>
-              <div className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
-              <div className="flex flex-wrap gap-1">
-                {opt.steps.map((s, i) => (
-                  <span key={i} className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--color-muted)' }}>
-                    {s}
-                  </span>
-                ))}
-              </div>
-              {bookingFlow === opt.id && (
-                <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
-              )}
-            </button>
-          ))}
-        </div>
-      </motion.section>
 
       {/* ── HERO IMAGE ──────────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
@@ -366,46 +310,6 @@ export function Appearance() {
         )}
       </motion.section>
 
-      {/* ── FLOATING EFFECT ─────────────────────────────────────── */}
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
-        <h2 className="font-semibold text-lg mb-1">אפקט ריחוף</h2>
-        <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>התוכן מרחף מעל הרקע בגלילה — אפקט עומק קולנועי</p>
-        <button
-          type="button"
-          onClick={handleToggleFloating}
-          className="w-full p-4 rounded-2xl border-2 text-right transition-all"
-          style={{
-            borderColor: floating ? 'var(--color-gold)' : 'var(--color-border)',
-            background:  floating ? 'rgba(201,169,110,0.08)' : 'var(--color-card)',
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <span className="text-3xl">🌊</span>
-            <div className="flex-1">
-              <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-text)' }}>ריחוף דף הבית</div>
-              <div className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                {floating
-                  ? 'פעיל — הרקע נשאר מאחורה, התוכן עולה מעליו עם blur ו-fade'
-                  : 'כבוי — גלילה רגילה ללא אפקט'}
-              </div>
-            </div>
-            {/* Toggle switch */}
-            <div
-              className="relative w-12 h-6 rounded-full transition-colors shrink-0"
-              style={{ background: floating ? 'var(--color-gold)' : '#d1d5db' }}
-            >
-              <div
-                className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-                style={{ right: floating ? '2px' : 'calc(100% - 22px)' }}
-              />
-            </div>
-          </div>
-          {floating && (
-            <div className="mt-3 text-xs font-bold" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
-          )}
-        </button>
-      </motion.section>
-
       {/* ── LOGO ────────────────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
         <h2 className="font-semibold text-lg mb-1">לוגו העסק</h2>
@@ -433,36 +337,6 @@ export function Appearance() {
               <button onClick={() => handleSaveLogo(null)} className="text-xs text-red-500 hover:underline">הסר</button>
             )}
           </div>
-        </div>
-      </motion.section>
-
-      {/* ── PORTFOLIO MODE ──────────────────────────────────────── */}
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
-        <h2 className="font-semibold text-lg mb-1">תצוגת עבודות ספרים</h2>
-        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>כשלקוח לוחץ על ספר בדף הבית — איך להציג את תמונות העבודות?</p>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { id: 'grid',  icon: '⊞', title: 'גריד', desc: 'רשת תמונות — לחיצה פותחת מסך מלא' },
-            { id: 'story', icon: '◉', title: 'סטורי', desc: 'תמונה אחת בכל פעם — כמו אינסטגרם' },
-          ].map(opt => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => handleSavePortfolioMode(opt.id)}
-              className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
-              style={{
-                borderColor: portfolioMode === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
-                background:  portfolioMode === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
-              }}
-            >
-              <div className="text-3xl mb-2">{opt.icon}</div>
-              <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.title}</div>
-              <div className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
-              {portfolioMode === opt.id && (
-                <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
-              )}
-            </button>
-          ))}
         </div>
       </motion.section>
 
@@ -524,6 +398,126 @@ export function Appearance() {
               </button>
             )
           })}
+        </div>
+      </motion.section>
+
+      {/* ── FLOATING EFFECT ─────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">אפקט ריחוף</h2>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>התוכן מרחף מעל הרקע בגלילה — אפקט עומק קולנועי</p>
+        <button
+          type="button"
+          onClick={handleToggleFloating}
+          className="w-full p-4 rounded-2xl border-2 text-right transition-all"
+          style={{
+            borderColor: floating ? 'var(--color-gold)' : 'var(--color-border)',
+            background:  floating ? 'rgba(201,169,110,0.08)' : 'var(--color-card)',
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <span className="text-3xl">🌊</span>
+            <div className="flex-1">
+              <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-text)' }}>ריחוף דף הבית</div>
+              <div className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                {floating
+                  ? 'פעיל — הרקע נשאר מאחורה, התוכן עולה מעליו עם blur ו-fade'
+                  : 'כבוי — גלילה רגילה ללא אפקט'}
+              </div>
+            </div>
+            {/* Toggle switch */}
+            <div
+              className="relative w-12 h-6 rounded-full transition-colors shrink-0"
+              style={{ background: floating ? 'var(--color-gold)' : '#d1d5db' }}
+            >
+              <div
+                className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+                style={{ right: floating ? '2px' : 'calc(100% - 22px)' }}
+              />
+            </div>
+          </div>
+          {floating && (
+            <div className="mt-3 text-xs font-bold" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
+          )}
+        </button>
+      </motion.section>
+
+      {/* ── PORTFOLIO MODE ──────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">תצוגת עבודות ספרים</h2>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>כשלקוח לוחץ על ספר בדף הבית — איך להציג את תמונות העבודות?</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { id: 'grid',  icon: '⊞', title: 'גריד', desc: 'רשת תמונות — לחיצה פותחת מסך מלא' },
+            { id: 'story', icon: '◉', title: 'סטורי', desc: 'תמונה אחת בכל פעם — כמו אינסטגרם' },
+          ].map(opt => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => handleSavePortfolioMode(opt.id)}
+              className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
+              style={{
+                borderColor: portfolioMode === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
+                background:  portfolioMode === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
+              }}
+            >
+              <div className="text-3xl mb-2">{opt.icon}</div>
+              <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.title}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+              {portfolioMode === opt.id && (
+                <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
+              )}
+            </button>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* ── BOOKING FLOW ────────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">סגנון תהליך הזמנה</h2>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>איך הלקוח יקבע תור — בכל כפתורי ההזמנה</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              id: 'multistep',
+              icon: '📋',
+              title: 'רב-שלבי',
+              desc: 'שלב אחר שלב עם סרגל התקדמות',
+              steps: ['שירות', 'ספר', 'תאריך', 'פרטים'],
+            },
+            {
+              id: 'all-in-one',
+              icon: '⚡',
+              title: 'עמוד אחד',
+              desc: 'הכל על דף אחד — מהיר וגולל',
+              steps: ['ספר → תאריך → שירות → שעה'],
+            },
+          ].map(opt => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => handleSaveBookingFlow(opt.id)}
+              className="p-4 rounded-2xl border-2 text-right transition-all"
+              style={{
+                borderColor: bookingFlow === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
+                background:  bookingFlow === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
+              }}
+            >
+              <div className="text-2xl mb-2">{opt.icon}</div>
+              <div className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)' }}>{opt.title}</div>
+              <div className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+              <div className="flex flex-wrap gap-1">
+                {opt.steps.map((s, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--color-muted)' }}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+              {bookingFlow === opt.id && (
+                <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
+              )}
+            </button>
+          ))}
         </div>
       </motion.section>
 
