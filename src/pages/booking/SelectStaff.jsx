@@ -8,11 +8,11 @@ import { useStaff } from '../../hooks/useStaff'
 import { useStaffPortfolio } from '../../hooks/useStaffPortfolio'
 
 export function SelectStaff() {
-  const { staff, loading } = useStaff({ activeOnly: true })
   const navigate = useNavigate()
   const [portfolioStaff, setPortfolioStaff] = useState(null)
 
   const bookingState = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
+  const { staff, loading } = useStaff({ activeOnly: true, branchId: bookingState.branchId ?? null })
 
   useEffect(() => {
     if (!bookingState.serviceId) navigate('/book/service', { replace: true })
@@ -36,7 +36,7 @@ export function SelectStaff() {
   return (
     <div className="min-h-screen pt-24 pb-16" style={{ background: 'var(--color-surface)' }}>
       <div className="container px-4 sm:px-6 max-w-xl mx-auto">
-        <BookingProgress currentStep={2} />
+        <BookingProgress currentStep="staff" />
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>

@@ -43,7 +43,8 @@ export function HomePage() {
   const bookingFlow = settings?.booking_flow
     || localStorage.getItem('booking_flow')
     || 'multistep'
-  const bookHref = bookingFlow === 'all-in-one' ? '/book/all' : '/book/service'
+  // Always start at branch selection — SelectBranch auto-skips if only 1 branch
+  const bookHref = bookingFlow === 'all-in-one' ? '/book/all' : '/book/branch'
 
   // floating / parallax effect
   const floating = settings?.floating ?? (localStorage.getItem('floating') === 'true')
@@ -59,11 +60,11 @@ export function HomePage() {
   const heroContentOpacity = useTransform(scrollY, [0, heroH * 0.38], [1, 0])
   const heroContentY       = useTransform(scrollY, [0, heroH * 0.38], ['0px', '-18px'])
 
-  // Service card link — skip service step if multistep, pre-select if all-in-one
+  // Service card link — always start at branch, pass serviceId via branch → service nav
   function serviceHref(serviceId) {
     return bookingFlow === 'all-in-one'
       ? `/book/all?service=${serviceId}`
-      : `/book/staff?service=${serviceId}`
+      : `/book/branch?service=${serviceId}`
   }
 
   return (

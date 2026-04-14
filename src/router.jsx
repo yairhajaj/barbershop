@@ -28,6 +28,11 @@ import { Settings }     from './pages/admin/Settings'
 import { Invoices }     from './pages/admin/Invoices'
 import { Appearance }   from './pages/admin/Appearance'
 import { Messages }     from './pages/admin/Messages'
+import { Branches }        from './pages/admin/Branches'
+import { Customers }       from './pages/admin/Customers'
+import { Waitlist }        from './pages/admin/Waitlist'
+import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
+import { SelectBranch }    from './pages/booking/SelectBranch'
 
 const router = createBrowserRouter([
   {
@@ -48,7 +53,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/book',
-    element: <Navigate to="/book/service" replace />,
+    element: <Navigate to="/book/branch" replace />,
+  },
+  {
+    path: '/book/branch',
+    element: <BookingLayout><SelectBranch /></BookingLayout>,
   },
   {
     path: '/book/all',
@@ -110,6 +119,22 @@ const router = createBrowserRouter([
   {
     path: '/admin/messages',
     element: <AdminLayout><Messages /></AdminLayout>,
+  },
+  {
+    path: '/admin/branches',
+    element: <AdminLayout><Branches /></AdminLayout>,
+  },
+  {
+    path: '/admin/customers',
+    element: <AdminLayout><Customers /></AdminLayout>,
+  },
+  {
+    path: '/admin/waitlist',
+    element: <AdminLayout><Waitlist /></AdminLayout>,
+  },
+  {
+    path: '/waitlist/confirm',
+    element: <BookingLayout><WaitlistConfirm /></BookingLayout>,
   },
   {
     path: '*',

@@ -31,7 +31,7 @@ export function SelectService() {
   return (
     <div className="min-h-screen pt-24 pb-16" style={{ background: 'var(--color-surface)' }}>
       <div className="container px-4 sm:px-6 max-w-xl mx-auto">
-        <BookingProgress currentStep={1} />
+        <BookingProgress currentStep="service" />
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>

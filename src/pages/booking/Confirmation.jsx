@@ -9,6 +9,7 @@ import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { formatDateFull, formatTime, priceDisplay } from '../../lib/utils'
 import { BUSINESS } from '../../config/business'
+import { supabase } from '../../lib/supabase'
 
 export function Confirmation() {
   const navigate = useNavigate()
@@ -46,6 +47,7 @@ export function Confirmation() {
         customer_id:       user.id,
         service_id:        bookingState.serviceId,
         staff_id:          bookingState.staffId ?? null,
+        branch_id:         bookingState.branchId ?? null,
         start_at:          bookingState.slotStart,
         end_at:            bookingState.slotEnd,
         notes:             '',
@@ -59,6 +61,15 @@ export function Confirmation() {
         appt = results[0]
       } else {
         appt = await createAppointment(apptData)
+      }
+
+      // Save email to profile for customer management
+      if (user && bookingState.customerEmail) {
+        supabase
+          .from('profiles')
+          .update({ email: bookingState.customerEmail })
+          .eq('id', user.id)
+          .then(() => {}) // fire-and-forget
       }
 
       sessionStorage.removeItem('booking_state')
@@ -165,6 +176,7 @@ export function Confirmation() {
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
           >
             {[
+              { label: 'סניף',  value: bookingState.branchName },
               { label: 'שירות', value: bookingState.serviceName },
               { label: 'ספר',   value: bookingState.staffName },
               { label: 'תאריך', value: slotStart ? formatDateFull(slotStart) : '' },
@@ -231,7 +243,7 @@ export function Confirmation() {
   return (
     <div className="min-h-screen pt-24 pb-16" style={{ background: 'var(--color-surface)' }}>
       <div className="container px-4 sm:px-6 max-w-md mx-auto">
-        <BookingProgress currentStep={4} />
+        <BookingProgress currentStep="confirm" />
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
@@ -248,12 +260,13 @@ export function Confirmation() {
         <div className="rounded-2xl p-5 mb-4 space-y-3 text-sm"
           style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
           {[
+            { label: 'סניף',  value: bookingState.branchName },
             { label: 'שירות', value: bookingState.serviceName },
             { label: 'ספר',   value: bookingState.staffName },
             { label: 'תאריך', value: slotStart ? formatDateFull(slotStart) : '-' },
             { label: 'שעה',   value: slotStart ? formatTime(slotStart) : '-' },
             { label: 'מחיר',  value: priceDisplay(bookingState.servicePrice), accent: true },
-          ].map(row => (
+          ].filter(r => r.value).map(row => (
             <div key={row.label} className="flex justify-between items-center py-1"
               style={{ borderBottom: '1px solid var(--color-border)' }}>
               <span style={{ color: 'var(--color-muted)' }}>{row.label}</span>

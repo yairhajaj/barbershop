@@ -133,14 +133,14 @@ export function useAppointments({ staffId, date, customerId } = {}) {
 }
 
 // Hook for all appointments (admin use)
-export function useAllAppointments({ startDate, endDate, staffId, status } = {}) {
+export function useAllAppointments({ startDate, endDate, staffId, status, branchId } = {}) {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
 
   useEffect(() => {
     fetchAll()
-  }, [startDate?.toISOString(), endDate?.toISOString(), staffId, status])
+  }, [startDate?.toISOString(), endDate?.toISOString(), staffId, status, branchId])
 
   async function fetchAll() {
     setLoading(true)
@@ -158,6 +158,7 @@ export function useAllAppointments({ startDate, endDate, staffId, status } = {})
     if (endDate)   query = query.lte('start_at', endDate.toISOString())
     if (staffId)   query = query.eq('staff_id', staffId)
     if (status)    query = query.eq('status', status)
+    if (branchId)  query = query.eq('branch_id', branchId)
 
     const { data, error } = await query
     if (error) setError(error.message)

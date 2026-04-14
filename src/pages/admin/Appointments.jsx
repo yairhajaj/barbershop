@@ -13,11 +13,13 @@ import { useAllAppointments } from '../../hooks/useAppointments'
 import { useStaff } from '../../hooks/useStaff'
 import { useServices } from '../../hooks/useServices'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
+import { useBusinessSettings } from '../../hooks/useBusinessSettings'
+import { useBranch } from '../../contexts/BranchContext'
 import { StatusBadge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
-import { findGapOpportunities, formatTime, formatDate } from '../../lib/utils'
+import { findGapOpportunities, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -37,12 +39,33 @@ const COLOR_PRESETS = [
 const DEFAULT_COLOR = '#C9A96E'
 
 const EMPTY_EVENT = {
-  title: '',
-  staff_id: '',
-  date: '',
+  title:      '',
+  staff_ids:  [],   // multi-select
+  dates:      [],   // multi-select
   start_time: '',
-  end_time: '',
+  end_time:   '',
 }
+
+const BLOCK_TIME_OPTIONS = Array.from({ length: 29 }, (_, i) => {
+  const mins = 7 * 60 + i * 30
+  return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`
+})
+
+const BLOCK_PRESETS = [
+  { emoji: '🤝', label: 'פגישה' },
+  { emoji: '☕', label: 'הפסקה' },
+  { emoji: '🏖', label: 'חופשה' },
+  { emoji: '🔧', label: 'תחזוקה' },
+  { emoji: '🎓', label: 'הדרכה' },
+  { emoji: '✏️', label: 'אחר' },
+]
+
+const DURATION_PRESETS = [
+  { label: '30ד׳', minutes: 30 },
+  { label: '1ש׳',  minutes: 60 },
+  { label: '2ש׳',  minutes: 120 },
+  { label: 'כל היום', minutes: null },
+]
 
 // ─── localStorage helpers ──────────────────────────────────────────────────────
 function lsGet(key, fallback) {
@@ -68,6 +91,8 @@ export function Appointments() {
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
   const [savingEvent, setSavingEvent] = useState(false)
+  const [eventPreset, setEventPreset]         = useState('')       // '' | preset label | 'אחר'
+  const [eventPickerMode, setEventPickerMode] = useState('from')  // 'from' | 'to'
 
   // Calendar settings (localStorage)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -83,7 +108,7 @@ export function Appointments() {
 
   // Book for customer modal
   const [bookOpen, setBookOpen] = useState(false)
-  const [bookForm, setBookForm] = useState({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '' })
+  const [bookForm, setBookForm] = useState({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '', wlTimeFrom: '', wlTimeTo: '' })
   const [customerResults, setCustomerResults] = useState([])
   const [savingBook, setSavingBook] = useState(false)
   const [deviceContacts, setDeviceContacts] = useState([])
@@ -93,13 +118,31 @@ export function Appointments() {
   // WhatsApp prompt after move
   const [whatsappAfterMove, setWhatsappAfterMove] = useState(null)
 
+  // Waitlist prefill — id of waitlist entry to mark booked after manual scheduling
+  const [waitlistPrefillId, setWaitlistPrefillId] = useState(null)
+
+  // Waitlist lock — original service/staff from waitlist entry (when present, chips are locked)
+  const [bookWlOrigService,  setBookWlOrigService]  = useState('')
+  const [bookWlOrigStaff,    setBookWlOrigStaff]    = useState('')
+  const [bookWlLockService,  setBookWlLockService]  = useState(false)
+  const [bookWlLockStaff,    setBookWlLockStaff]    = useState(false)
+  const [bookChangeConfirm,  setBookChangeConfirm]  = useState(null) // { type, newId, newName, origName }
+
   // Blocked times for current range
   const [allBlockedTimes, setAllBlockedTimes] = useState([])
 
   const toast = useToast()
+  const { currentBranch } = useBranch()
   const { breaks: recurringBreaks } = useRecurringBreaks()
-  const { staff } = useStaff({ activeOnly: true })
+  const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { services } = useServices({ activeOnly: false })
+  const { hours: businessHours } = useBusinessSettings()
+
+  // Slot picker for booking modal
+  const [bookSlots, setBookSlots]                   = useState([])
+  const [bookSlotsRecommended, setBookSlotsRecommended] = useState(new Set())
+  const [bookSlotsLoading, setBookSlotsLoading]     = useState(false)
+  const [bookShowManualTime, setBookShowManualTime]  = useState(false)
 
   // ── Setters that also persist ────────────────────────────────────────────────
   const setSlotMinutes = useCallback(v => {
@@ -122,6 +165,139 @@ export function Appointments() {
     })
   }, [])
 
+  // ── Waitlist prefill: auto-open booking modal if navigated from waitlist ──────
+  useEffect(() => {
+    const raw = sessionStorage.getItem('waitlist_prefill')
+    if (!raw) return
+    sessionStorage.removeItem('waitlist_prefill')
+    try {
+      const p = JSON.parse(raw)
+      setWaitlistPrefillId(p.waitlistId ?? null)
+      setBookWlOrigService(p.serviceId || '')
+      setBookWlOrigStaff(p.staffId || '')
+      setBookWlLockService(!!p.serviceId)
+      setBookWlLockStaff(!!p.staffId)
+      setBookChangeConfirm(null)
+      setBookForm({
+        customerSearch: p.customerName ? `${p.customerName}${p.customerPhone ? ' · ' + p.customerPhone : ''}` : '',
+        customerId:     p.customerId   || null,
+        customerName:   p.customerName || '',
+        customerPhone:  p.customerPhone || '',
+        serviceId:      p.serviceId    || '',
+        staffId:        p.staffId      || '',
+        date:           p.date         || format(new Date(), 'yyyy-MM-dd'),
+        startTime:      p.startTime    || '',
+        notes:          '',
+        wlTimeFrom:     p.wlTimeFrom   || '',
+        wlTimeTo:       p.wlTimeTo     || '',
+      })
+      // Navigate calendar to the prefilled date
+      if (p.date) setCurrentDate(new Date(p.date + 'T12:00:00'))
+      setBookOpen(true)
+    } catch { /* ignore */ }
+  }, [])
+
+  // ── Slot picker: compute available slots for booking modal ───────────────────
+  useEffect(() => {
+    if (!bookOpen) return
+    computeBookSlots()
+  }, [bookForm.staffId, bookForm.date, bookForm.serviceId, bookOpen])
+
+  async function computeBookSlots() {
+    const { staffId, date: dateStr, serviceId } = bookForm
+    if (!staffId || !dateStr || !serviceId) {
+      setBookSlots([])
+      setBookSlotsRecommended(new Set())
+      return
+    }
+    setBookSlotsLoading(true)
+    try {
+      const date = new Date(dateStr + 'T12:00:00')
+      const dow  = date.getDay()
+      const dayStart = startOfDay(date)
+      const dayEnd   = endOfDay(date)
+
+      const [{ data: dayAppts }, { data: dayBlocked }] = await Promise.all([
+        supabase.from('appointments')
+          .select('start_at, end_at, status')
+          .eq('staff_id', staffId)
+          .in('status', ['confirmed'])
+          .gte('start_at', dayStart.toISOString())
+          .lte('start_at', dayEnd.toISOString()),
+        supabase.from('blocked_times')
+          .select('start_at, end_at')
+          .eq('staff_id', staffId)
+          .lte('start_at', dayEnd.toISOString())
+          .gte('end_at', dayStart.toISOString()),
+      ])
+
+      const member   = staff.find(s => s.id === staffId)
+      const staffDay = member?.staff_hours?.find(h => h.day_of_week === dow)
+      const bizDay   = businessHours.find(h => h.day_of_week === dow)
+      const svc      = services.find(s => s.id === serviceId)
+      const duration = svc?.duration_minutes ?? 30
+
+      const sharedParams = {
+        date,
+        durationMinutes: duration,
+        staffHours:  staffDay,
+        businessHours: bizDay,
+        existingAppointments: dayAppts  ?? [],
+        blockedTimes:         dayBlocked ?? [],
+        recurringBreaks,
+      }
+
+      // All available slots (no smart filter)
+      const allSlots = generateSlots(sharedParams)
+
+      // Recommended slots — gap-minimising (always apply smart logic)
+      const apptCount = (dayAppts ?? []).length
+      const recSlots  = generateSlots({
+        ...sharedParams,
+        smartScheduling: {
+          enabled:          true,
+          adjacent:         true,
+          startOfDay:       true,
+          endOfDay:         true,
+          freeCount:        0,
+          appointmentCount: apptCount,
+        },
+      })
+
+      const recSet = new Set(recSlots.map(s => s.start.getTime()))
+
+      // Filter out past slots if today
+      const now = new Date()
+      let filtered = allSlots.filter(s =>
+        date.toDateString() !== now.toDateString() || s.start > now
+      )
+
+      // If coming from waitlist, only show slots within the customer's requested time range
+      const { wlTimeFrom, wlTimeTo } = bookForm
+      if (wlTimeFrom && wlTimeTo) {
+        filtered = filtered.filter(s => {
+          const t = `${String(s.start.getHours()).padStart(2,'0')}:${String(s.start.getMinutes()).padStart(2,'0')}`
+          return t >= wlTimeFrom && t < wlTimeTo
+        })
+        // Also filter recommended to only in-range slots
+      }
+
+      setBookSlots(filtered)
+      // Recommended: only slots that are both recommended AND in range
+      const finalRecSet = wlTimeFrom && wlTimeTo
+        ? new Set([...recSet].filter(ts => filtered.some(s => s.start.getTime() === ts)))
+        : recSet
+      setBookSlotsRecommended(finalRecSet)
+      // Reset manual time toggle when slots load
+      setBookShowManualTime(false)
+    } catch {
+      setBookSlots([])
+      setBookSlotsRecommended(new Set())
+    } finally {
+      setBookSlotsLoading(false)
+    }
+  }
+
   // ── Date range ────────────────────────────────────────────────────────────────
   const startDate = view === 'day'
     ? startOfDay(currentDate)
@@ -134,6 +310,7 @@ export function Appointments() {
     startDate,
     endDate,
     staffId: filterStaff || undefined,
+    branchId: currentBranch?.id ?? null,
   })
 
   // Load blocked times for the visible date range
@@ -144,6 +321,29 @@ export function Appointments() {
       .gte('end_at', startDate.toISOString())
       .lte('start_at', endDate.toISOString())
       .then(({ data }) => setAllBlockedTimes(data ?? []))
+  }, [startDate.toISOString(), endDate.toISOString()])
+
+  // Load waitlist entries for visible date range (week view)
+  const [waitlistByDate, setWaitlistByDate] = useState({})
+  useEffect(() => {
+    const s = format(startDate, 'yyyy-MM-dd')
+    const e = format(endDate,   'yyyy-MM-dd')
+    supabase
+      .from('waitlist')
+      .select('*, profiles(name, phone), services(name)')
+      .gte('preferred_date', s)
+      .lte('preferred_date', e)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        const map = {}
+        ;(data ?? []).forEach(entry => {
+          const d = entry.preferred_date
+          if (!map[d]) map[d] = []
+          map[d].push(entry)
+        })
+        setWaitlistByDate(map)
+      })
   }, [startDate.toISOString(), endDate.toISOString()])
 
   function navigate(dir) {
@@ -173,6 +373,22 @@ export function Appointments() {
     await refetch()
     setSelectedAppt(null)
     toast({ message: 'תור בוטל', type: 'success' })
+
+    // Notify first person on waitlist for this slot (fire-and-forget)
+    const cancelled = appointments.find(a => a.id === id)
+    if (cancelled) {
+      supabase.functions.invoke('notify-waitlist', {
+        body: {
+          serviceId:   cancelled.service_id,
+          branchId:    cancelled.branch_id ?? null,
+          staffId:     cancelled.staff_id  ?? null,
+          staffName:   cancelled.staff?.name ?? '',
+          slotStart:   cancelled.start_at,
+          slotEnd:     cancelled.end_at,
+          serviceName: cancelled.services?.name ?? '',
+        },
+      }).then(() => {})
+    }
   }
 
   async function handleComplete(id) {
@@ -278,22 +494,74 @@ export function Appointments() {
         customer_id: customerId,
         service_id:  bookForm.serviceId,
         staff_id:    bookForm.staffId,
+        branch_id:   currentBranch?.id ?? null,
         start_at,
         end_at,
         status: 'confirmed',
         notes: bookForm.notes || null,
       })
       if (error) throw error
+
+      // If this was a manual schedule from the waitlist — mark entry as booked
+      if (waitlistPrefillId) {
+        supabase.from('waitlist')
+          .update({ status: 'booked', token: null })
+          .eq('id', waitlistPrefillId)
+          .then(() => {})  // fire-and-forget
+        setWaitlistPrefillId(null)
+      }
+
       await refetch()
       toast({ message: 'תור נקבע בהצלחה ✓', type: 'success' })
-      setBookOpen(false)
-      setBookForm({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '' })
-      setCustomerResults([])
+      closeBook()
     } catch (err) {
       toast({ message: err.message, type: 'error' })
     } finally {
       setSavingBook(false)
     }
+  }
+
+  function handleScheduleFromWaitlist(entry) {
+    const svcId  = entry.service_id || ''
+    const stfId  = entry.staff_id   || ''
+    setWaitlistPrefillId(entry.id)
+    setBookWlOrigService(svcId)
+    setBookWlOrigStaff(stfId)
+    setBookWlLockService(!!svcId)
+    setBookWlLockStaff(!!stfId)
+    setBookChangeConfirm(null)
+    setBookForm({
+      customerSearch: entry.profiles?.name
+        ? `${entry.profiles.name}${entry.profiles.phone ? ' · ' + entry.profiles.phone : ''}`
+        : '',
+      customerId:   entry.customer_id || null,
+      customerName: entry.profiles?.name  || '',
+      customerPhone:entry.profiles?.phone || '',
+      serviceId:    svcId,
+      staffId:      stfId,
+      date:         entry.preferred_date  || format(new Date(), 'yyyy-MM-dd'),
+      startTime:    entry.time_from?.slice(0,5) || '',
+      notes:        '',
+      wlTimeFrom:   entry.time_from?.slice(0,5) || '',
+      wlTimeTo:     entry.time_to?.slice(0,5)   || '',
+    })
+    if (entry.preferred_date) setCurrentDate(new Date(entry.preferred_date + 'T12:00:00'))
+    setBookOpen(true)
+  }
+
+  function closeBook() {
+    setBookOpen(false)
+    setCustomerResults([])
+    setWaitlistPrefillId(null)
+    setBookSlots([])
+    setBookSlotsRecommended(new Set())
+    setBookShowManualTime(false)
+    setBookWlOrigService('')
+    setBookWlOrigStaff('')
+    setBookWlLockService(false)
+    setBookWlLockStaff(false)
+    setBookChangeConfirm(null)
+    setBookForm({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '', wlTimeFrom: '', wlTimeTo: '' })
   }
 
   // Open book modal pre-filled from a slot click in DayView
@@ -307,24 +575,32 @@ export function Appointments() {
   }
 
   async function handleSaveEvent(e) {
-    e.preventDefault()
-    if (!eventForm.title || !eventForm.staff_id || !eventForm.date || !eventForm.start_time || !eventForm.end_time) {
+    e?.preventDefault()
+    if (!eventForm.title || !eventForm.staff_ids.length || !eventForm.dates.length || !eventForm.start_time || !eventForm.end_time) {
       toast({ message: 'יש למלא את כל השדות', type: 'error' })
       return
     }
     setSavingEvent(true)
     try {
-      const start_at = new Date(`${eventForm.date}T${eventForm.start_time}`).toISOString()
-      const end_at = new Date(`${eventForm.date}T${eventForm.end_time}`).toISOString()
-      const { error } = await supabase.from('blocked_times').insert({
-        staff_id: eventForm.staff_id,
-        start_at,
-        end_at,
-        reason: eventForm.title,
-      })
+      // Insert one row per (date × staff) combination
+      const rows = []
+      for (const date of eventForm.dates) {
+        for (const sid of eventForm.staff_ids) {
+          rows.push({
+            staff_id: sid,
+            start_at: new Date(`${date}T${eventForm.start_time}`).toISOString(),
+            end_at:   new Date(`${date}T${eventForm.end_time}`).toISOString(),
+            reason:   eventForm.title,
+          })
+        }
+      }
+      const { error } = await supabase.from('blocked_times').insert(rows)
       if (error) throw error
-      toast({ message: 'אירוע נוסף ליומן', type: 'success' })
+      const n = rows.length
+      toast({ message: n === 1 ? 'שעות נחסמו ביומן' : `נחסמו ${n} שעות ביומן`, type: 'success' })
       setEventForm(EMPTY_EVENT)
+      setEventPreset('')
+      setEventPickerMode('from')
       setAddEventOpen(false)
     } catch (err) {
       toast({ message: err.message, type: 'error' })
@@ -404,7 +680,7 @@ export function Appointments() {
             onClick={() => setAddEventOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
           >
-            🔒 אירוע אישי
+            🚫 חסימת שעות
           </button>
 
           <button
@@ -673,6 +949,8 @@ export function Appointments() {
           blockedTimes={allBlockedTimes}
           startHour={calStartHour}
           endHour={calEndHour}
+          waitlistByDate={waitlistByDate}
+          onScheduleWaitlist={handleScheduleFromWaitlist}
         />
       )}
 
@@ -773,217 +1051,803 @@ export function Appointments() {
         )}
       </Modal>
 
-      {/* ── Add Personal Event Modal ── */}
-      <Modal
-        open={addEventOpen}
-        onClose={() => { setAddEventOpen(false); setEventForm(EMPTY_EVENT) }}
-        title="הוסף אירוע אישי"
-      >
-        <form onSubmit={handleSaveEvent} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">כותרת / תיאור *</label>
-            <input
-              className="input"
-              placeholder="למשל: פגישה, חופשה, תורנות..."
-              value={eventForm.title}
-              onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">ספר *</label>
-            <select
-              className="input"
-              value={eventForm.staff_id}
-              onChange={e => setEventForm(f => ({ ...f, staff_id: e.target.value }))}
-              required
+      {/* ── Block Hours — Bottom Sheet ── */}
+      <AnimatePresence>
+        {addEventOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+            onClick={e => { if (e.target === e.currentTarget) { setAddEventOpen(false); setEventForm(EMPTY_EVENT); setEventPreset(''); setEventPickerMode('from') } }}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0,  opacity: 1 }}
+              exit={{    y: 80, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
+              style={{
+                background:  'var(--color-card)',
+                maxHeight:   '92vh',
+                border:      '1px solid var(--color-border)',
+                boxShadow:   '0 -8px 40px rgba(0,0,0,0.2)',
+              }}
+              onClick={e => e.stopPropagation()}
             >
-              <option value="">בחר ספר...</option>
-              {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">תאריך *</label>
-            <input
-              type="date"
-              className="input"
-              value={eventForm.date}
-              onChange={e => setEventForm(f => ({ ...f, date: e.target.value }))}
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">שעת התחלה *</label>
-              <input
-                type="time"
-                className="input"
-                value={eventForm.start_time}
-                onChange={e => setEventForm(f => ({ ...f, start_time: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">שעת סיום *</label>
-              <input
-                type="time"
-                className="input"
-                value={eventForm.end_time}
-                onChange={e => setEventForm(f => ({ ...f, end_time: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={savingEvent} className="btn-primary flex-1 justify-center">
-              {savingEvent ? 'שומר...' : 'שמור אירוע'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setAddEventOpen(false); setEventForm(EMPTY_EVENT) }}
-              className="btn-outline flex-1 justify-center"
-            >
-              ביטול
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* ── Book for Customer Modal ── */}
-      <Modal open={bookOpen} onClose={() => { setBookOpen(false); setCustomerResults([]) }} title="קביעת תור ללקוח">
-        <form onSubmit={handleBookForCustomer} className="space-y-4">
-
-          {/* ── Customer Source Tabs ── */}
-          <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--color-surface)' }}>
-            <button type="button"
-              onClick={() => { setContactsTab('db'); setCustomerResults([]); setBookForm(f => ({ ...f, customerSearch: '', customerId: null, customerName: '', customerPhone: '' })) }}
-              className="flex-1 py-1.5 text-sm font-semibold rounded-lg transition-all"
-              style={{ background: contactsTab === 'db' ? 'var(--color-card)' : 'transparent', color: contactsTab === 'db' ? 'var(--color-text)' : 'var(--color-muted)', boxShadow: contactsTab === 'db' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
-            >
-              👤 לקוחות קיימים
-            </button>
-            <button type="button"
-              onClick={() => { setContactsTab('contacts'); setCustomerResults([]); setBookForm(f => ({ ...f, customerSearch: '', customerId: null, customerName: '', customerPhone: '' })) }}
-              className="flex-1 py-1.5 text-sm font-semibold rounded-lg transition-all"
-              style={{ background: contactsTab === 'contacts' ? 'var(--color-card)' : 'transparent', color: contactsTab === 'contacts' ? 'var(--color-text)' : 'var(--color-muted)', boxShadow: contactsTab === 'contacts' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}
-            >
-              📱 אנשי קשר
-            </button>
-          </div>
-
-          {/* ── Customer Search ── */}
-          <div className="relative">
-            {contactsTab === 'contacts' && !contactsLoaded ? (
-              <div className="text-center py-4">
-                <p className="text-sm mb-3" style={{ color: 'var(--color-muted)' }}>סנכרן את אנשי הקשר מהמכשיר שלך</p>
-                <button type="button" onClick={syncDeviceContacts}
-                  className="btn-primary text-sm px-5 py-2"
-                >
-                  📲 סנכרן אנשי קשר
-                </button>
-                <p className="text-xs mt-2" style={{ color: 'var(--color-muted)' }}>* הגישה לאנשי קשר נשמרת רק בדפדפן, לא נשלחת לשום מקום</p>
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-0 sm:hidden flex-shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
               </div>
-            ) : (
-              <>
-                <div className="flex gap-2 items-center mb-1">
-                  <label className="block text-sm font-medium flex-1">
-                    {contactsTab === 'db' ? 'חיפוש לקוח (שם / טלפון) *' : `חיפוש באנשי קשר (${deviceContacts.length})`}
-                  </label>
-                  {contactsTab === 'contacts' && (
-                    <button type="button" onClick={syncDeviceContacts} className="text-xs px-2 py-0.5 rounded-lg border" style={{ color: 'var(--color-muted)', borderColor: 'var(--color-border)' }}>
-                      🔄 רענן
-                    </button>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                <h2 className="text-base font-black" style={{ color: 'var(--color-text)' }}>🚫 חסימת שעות</h2>
+                <button
+                  onClick={() => { setAddEventOpen(false); setEventForm(EMPTY_EVENT); setEventPreset(''); setEventPickerMode('from') }}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all"
+                  style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}
+                >×</button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+                {/* Preset chips */}
+                <div>
+                  <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>סוג האירוע</p>
+                  <div className="flex flex-wrap gap-2">
+                    {BLOCK_PRESETS.map(p => {
+                      const active = eventPreset === p.label
+                      return (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => {
+                            setEventPreset(p.label)
+                            if (p.label !== 'אחר') setEventForm(f => ({ ...f, title: p.label }))
+                            else setEventForm(f => ({ ...f, title: '' }))
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all"
+                          style={{
+                            background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                            color:      active ? '#fff'              : 'var(--color-text)',
+                            border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                          }}
+                        >
+                          <span>{p.emoji}</span>
+                          <span>{p.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {/* Custom title input — shown when "אחר" selected, or no preset chosen */}
+                  {(eventPreset === 'אחר' || !eventPreset) && (
+                    <input
+                      className="input mt-3"
+                      placeholder={eventPreset === 'אחר' ? 'תיאור חופשי...' : 'תיאור חופשי (או בחר סוג למעלה)...'}
+                      value={eventForm.title}
+                      onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))}
+                      autoFocus={eventPreset === 'אחר'}
+                    />
                   )}
                 </div>
-                <input
-                  className="input"
-                  placeholder="הקלד לחיפוש..."
-                  value={bookForm.customerSearch}
-                  onChange={e => {
-                    const q = e.target.value
-                    setBookForm(f => ({ ...f, customerSearch: q, customerId: null, customerName: '', customerPhone: '' }))
-                    searchCustomers(q)
-                  }}
-                />
-                {customerResults.length > 0 && (
-                  <div className="absolute z-20 top-full mt-1 w-full rounded-xl shadow-lg overflow-hidden" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-                    {customerResults.map(c => (
+
+                {/* Staff chips — multi-select */}
+                <div>
+                  <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>
+                    ספרים
+                    {eventForm.staff_ids.length > 0 && (
+                      <span className="mr-1.5 font-normal" style={{ color: 'var(--color-gold)' }}>
+                        ({eventForm.staff_ids.length} נבחרו)
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {staff.map(s => {
+                      const active = eventForm.staff_ids.includes(s.id)
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setEventForm(f => ({
+                            ...f,
+                            staff_ids: active
+                              ? f.staff_ids.filter(id => id !== s.id)
+                              : [...f.staff_ids, s.id],
+                          }))}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all"
+                          style={{
+                            background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                            color:      active ? '#fff'              : 'var(--color-text)',
+                            border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                          }}
+                        >
+                          <span
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                            style={{ background: 'rgba(255,255,255,0.25)', color: active ? '#fff' : 'var(--color-gold)', border: active ? 'none' : '1px solid var(--color-gold)' }}
+                          >{s.name?.[0]}</span>
+                          <span>{s.name}</span>
+                          {active && <span className="text-[10px]">✓</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Dates — horizontal scroll (30 days), multi-select */}
+                <div>
+                  <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>
+                    תאריכים
+                    {eventForm.dates.length > 0 && (
+                      <span className="mr-1.5 font-normal" style={{ color: 'var(--color-gold)' }}>
+                        ({eventForm.dates.length} נבחרו)
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+                    {Array.from({ length: 30 }, (_, i) => {
+                      const d      = addDays(new Date(), i)
+                      const val    = format(d, 'yyyy-MM-dd')
+                      const active = eventForm.dates.includes(val)
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setEventForm(f => ({
+                            ...f,
+                            dates: active
+                              ? f.dates.filter(dv => dv !== val)
+                              : [...f.dates, val],
+                          }))}
+                          className="flex-shrink-0 flex flex-col items-center rounded-2xl px-3 py-2 transition-all relative"
+                          style={{
+                            background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                            color:      active ? '#fff'              : 'var(--color-text)',
+                            border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                            minWidth:   '52px',
+                          }}
+                        >
+                          {active && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-[9px] font-black flex items-center justify-center" style={{ color: 'var(--color-gold)', border: '1.5px solid var(--color-gold)' }}>✓</span>
+                          )}
+                          <span className="text-[10px] font-bold opacity-80">{dayName(d)}</span>
+                          <span className="text-sm font-black">{format(d, 'd')}</span>
+                          <span className="text-[10px] opacity-70">{format(d, 'M/yy')}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Time picker — FROM/TO tab + grid (same pattern as waitlist) */}
+                <div>
+                  <p className="text-xs font-bold mb-2.5" style={{ color: 'var(--color-muted)' }}>שעות חסימה</p>
+
+                  {/* FROM / TO tab buttons */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {[
+                      { key: 'from', label: 'התחלה', value: eventForm.start_time || '--:--' },
+                      { key: 'to',   label: 'סיום',   value: eventForm.end_time   || '--:--' },
+                    ].map(tab => (
                       <button
-                        key={c.id}
+                        key={tab.key}
                         type="button"
-                        className="w-full text-right px-4 py-2.5 text-sm transition-colors"
-                        style={{ borderBottom: '1px solid var(--color-border)' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        onClick={() => {
-                          if (c.isDevice) {
-                            selectDeviceContact(c)
-                          } else {
-                            setBookForm(f => ({ ...f, customerId: c.id, customerName: c.name, customerPhone: c.phone || '', customerSearch: `${c.name}${c.phone ? ' · ' + c.phone : ''}` }))
-                            setCustomerResults([])
-                          }
+                        onClick={() => setEventPickerMode(tab.key)}
+                        className="flex flex-col items-center py-3 rounded-2xl transition-all"
+                        style={{
+                          background:  eventPickerMode === tab.key ? 'var(--color-gold)'              : 'var(--color-surface)',
+                          color:       eventPickerMode === tab.key ? '#fff'                            : 'var(--color-text)',
+                          border:      `2px solid ${eventPickerMode === tab.key ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                          boxShadow:   eventPickerMode === tab.key ? '0 2px 12px rgba(255,122,0,0.2)'  : 'none',
                         }}
                       >
-                        <span className="font-semibold">{c.name}</span>
-                        {c.phone && <span className="text-xs mr-2" style={{ color: 'var(--color-muted)' }}>{c.phone}</span>}
-                        {c.isDevice && <span className="text-xs mr-1" style={{ color: 'var(--color-muted)' }}>📱</span>}
+                        <span className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.8 }}>{tab.label}</span>
+                        <span className="text-xl font-black tracking-tight">{tab.value}</span>
                       </button>
                     ))}
                   </div>
-                )}
-                {bookForm.customerId && (
-                  <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--color-primary)' }}>
-                    ✓ {bookForm.customerId === 'new' ? 'לקוח חדש: ' : 'לקוח נבחר: '}{bookForm.customerName}
-                    {bookForm.customerId === 'new' && <span className="font-normal" style={{ color: 'var(--color-muted)' }}> (ייווצר אוטומטית)</span>}
+
+                  {/* Time grid */}
+                  <div
+                    className="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto rounded-2xl p-2"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                  >
+                    {BLOCK_TIME_OPTIONS.map(t => {
+                      const isFrom   = t === eventForm.start_time
+                      const isTo     = t === eventForm.end_time
+                      const inRange  = eventForm.start_time && eventForm.end_time && t > eventForm.start_time && t < eventForm.end_time
+                      const isActive = eventPickerMode === 'from' ? isFrom : isTo
+                      const disabled = eventPickerMode === 'to' && eventForm.start_time && t <= eventForm.start_time
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => {
+                            if (eventPickerMode === 'from') {
+                              setEventForm(f => {
+                                const newF = { ...f, start_time: t }
+                                // push end_time forward if now invalid
+                                if (f.end_time && f.end_time <= t) {
+                                  const idx  = BLOCK_TIME_OPTIONS.indexOf(t)
+                                  newF.end_time = BLOCK_TIME_OPTIONS[idx + 1] ?? ''
+                                }
+                                return newF
+                              })
+                              setEventPickerMode('to')
+                            } else {
+                              setEventForm(f => ({ ...f, end_time: t }))
+                            }
+                          }}
+                          className="py-1.5 text-xs font-bold rounded-xl transition-all"
+                          style={{
+                            background: isActive ? 'var(--color-gold)'          : inRange ? 'rgba(255,122,0,0.12)' : 'transparent',
+                            color:      isActive ? '#fff'                        : inRange ? 'var(--color-gold)'    : disabled ? 'var(--color-border)' : 'var(--color-text)',
+                            border:     `1px solid ${isActive ? 'var(--color-gold)' : inRange ? 'rgba(255,122,0,0.3)' : 'transparent'}`,
+                            opacity:    disabled ? 0.35 : 1,
+                            cursor:     disabled ? 'not-allowed' : 'pointer',
+                          }}
+                        >{t}</button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Duration quick chips */}
+                  <div className="flex gap-2 flex-wrap mt-3">
+                    <span className="text-[10px] font-bold self-center" style={{ color: 'var(--color-muted)' }}>משך מהיר:</span>
+                    {DURATION_PRESETS.map(dp => (
+                      <button
+                        key={dp.label}
+                        type="button"
+                        onClick={() => {
+                          if (dp.minutes === null) {
+                            setEventForm(f => ({ ...f, start_time: '07:00', end_time: '20:00' }))
+                          } else if (eventForm.start_time) {
+                            const [h, m]    = eventForm.start_time.split(':').map(Number)
+                            const totalMins = h * 60 + m + dp.minutes
+                            const eh = String(Math.floor(totalMins / 60) % 24).padStart(2, '0')
+                            const em = String(totalMins % 60).padStart(2, '0')
+                            setEventForm(f => ({ ...f, end_time: `${eh}:${em}` }))
+                          }
+                        }}
+                        className="px-3 py-1 rounded-full text-xs font-bold transition-all"
+                        style={{
+                          background: 'var(--color-surface)',
+                          color:      'var(--color-text)',
+                          border:     '1.5px solid var(--color-border)',
+                        }}
+                      >{dp.label}</button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+                {/* Summary row */}
+                {(eventForm.staff_ids.length > 0 || eventForm.dates.length > 0 || eventForm.start_time) && (
+                  <p className="text-xs text-center mb-2 font-medium" style={{ color: 'var(--color-muted)' }}>
+                    {eventForm.staff_ids.length > 0  ? `${eventForm.staff_ids.length} ספרים · ` : ''}
+                    {eventForm.dates.length > 0       ? `${eventForm.dates.length} תאריכים · `   : ''}
+                    {eventForm.start_time && eventForm.end_time ? `${eventForm.start_time}–${eventForm.end_time}` : ''}
+                    {eventForm.staff_ids.length > 0 && eventForm.dates.length > 0
+                      ? ` · ${eventForm.staff_ids.length * eventForm.dates.length} חסימות`
+                      : ''}
                   </p>
                 )}
-              </>
-            )}
-          </div>
+                {/* Missing fields hint */}
+                {(!eventForm.title || !eventForm.staff_ids.length || !eventForm.dates.length || !eventForm.start_time || !eventForm.end_time) && (
+                  <p className="text-xs text-center mb-2" style={{ color: 'var(--color-muted)' }}>
+                    {[
+                      !eventForm.title           && 'בחר סוג אירוע',
+                      !eventForm.staff_ids.length && 'בחר ספר',
+                      !eventForm.dates.length     && 'בחר תאריך',
+                      !eventForm.start_time       && 'בחר שעת התחלה',
+                      !eventForm.end_time         && 'בחר שעת סיום',
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSaveEvent}
+                  disabled={savingEvent || !eventForm.title || !eventForm.staff_ids.length || !eventForm.dates.length || !eventForm.start_time || !eventForm.end_time}
+                  className="btn-primary w-full justify-center py-3 text-sm font-bold disabled:opacity-40"
+                >
+                  {savingEvent
+                    ? <Spinner size="sm" className="border-white border-t-transparent" />
+                    : `🚫 חסום שעות${eventForm.staff_ids.length * eventForm.dates.length > 1 ? ` (${eventForm.staff_ids.length * eventForm.dates.length})` : ''}`
+                  }
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">שירות *</label>
-              <select className="input" value={bookForm.serviceId} onChange={e => setBookForm(f => ({ ...f, serviceId: e.target.value }))} required>
-                <option value="">בחר שירות...</option>
-                {services.filter(s => s.is_active && s.booking_type !== 'by_request').map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.duration_minutes} דק׳)</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">ספר *</label>
-              <select className="input" value={bookForm.staffId} onChange={e => setBookForm(f => ({ ...f, staffId: e.target.value }))} required>
-                <option value="">בחר ספר...</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-          </div>
+      {/* ── Book for Customer — Bottom Sheet ── */}
+      <AnimatePresence>
+        {bookOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+            onClick={e => e.target === e.currentTarget && closeBook()}
+          >
+            <motion.form
+              onSubmit={handleBookForCustomer}
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0,  opacity: 1 }}
+              exit={{    y: 80, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
+              style={{
+                background:  'var(--color-card)',
+                maxHeight:   '92vh',
+                border:      '1px solid var(--color-border)',
+                boxShadow:   '0 -8px 40px rgba(0,0,0,0.2)',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Drag handle (mobile) */}
+              <div className="flex justify-center pt-3 pb-0 sm:hidden flex-shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">תאריך *</label>
-              <input type="date" className="input" value={bookForm.date} onChange={e => setBookForm(f => ({ ...f, date: e.target.value }))} required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">שעת התחלה *</label>
-              <input type="time" className="input" value={bookForm.startTime} onChange={e => setBookForm(f => ({ ...f, startTime: e.target.value }))} required />
-            </div>
-          </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
+                <div>
+                  <h2 className="text-lg font-black" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                    📅 קביעת תור ללקוח
+                  </h2>
+                  {waitlistPrefillId && (
+                    <div>
+                      <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-gold)' }}>📋 שיבוץ מרשימת המתנה</p>
+                      {bookForm.wlTimeFrom && bookForm.wlTimeTo && (
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                          טווח שעות מבוקש: {bookForm.wlTimeFrom} – {bookForm.wlTimeTo}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <button type="button" onClick={closeBook}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-xl flex-shrink-0"
+                  style={{ color: 'var(--color-muted)', background: 'var(--color-surface)' }}
+                >×</button>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">הערות</label>
-            <textarea className="input resize-none h-14" placeholder="הערות לתור..." value={bookForm.notes} onChange={e => setBookForm(f => ({ ...f, notes: e.target.value }))} />
-          </div>
+              {/* ── Scrollable body ── */}
+              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6 min-h-0">
 
-          <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={savingBook} className="btn-primary flex-1 justify-center">
-              {savingBook ? 'שומר...' : '✓ קבע תור'}
-            </button>
-            <button type="button" onClick={() => { setBookOpen(false); setCustomerResults([]) }} className="btn-outline flex-1 justify-center">ביטול</button>
-          </div>
-        </form>
-      </Modal>
+                {/* 1. Customer */}
+                <section>
+                  <p className="text-[11px] font-bold mb-2 tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>👤 לקוח</p>
+                  {bookForm.customerId ? (
+                    <div className="flex items-center justify-between px-4 py-3 rounded-2xl"
+                      style={{ background: 'rgba(255,122,0,0.07)', border: '1.5px solid var(--color-gold)' }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0"
+                          style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                          {bookForm.customerName?.[0] ?? '?'}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{bookForm.customerName}</div>
+                          {bookForm.customerPhone && <div className="text-xs" style={{ color: 'var(--color-muted)' }}>{bookForm.customerPhone}</div>}
+                        </div>
+                      </div>
+                      <button type="button"
+                        onClick={() => setBookForm(f => ({ ...f, customerId: null, customerName: '', customerPhone: '', customerSearch: '' }))}
+                        className="text-sm w-7 h-7 flex items-center justify-center rounded-full flex-shrink-0"
+                        style={{ color: 'var(--color-muted)', background: 'var(--color-surface)' }}
+                      >✕</button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        className="input"
+                        placeholder="🔍  חפש לפי שם או טלפון..."
+                        value={bookForm.customerSearch}
+                        autoComplete="off"
+                        onChange={e => {
+                          const q = e.target.value
+                          setBookForm(f => ({ ...f, customerSearch: q, customerId: null, customerName: '', customerPhone: '' }))
+                          searchCustomers(q)
+                        }}
+                      />
+                      {customerResults.length > 0 && (
+                        <div className="absolute top-full mt-1 w-full rounded-2xl shadow-xl z-20 overflow-hidden"
+                          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+                          {customerResults.map(c => (
+                            <button key={c.id} type="button"
+                              className="w-full text-right px-4 py-3 text-sm flex items-center gap-3 transition-all"
+                              style={{ borderBottom: '1px solid var(--color-border)' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                              onClick={() => {
+                                if (c.isDevice) { selectDeviceContact(c) }
+                                else {
+                                  setBookForm(f => ({ ...f, customerId: c.id, customerName: c.name, customerPhone: c.phone || '', customerSearch: '' }))
+                                  setCustomerResults([])
+                                }
+                              }}
+                            >
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                                style={{ background: 'var(--color-gold)', color: '#fff' }}>{c.name?.[0] ?? '?'}</div>
+                              <div className="text-right">
+                                <div className="font-semibold">{c.name}</div>
+                                {c.phone && <div className="text-xs" style={{ color: 'var(--color-muted)' }}>{c.phone}</div>}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                {/* 2. Service */}
+                <section>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>✂ שירות</p>
+                    {waitlistPrefillId && bookWlLockService && (
+                      <button type="button" onClick={() => setBookWlLockService(false)}
+                        className="text-xs px-2 py-0.5 rounded-lg transition-all"
+                        style={{ color: 'var(--color-muted)', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                      >שנה ↓</button>
+                    )}
+                  </div>
+                  {waitlistPrefillId && bookWlLockService ? (
+                    /* Locked — show only the selected service */
+                    (() => {
+                      const svc = services.find(s => s.id === bookForm.serviceId)
+                      return svc ? (
+                        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl"
+                          style={{ background: 'rgba(255,122,0,0.07)', border: '1.5px solid var(--color-gold)' }}>
+                          <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>
+                            {svc.name}
+                            <span className="text-[10px] mr-1" style={{ opacity: 0.6 }}>· {svc.duration_minutes}ד׳</span>
+                          </span>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--color-gold)' }}>✓ כבקשת הלקוח</span>
+                        </div>
+                      ) : null
+                    })()
+                  ) : (
+                    /* Unlocked — all chips */
+                    <div className="flex flex-wrap gap-2">
+                      {services.filter(s => s.is_active && s.booking_type !== 'by_request').map(s => {
+                        const active = bookForm.serviceId === s.id
+                        const isDifferent = waitlistPrefillId && bookWlOrigService && s.id !== bookWlOrigService
+                        return (
+                          <button key={s.id} type="button"
+                            onClick={() => {
+                              if (isDifferent) {
+                                const origName = services.find(x => x.id === bookWlOrigService)?.name ?? ''
+                                setBookChangeConfirm({ type: 'service', newId: s.id, newName: s.name, origName })
+                              } else {
+                                setBookForm(f => ({ ...f, serviceId: s.id, startTime: '' }))
+                              }
+                            }}
+                            className="px-3.5 py-2 rounded-xl text-sm font-bold transition-all"
+                            style={{
+                              background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                              color:      active ? '#fff'              : 'var(--color-text)',
+                              border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                              boxShadow:  active ? '0 2px 10px rgba(255,122,0,0.28)' : 'none',
+                            }}
+                          >
+                            {s.name}
+                            <span className="text-[10px] mr-1" style={{ opacity: 0.7 }}>· {s.duration_minutes}ד׳</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+
+                {/* 3. Staff */}
+                <section>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>💈 ספר</p>
+                    {waitlistPrefillId && bookWlLockStaff && (
+                      <button type="button" onClick={() => setBookWlLockStaff(false)}
+                        className="text-xs px-2 py-0.5 rounded-lg transition-all"
+                        style={{ color: 'var(--color-muted)', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                      >שנה ↓</button>
+                    )}
+                  </div>
+                  {waitlistPrefillId && bookWlLockStaff ? (
+                    /* Locked — show only the selected staff */
+                    (() => {
+                      const member = staff.find(s => s.id === bookForm.staffId)
+                      return member ? (
+                        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl"
+                          style={{ background: 'rgba(255,122,0,0.07)', border: '1.5px solid var(--color-gold)' }}>
+                          <div className="flex items-center gap-2">
+                            <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black"
+                              style={{ background: 'var(--color-gold)', color: '#fff' }}>{member.name[0]}</span>
+                            <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{member.name}</span>
+                          </div>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--color-gold)' }}>✓ כבקשת הלקוח</span>
+                        </div>
+                      ) : null
+                    })()
+                  ) : (
+                    /* Unlocked — all chips */
+                    <div className="flex flex-wrap gap-2">
+                      {staff.map(s => {
+                        const active = bookForm.staffId === s.id
+                        const isDifferent = waitlistPrefillId && bookWlOrigStaff && s.id !== bookWlOrigStaff
+                        return (
+                          <button key={s.id} type="button"
+                            onClick={() => {
+                              if (isDifferent) {
+                                const origName = staff.find(x => x.id === bookWlOrigStaff)?.name ?? ''
+                                setBookChangeConfirm({ type: 'staff', newId: s.id, newName: s.name, origName })
+                              } else {
+                                setBookForm(f => ({ ...f, staffId: s.id, startTime: '' }))
+                              }
+                            }}
+                            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold transition-all"
+                            style={{
+                              background: active ? 'var(--color-gold)' : 'var(--color-surface)',
+                              color:      active ? '#fff'              : 'var(--color-text)',
+                              border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                              boxShadow:  active ? '0 2px 10px rgba(255,122,0,0.28)' : 'none',
+                            }}
+                          >
+                            <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
+                              style={{ background: active ? 'rgba(255,255,255,0.25)' : 'var(--color-gold)', color: '#fff' }}>
+                              {s.name[0]}
+                            </span>
+                            {s.name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
+
+                {/* 4. Date */}
+                <section>
+                  <p className="text-[11px] font-bold mb-2 tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>📅 תאריך</p>
+                  <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    <div className="flex gap-2 min-w-max">
+                      {Array.from({ length: 30 }, (_, i) => addDays(startOfDay(new Date()), i)).map(date => {
+                        const dateStr  = format(date, 'yyyy-MM-dd')
+                        const active   = bookForm.date === dateStr
+                        const todayFlg = isSameDay(date, new Date())
+                        return (
+                          <button
+                            key={dateStr}
+                            type="button"
+                            onClick={() => setBookForm(f => ({ ...f, date: dateStr, startTime: '' }))}
+                            className="flex flex-col items-center px-3 py-2.5 text-xs font-semibold transition-all min-w-[52px] border-2 flex-shrink-0"
+                            style={{
+                              background:   active ? 'var(--color-gold)'                : 'var(--color-surface)',
+                              borderColor:  active ? 'var(--color-gold)'                : 'var(--color-border)',
+                              color:        active ? '#fff'                             : 'var(--color-text)',
+                              boxShadow:    active ? '0 2px 10px rgba(255,122,0,0.25)' : 'none',
+                              borderRadius: 'var(--radius-btn, 12px)',
+                            }}
+                          >
+                            <span className="text-[10px] mb-0.5" style={{ opacity: active ? 1 : 0.5 }}>{dayName(date.getDay())}</span>
+                            <span className="text-base font-black">{date.getDate()}</span>
+                            {todayFlg && <span className="text-[9px]" style={{ opacity: 0.65 }}>היום</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </section>
+
+                {/* 5. Time slots */}
+                {bookForm.staffId && bookForm.serviceId && bookForm.date && (
+                  <section>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>🕐 שעה</p>
+                      <button type="button"
+                        onClick={() => setBookShowManualTime(v => !v)}
+                        className="text-xs px-2 py-1 rounded-lg transition-all"
+                        style={{ color: 'var(--color-muted)', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                      >
+                        {bookShowManualTime ? '← שעות פנויות' : '✏ ידנית'}
+                      </button>
+                    </div>
+
+                    {bookShowManualTime ? (
+                      <input type="time" className="input" value={bookForm.startTime}
+                        onChange={e => setBookForm(f => ({ ...f, startTime: e.target.value }))} />
+                    ) : bookSlotsLoading ? (
+                      <div className="flex items-center gap-2 py-5" style={{ color: 'var(--color-muted)' }}>
+                        <Spinner size="sm" />
+                        <span className="text-xs">טוען שעות פנויות...</span>
+                      </div>
+                    ) : bookSlots.length === 0 ? (
+                      <div className="py-5 text-center text-sm rounded-2xl" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                        אין שעות פנויות ביום זה
+                        <br />
+                        <button type="button" onClick={() => setBookShowManualTime(true)}
+                          className="text-xs mt-1.5 underline" style={{ color: 'var(--color-gold)' }}>
+                          הכנס שעה ידנית
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Recommended */}
+                        {bookSlotsRecommended.size > 0 && (
+                          <div className="rounded-2xl p-3" style={{ background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.2)' }}>
+                            <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--color-gold)' }}>
+                              ⭐ מומלצות — ממזערות חורים ביומן
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {bookSlots.filter(s => bookSlotsRecommended.has(s.start.getTime())).map(slot => {
+                                const t   = `${String(slot.start.getHours()).padStart(2,'0')}:${String(slot.start.getMinutes()).padStart(2,'0')}`
+                                const sel = bookForm.startTime === t
+                                return (
+                                  <button key={t} type="button"
+                                    onClick={() => setBookForm(f => ({ ...f, startTime: t }))}
+                                    className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                                    style={{
+                                      background: sel ? 'var(--color-gold)'       : 'rgba(255,122,0,0.15)',
+                                      color:      sel ? '#fff'                    : 'var(--color-gold)',
+                                      border:     `1.5px solid ${sel ? 'var(--color-gold)' : 'rgba(255,122,0,0.35)'}`,
+                                      boxShadow:  sel ? '0 2px 10px rgba(255,122,0,0.3)' : 'none',
+                                    }}
+                                  >{t}</button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* All other slots */}
+                        {bookSlots.some(s => !bookSlotsRecommended.has(s.start.getTime())) && (
+                          <div>
+                            {bookSlotsRecommended.size > 0 && (
+                              <p className="text-[10px] font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>שאר השעות הפנויות</p>
+                            )}
+                            <div className="flex flex-wrap gap-1.5">
+                              {bookSlots.filter(s => !bookSlotsRecommended.has(s.start.getTime())).map(slot => {
+                                const t   = `${String(slot.start.getHours()).padStart(2,'0')}:${String(slot.start.getMinutes()).padStart(2,'0')}`
+                                const sel = bookForm.startTime === t
+                                return (
+                                  <button key={t} type="button"
+                                    onClick={() => setBookForm(f => ({ ...f, startTime: t }))}
+                                    className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                                    style={{
+                                      background: sel ? 'var(--color-gold)'   : 'var(--color-surface)',
+                                      color:      sel ? '#fff'                : 'var(--color-text)',
+                                      border:     `1.5px solid ${sel ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                                      boxShadow:  sel ? '0 2px 10px rgba(255,122,0,0.3)' : 'none',
+                                    }}
+                                  >{t}</button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {/* 6. Notes */}
+                <section>
+                  <p className="text-[11px] font-bold mb-2 tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>📝 הערות (אופציונלי)</p>
+                  <textarea
+                    className="input resize-none text-sm"
+                    rows={2}
+                    placeholder="הערות לתור..."
+                    value={bookForm.notes}
+                    onChange={e => setBookForm(f => ({ ...f, notes: e.target.value }))}
+                  />
+                </section>
+
+              </div>{/* end scroll */}
+
+              {/* ── Fixed Footer ── */}
+              <div className="px-5 py-4 flex-shrink-0" style={{ borderTop: '1px solid var(--color-border)' }}>
+                {/* Missing fields hint */}
+                {(() => {
+                  const missing = [
+                    !bookForm.customerId && 'לקוח',
+                    !bookForm.serviceId  && 'שירות',
+                    !bookForm.staffId    && 'ספר',
+                    !bookForm.date       && 'תאריך',
+                    !bookForm.startTime  && 'שעה',
+                  ].filter(Boolean)
+                  return missing.length > 0 ? (
+                    <p className="text-center text-xs mb-2.5" style={{ color: 'var(--color-muted)' }}>
+                      חסר: {missing.join(' · ')}
+                    </p>
+                  ) : null
+                })()}
+                <button
+                  type="submit"
+                  disabled={savingBook || !bookForm.customerId || !bookForm.serviceId || !bookForm.staffId || !bookForm.date || !bookForm.startTime}
+                  className="btn-primary w-full justify-center py-3.5 text-base font-bold"
+                  style={{ opacity: (!bookForm.customerId || !bookForm.serviceId || !bookForm.staffId || !bookForm.date || !bookForm.startTime) ? 0.45 : 1 }}
+                >
+                  {savingBook
+                    ? <><Spinner size="sm" className="border-white border-t-transparent" /><span className="mr-2">שומר...</span></>
+                    : `✓ קבע תור${bookForm.customerName ? ` ל${bookForm.customerName}` : ''}`
+                  }
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Change confirmation dialog (service/staff differs from waitlist request) ── */}
+      <AnimatePresence>
+        {bookChangeConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
+          >
+            <motion.div
+              initial={{ scale: 0.88, opacity: 0 }}
+              animate={{ scale: 1,    opacity: 1 }}
+              exit={{    scale: 0.88, opacity: 0 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+              className="w-full max-w-sm rounded-3xl overflow-hidden"
+              style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+            >
+              <div className="px-5 pt-5 pb-4 space-y-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mx-auto"
+                  style={{ background: 'rgba(239,68,68,0.1)' }}>⚠️</div>
+                <h3 className="text-base font-black text-center" style={{ color: 'var(--color-text)' }}>
+                  שינוי {bookChangeConfirm.type === 'service' ? 'שירות' : 'ספר'}
+                </h3>
+                <p className="text-sm text-center" style={{ color: 'var(--color-muted)' }}>
+                  הלקוח ביקש{' '}
+                  <span className="font-bold" style={{ color: 'var(--color-text)' }}>"{bookChangeConfirm.origName}"</span>
+                </p>
+                <p className="text-sm text-center" style={{ color: 'var(--color-muted)' }}>
+                  האם לשנות ל
+                  <span className="font-bold" style={{ color: '#ef4444' }}> "{bookChangeConfirm.newName}"</span>?
+                </p>
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-x-reverse" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => setBookChangeConfirm(null)}
+                  className="py-3 text-sm font-bold transition-all"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  ביטול
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (bookChangeConfirm.type === 'service') {
+                      setBookForm(f => ({ ...f, serviceId: bookChangeConfirm.newId, startTime: '' }))
+                      setBookWlLockService(false)
+                    } else {
+                      setBookForm(f => ({ ...f, staffId: bookChangeConfirm.newId, startTime: '' }))
+                      setBookWlLockStaff(false)
+                    }
+                    setBookChangeConfirm(null)
+                  }}
+                  className="py-3 text-sm font-bold transition-all"
+                  style={{ color: '#ef4444' }}
+                >
+                  כן, שנה
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── WhatsApp After Move Modal ── */}
       <Modal open={!!whatsappAfterMove} onClose={() => setWhatsappAfterMove(null)} title="שליחת הודעה ללקוח">
@@ -1120,9 +1984,10 @@ function ListViewAppointments({ appointments, onSelect }) {
 }
 
 // ─── Week View ─────────────────────────────────────────────────────────────────
-function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20 }) {
+function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist }) {
   const HOURS = Array.from({ length: endHour - startHour }, (_, i) => i + startHour)
   const activeAppts = appointments.filter(a => a.status !== 'cancelled')
+  const [waitlistModal, setWaitlistModal] = useState(null) // { date, entries }
 
   // Returns true if this day+hour is fully/partially covered by a recurring break or blocked time
   function getBreaksForCell(day, hour) {
@@ -1149,13 +2014,17 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
   }
 
   return (
+    <>
     <div className="card overflow-hidden">
       {/* Header */}
       <div className="grid border-b border-gray-200" style={{ gridTemplateColumns: '52px repeat(7, 1fr)' }}>
         <div />
         {days.map(day => {
-          const isNow = isSameDay(day, new Date())
-          const count = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
+          const isNow  = isSameDay(day, new Date())
+          const count  = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
+          const dateKey = format(day, 'yyyy-MM-dd')
+          const wlEntries = waitlistByDate[dateKey] ?? []
+          const wlCount   = wlEntries.length
           return (
             <div
               key={day.toISOString()}
@@ -1168,12 +2037,24 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
               <div className="text-xl font-black" style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-text)' }}>
                 {format(day, 'd')}
               </div>
-              {count > 0 && (
-                <div className="inline-flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 py-0.5 mt-0.5"
-                  style={{ background: isNow ? 'var(--color-primary)' : '#e5e7eb', color: isNow ? '#fff' : '#6b7280' }}>
-                  {count}
-                </div>
-              )}
+              <div className="flex items-center justify-center gap-1 mt-0.5 flex-wrap">
+                {count > 0 && (
+                  <div className="inline-flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                    style={{ background: isNow ? 'var(--color-primary)' : '#e5e7eb', color: isNow ? '#fff' : '#6b7280' }}>
+                    {count}
+                  </div>
+                )}
+                {wlCount > 0 && (
+                  <button
+                    onClick={() => setWaitlistModal({ date: day, entries: wlEntries })}
+                    title={`${wlCount} ברשימת המתנה`}
+                    className="inline-flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 py-0.5 transition-opacity hover:opacity-75"
+                    style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.3)' }}
+                  >
+                    📋{wlCount}
+                  </button>
+                )}
+              </div>
             </div>
           )
         })}
@@ -1246,6 +2127,67 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
         ))}
       </div>
     </div>
+
+    {/* Waitlist day modal */}
+    {waitlistModal && (
+      <Modal
+        open={true}
+        onClose={() => setWaitlistModal(null)}
+        title={`📋 רשימת המתנה — ${format(waitlistModal.date, 'dd.MM.yyyy')}`}
+        size="sm"
+      >
+        <div className="space-y-2 max-h-80 overflow-y-auto">
+          {waitlistModal.entries.map(entry => (
+            <div
+              key={entry.id}
+              className="flex items-center justify-between rounded-xl p-3 text-sm"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                  style={{ background: 'var(--color-gold)', color: '#fff' }}
+                >
+                  {entry.profiles?.name?.[0] ?? '?'}
+                </div>
+                <div>
+                  <div className="font-bold" style={{ color: 'var(--color-text)' }}>{entry.profiles?.name}</div>
+                  <div className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                    {entry.profiles?.phone}
+                    {entry.services?.name ? ` · ${entry.services.name}` : ''}
+                    {` · ${entry.time_from?.slice(0,5)}–${entry.time_to?.slice(0,5)}`}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {onScheduleWaitlist && (
+                  <button
+                    onClick={() => { setWaitlistModal(null); onScheduleWaitlist(entry) }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}
+                    title="פתח שיבוץ"
+                  >
+                    📅 שיבוץ
+                  </button>
+                )}
+                {entry.profiles?.phone && (
+                  <a
+                    href={`https://wa.me/${entry.profiles.phone.replace(/\D/g,'').replace(/^0/,'972')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold px-2 py-1.5 rounded-lg"
+                    style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366' }}
+                  >
+                    💬
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
+    )}
+    </>
   )
 }
 

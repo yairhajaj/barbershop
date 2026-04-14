@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { startOfDay, endOfDay, addDays } from 'date-fns'
+import { startOfDay, endOfDay, addDays, format } from 'date-fns'
 import { useAllAppointments } from '../../hooks/useAppointments'
 import { useStaff } from '../../hooks/useStaff'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
+import { useBranch } from '../../contexts/BranchContext'
 import { StatusBadge } from '../../components/ui/Badge'
+import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
 import { formatTime, formatDateFull } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
@@ -15,20 +17,78 @@ import { BUSINESS } from '../../config/business'
 export function Dashboard() {
   const today = new Date()
   const toast = useToast()
-  const { staff } = useStaff({ activeOnly: true })
-  const { settings } = useBusinessSettings()
+  const { currentBranch } = useBranch()
+  const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
+  const { settings, saveSettings } = useBusinessSettings()
   const [gapAnalysis, setGapAnalysis] = useState([])
   const [showGaps, setShowGaps] = useState(false)
   const [analyzingGaps, setAnalyzingGaps] = useState(false)
 
+  // Waitlist
+  const [waitlistEntries, setWaitlistEntries] = useState([])
+  const [waitlistLoading, setWaitlistLoading] = useState(false)
+  const [togglingWaitlist, setTogglingWaitlist] = useState(false)
+
+  const waitlistEnabled = settings.waitlist_enabled ?? false
+
+  useEffect(() => {
+    if (waitlistEnabled) loadWaitlist()
+  }, [waitlistEnabled])
+
+  async function loadWaitlist() {
+    setWaitlistLoading(true)
+    const { data } = await supabase
+      .from('waitlist')
+      .select('*, profiles(name, phone), services(name)')
+      .eq('status', 'pending')
+      .order('preferred_date', { ascending: true })
+      .order('created_at',   { ascending: true })
+    setWaitlistEntries(data ?? [])
+    setWaitlistLoading(false)
+  }
+
+  async function toggleWaitlist() {
+    setTogglingWaitlist(true)
+    try {
+      await saveSettings({ waitlist_enabled: !waitlistEnabled })
+    } finally {
+      setTogglingWaitlist(false)
+    }
+  }
+
+  async function removeFromWaitlist(id) {
+    await supabase.from('waitlist').update({ status: 'removed' }).eq('id', id)
+    setWaitlistEntries(es => es.filter(e => e.id !== id))
+  }
+
+  const navigate = useNavigate()
+
+  function handleSchedule(entry) {
+    sessionStorage.setItem('waitlist_prefill', JSON.stringify({
+      waitlistId:    entry.id,
+      customerId:    entry.customer_id,
+      customerName:  entry.profiles?.name ?? '',
+      customerPhone: entry.profiles?.phone ?? '',
+      serviceId:     entry.service_id ?? '',
+      staffId:       entry.staff_id   ?? '',
+      date:          entry.preferred_date ?? '',
+      startTime:     entry.time_from?.slice(0,5) ?? '',
+      wlTimeFrom:    entry.time_from?.slice(0,5) ?? '',
+      wlTimeTo:      entry.time_to?.slice(0,5)   ?? '',
+    }))
+    navigate('/admin/appointments')
+  }
+
   const { appointments: todayAppts, loading: loadingToday, refetch } = useAllAppointments({
     startDate: startOfDay(today),
     endDate: endOfDay(today),
+    branchId: currentBranch?.id ?? null,
   })
 
   const { appointments: weekAppts } = useAllAppointments({
     startDate: startOfDay(today),
     endDate: endOfDay(addDays(today, 6)),
+    branchId: currentBranch?.id ?? null,
   })
 
   const confirmed  = todayAppts.filter(a => a.status === 'confirmed')
@@ -204,6 +264,111 @@ export function Dashboard() {
                   ))}
                 </div>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      {/* Waitlist Section */}
+      <section className="card p-5 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-base">📋 רשימת המתנה</h2>
+            <p className="text-sm text-muted mt-0.5">
+              {waitlistEnabled
+                ? `${waitlistEntries.length} ממתינים · לקוחות יקבלו הודעה כשיתפנה תור`
+                : 'כבוי — לקוחות לא יוכלו להצטרף לרשימת המתנה'}
+            </p>
+          </div>
+          <button
+            onClick={toggleWaitlist}
+            disabled={togglingWaitlist}
+            className="relative inline-flex w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0"
+            style={{ background: waitlistEnabled ? 'var(--color-gold)' : '#d1d5db' }}
+          >
+            <span
+              className="inline-block w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 mt-0.5"
+              style={{ transform: waitlistEnabled ? 'translateX(2px)' : 'translateX(26px)' }}
+            />
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {waitlistEnabled && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
+                {waitlistLoading ? (
+                  <div className="flex justify-center py-6"><Spinner /></div>
+                ) : waitlistEntries.length === 0 ? (
+                  <div className="text-center py-6 text-sm" style={{ color: 'var(--color-muted)' }}>
+                    <div className="text-3xl mb-2">📭</div>
+                    אין ממתינים ברשימה כרגע
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {waitlistEntries.map(entry => {
+                      const dateStr  = entry.preferred_date
+                        ? format(new Date(entry.preferred_date + 'T12:00:00'), 'dd.MM')
+                        : '—'
+                      const timeStr  = `${entry.time_from?.slice(0,5) ?? ''} – ${entry.time_to?.slice(0,5) ?? ''}`
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm"
+                          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                              style={{ background: 'var(--color-gold)', color: '#fff' }}
+                            >
+                              {entry.profiles?.name?.[0] ?? '?'}
+                            </div>
+                            <div>
+                              <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                                {entry.profiles?.name}
+                              </span>
+                              <span className="text-xs mr-2" style={{ color: 'var(--color-muted)' }}>
+                                {entry.profiles?.phone}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="text-xs text-right hidden sm:block" style={{ color: 'var(--color-muted)' }}>
+                              <div>{dateStr} · {timeStr}</div>
+                              {entry.services?.name && <div>{entry.services.name}</div>}
+                            </div>
+                            <button
+                              onClick={() => handleSchedule(entry)}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all"
+                              style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}
+                              title="עבור לשיבוץ"
+                            >📅 שיבוץ</button>
+                            <button
+                              onClick={() => removeFromWaitlist(entry.id)}
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-opacity hover:opacity-60"
+                              style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}
+                              title="הסר מהרשימה"
+                            >✕</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <Link
+                      to="/admin/waitlist"
+                      className="text-xs font-bold text-center pt-1"
+                      style={{ color: 'var(--color-gold)' }}
+                    >
+                      הצג את כל הרשימה ←
+                    </Link>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

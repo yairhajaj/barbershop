@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LangProvider } from './contexts/LangContext'
 import { ToastProvider } from './components/ui/Toast'
+import { BranchProvider } from './contexts/BranchContext'
 import { AppRouter } from './router'
 
 createRoot(document.getElementById('root')).render(
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')).render(
       <LangProvider>
         <AuthProvider>
           <ToastProvider>
-            <AppRouter />
+            <BranchProvider>
+              <AppRouter />
+            </BranchProvider>
           </ToastProvider>
         </AuthProvider>
       </LangProvider>

@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
+import { useBranch } from '../contexts/BranchContext'
 import { BUSINESS } from '../config/business'
 import { PageSpinner } from '../components/ui/Spinner'
 
 const NAV_LINKS = [
   { to: '/admin',              label: 'לוח בקרה',    icon: '⊞' },
   { to: '/admin/appointments', label: 'יומן תורים',  icon: '📅' },
+  { to: '/admin/customers',    label: 'לקוחות',      icon: '👥' },
+  { to: '/admin/waitlist',     label: 'רשימת המתנה', icon: '📋' },
   { to: '/admin/staff',        label: 'ספרים',       icon: '✂' },
   { to: '/admin/services',     label: 'שירותים',     icon: '📋' },
   { to: '/admin/products',     label: 'מוצרים',      icon: '🛍️' },
@@ -16,6 +19,70 @@ const NAV_LINKS = [
   { to: '/admin/appearance',   label: 'עיצוב',       icon: '🎨' },
   { to: '/admin/settings',     label: 'הגדרות',      icon: '⚙' },
 ]
+
+function BranchSwitcher() {
+  const { branches, currentBranch, selectBranch } = useBranch()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  if (branches.length === 0) return null
+
+  return (
+    <div className="px-3 pb-3 relative" ref={ref}>
+      <div className="text-[10px] font-semibold text-gray-500 mb-1 px-1">📍 סניף נוכחי</div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+        style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)' }}
+      >
+        <span className="truncate">{currentBranch?.name ?? 'בחר סניף'}</span>
+        <span className="text-gray-400 text-xs flex-shrink-0">{open ? '▲' : '▼'}</span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="absolute left-3 right-3 bottom-full mb-1 rounded-xl overflow-hidden shadow-xl z-50"
+            style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            {branches.map(branch => (
+              <button
+                key={branch.id}
+                onClick={() => { selectBranch(branch); setOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-right hover:bg-white/10 transition-colors"
+                style={{ color: branch.id === currentBranch?.id ? 'var(--color-gold)' : '#ccc' }}
+              >
+                <span className="text-xs">{branch.id === currentBranch?.id ? '✦' : '○'}</span>
+                <span className="truncate">{branch.name}</span>
+              </button>
+            ))}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <button
+                onClick={() => { navigate('/admin/branches'); setOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-right"
+              >
+                <span className="text-xs">⚙</span>
+                <span>ניהול סניפים</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 export function AdminLayout({ children }) {
   const { user, profile, loading, signOut } = useAuth()
@@ -66,6 +133,9 @@ export function AdminLayout({ children }) {
             )
           })}
         </nav>
+
+        {/* Branch Switcher */}
+        <BranchSwitcher />
 
         {/* Profile + Sign Out */}
         <div className="p-4 border-t border-white/10">
@@ -141,6 +211,9 @@ export function AdminLayout({ children }) {
                 )
               })}
             </nav>
+            {/* Mobile branch switcher */}
+            <BranchSwitcher />
+
             {/* Mobile sidebar bottom */}
             <div className="p-4 border-t border-white/10">
               <Link

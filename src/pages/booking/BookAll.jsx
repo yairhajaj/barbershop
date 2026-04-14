@@ -23,7 +23,29 @@ export function BookAll() {
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
 
-  const { staff, loading: staffLoading } = useStaff({ activeOnly: true })
+  // ── Branch state ──────────────────────────────────────────────────────────
+  const [branches,   setBranches]  = useState([])
+  const [selBranch,  setSelBranch] = useState(null) // null until loaded
+
+  useEffect(() => {
+    supabase.from('branches').select('*').eq('is_active', true).order('name')
+      .then(({ data }) => {
+        const list = data ?? []
+        setBranches(list)
+        if (list.length === 1) {
+          // Only one branch — auto-select silently
+          setSelBranch(list[0])
+        }
+        // If 0 or 2+ branches: wait for user to pick (or no branch needed)
+      })
+  }, [])
+
+  const multiBranch = branches.length > 1
+
+  const { staff, loading: staffLoading } = useStaff({
+    activeOnly: true,
+    branchId: selBranch?.id ?? null,
+  })
   const { services, loading: servicesLoading } = useServices({ activeOnly: true })
   const { settings, hours } = useBusinessSettings()
   const { breaks: recurringBreaks } = useRecurringBreaks()
@@ -155,6 +177,8 @@ export function BookAll() {
 
   function goConfirm() {
     const state = {
+      branchId:        selBranch?.id ?? null,
+      branchName:      selBranch?.name ?? null,
       serviceId:       selService.id,
       serviceName:     selService.name,
       serviceDuration: selService.duration_minutes,
@@ -212,10 +236,56 @@ export function BookAll() {
         </p>
       </div>
 
+      {/* ══ BRANCH (only when 2+ branches) ═══════════════════════ */}
+      {multiBranch && (
+        <>
+          <div className="px-5 pt-5 pb-4">
+            <SectionLabel>בחר סניף</SectionLabel>
+            <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
+              {branches.map(branch => (
+                <button
+                  key={branch.id}
+                  onClick={() => {
+                    setSelBranch(branch)
+                    setSelStaff(undefined) // reset staff when branch changes
+                    setSelSlot(null)
+                  }}
+                  className="flex-shrink-0 flex flex-col items-start transition-all"
+                  style={{
+                    padding:      '10px 18px',
+                    borderRadius: '16px',
+                    background:   selBranch?.id === branch.id ? 'var(--color-gold)' : '#f2f2f2',
+                    color:        selBranch?.id === branch.id ? '#fff' : 'var(--color-text)',
+                    fontWeight:   700,
+                    fontSize:     '14px',
+                    border:       'none',
+                    cursor:       'pointer',
+                    boxShadow:    selBranch?.id === branch.id ? '0 3px 12px rgba(255,133,0,0.35)' : 'none',
+                    transition:   'all 0.15s ease',
+                    minWidth:     '120px',
+                    textAlign:    'right',
+                  }}
+                >
+                  <span>📍 {branch.name}</span>
+                  {branch.address && (
+                    <span style={{ fontSize: '11px', opacity: 0.75, fontWeight: 500, marginTop: '2px' }}>
+                      {branch.address}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Divider />
+        </>
+      )}
+
       {/* ══ STAFF ══════════════════════════════════════════════════ */}
       <div className="px-5 pt-5 pb-4">
         <SectionLabel>בחר איש צוות</SectionLabel>
-        {staffLoading ? <MiniSpinner /> : (
+        {multiBranch && !selBranch ? (
+          <p className="text-sm py-2" style={{ color: 'var(--color-muted)' }}>בחר סניף תחילה ↑</p>
+        ) : staffLoading ? <MiniSpinner /> : (
           <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
             {/* Any */}
             <Pill
@@ -421,7 +491,7 @@ export function BookAll() {
 
       {/* ══ STICKY CONFIRM ═════════════════════════════════════════ */}
       <AnimatePresence>
-        {selSlot && selService && (
+        {selSlot && selService && (!multiBranch || selBranch) && (
           <motion.div
             initial={{ y: 120, opacity: 0 }}
             animate={{ y: 0,   opacity: 1 }}

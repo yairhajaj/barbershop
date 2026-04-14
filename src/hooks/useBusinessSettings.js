@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS = {
   reminder_2_hours:   2,
   reminder_3_enabled: false,
   reminder_3_hours:   1,
+  waitlist_enabled:   false,
 }
 
 export function useBusinessSettings() {
@@ -89,5 +90,24 @@ export function useBusinessSettings() {
     await fetchAll()
   }
 
-  return { settings, hours, loading, saveSettings, saveBusinessHours, refetch: fetchAll }
+  // Returns branch_hours for a given branchId, falling back to global business_hours
+  async function fetchBranchHours(branchId) {
+    if (!branchId) return hours
+    const { data } = await supabase
+      .from('branch_hours')
+      .select('*')
+      .eq('branch_id', branchId)
+      .order('day_of_week')
+    if (data && data.length > 0) return data
+    return hours // fallback to global hours
+  }
+
+  async function saveBranchHours(branchId, hoursData) {
+    await supabase.from('branch_hours').delete().eq('branch_id', branchId)
+    if (hoursData.length > 0) {
+      await supabase.from('branch_hours').insert(hoursData.map(h => ({ ...h, branch_id: branchId })))
+    }
+  }
+
+  return { settings, hours, loading, saveSettings, saveBusinessHours, fetchBranchHours, saveBranchHours, refetch: fetchAll }
 }
