@@ -61,16 +61,28 @@ export function CustomerDetails() {
       return
     }
 
+    // Determine effective payment mode: service > branch > global
+    const svcMode = bookingState.servicePaymentMode
+    const branchMode = bookingState.branchPaymentMode
+    const globalMode = settings?.payment_mode ?? 'required'
+    let effectiveMode = 'disabled'
+    if (settings?.payment_enabled) {
+      if (svcMode && svcMode !== 'inherit') effectiveMode = svcMode
+      else if (branchMode && branchMode !== 'inherit') effectiveMode = branchMode
+      else effectiveMode = globalMode === 'per_service' ? 'optional' : globalMode
+    }
+
     sessionStorage.setItem('booking_state', JSON.stringify({
       ...bookingState,
       customerName:   form.name,
       customerPhone:  form.phone,
       customerEmail:  form.email,
       customerNotes:  form.notes,
-      paymentEnabled: !!settings?.payment_enabled,
+      paymentEnabled: effectiveMode !== 'disabled',
+      effectivePaymentMode: effectiveMode,
     }))
-    // Navigate to payment if enabled, otherwise straight to confirm
-    const nextStep = settings?.payment_enabled ? '/book/payment' : '/book/confirm'
+    // Navigate to payment page unless payment is disabled for this booking
+    const nextStep = effectiveMode !== 'disabled' ? '/book/payment' : '/book/confirm'
     navigate(nextStep)
   }
 

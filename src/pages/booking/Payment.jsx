@@ -19,16 +19,19 @@ export function Payment() {
     JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
   )
 
-  const [status, setStatus] = useState('idle') // idle | creating | redirecting | error
+  const [status, setStatus] = useState('idle') // idle | creating | redirecting | paying-at-shop | error
   const [errorMsg, setErrorMsg] = useState('')
 
   const slotStart = bookingState.slotStart ? new Date(bookingState.slotStart) : null
 
+  // Effective mode was computed in CustomerDetails and stored in booking_state
+  const effectiveMode = bookingState.effectivePaymentMode ?? (settings?.payment_enabled ? 'required' : 'disabled')
+
   useEffect(() => {
     if (!bookingState.slotStart) { navigate('/book/service', { replace: true }); return }
     if (!user) { navigate('/login?redirect=/book/payment', { replace: true }); return }
-    // If payment not enabled, skip straight to confirm
-    if (settings && !settings.payment_enabled) {
+    // If payment disabled for this booking, skip to confirm
+    if (settings && effectiveMode === 'disabled') {
       navigate('/book/confirm', { replace: true })
     }
   }, [user, settings])
@@ -92,8 +95,45 @@ export function Payment() {
     }
   }
 
+  async function handlePayAtShop() {
+    setStatus('paying-at-shop')
+    try {
+      const apptData = {
+        customer_id:    user.id,
+        service_id:     bookingState.serviceId,
+        staff_id:       bookingState.staffId ?? null,
+        branch_id:      bookingState.branchId ?? null,
+        start_at:       bookingState.slotStart,
+        end_at:         bookingState.slotEnd,
+        notes:          '',
+        status:         'confirmed',
+        payment_status: 'unpaid',
+        reminder_opted_in: bookingState.wantsReminder ?? true,
+      }
+
+      let appt
+      if (bookingState.isRecurring && settings?.recurring_appointments_enabled) {
+        const results = await createRecurringAppointments(apptData, settings.recurring_weeks_ahead ?? 12)
+        appt = results[0]
+      } else {
+        appt = await createAppointment(apptData)
+      }
+
+      if (bookingState.customerEmail) {
+        supabase.from('profiles').update({ email: bookingState.customerEmail }).eq('id', user.id).then(() => {})
+      }
+
+      sessionStorage.removeItem('booking_state')
+      navigate(`/book/confirm?appt_id=${appt.id}`, { replace: true })
+    } catch (err) {
+      setErrorMsg(err.message ?? 'שגיאה ביצירת ההזמנה')
+      setStatus('error')
+    }
+  }
+
   const price = bookingState.servicePrice ?? 0
-  const isLoading = status === 'creating' || status === 'redirecting'
+  const isLoading = status === 'creating' || status === 'redirecting' || status === 'paying-at-shop'
+  const isOptional = effectiveMode === 'optional'
 
   // Payment failed — came back from PayPlus with error
   const urlParams = new URLSearchParams(window.location.search)
@@ -170,24 +210,55 @@ export function Payment() {
           </div>
         )}
 
+        {/* Optional mode hint */}
+        {isOptional && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl p-4 mb-4 text-sm text-center"
+            style={{ background: 'rgba(255,133,0,0.06)', border: '1px solid rgba(255,133,0,0.2)', color: 'var(--color-text)' }}
+          >
+            <p className="font-medium mb-1">🤝 תשלום אופציונלי</p>
+            <p style={{ color: 'var(--color-muted)' }}>תוכל לשלם עכשיו אונליין, או לשלם בעסק בסיום הביקור.</p>
+          </motion.div>
+        )}
+
         <motion.button
           whileTap={{ scale: 0.97 }}
           className="btn-primary w-full justify-center text-base py-4 flex items-center gap-2"
           onClick={handlePay}
           disabled={isLoading}
         >
-          {isLoading ? (
+          {isLoading && status !== 'paying-at-shop' ? (
             <>
               <Spinner size="sm" className="border-white border-t-transparent" />
               {status === 'creating' ? 'יוצר הזמנה...' : 'מעביר לתשלום...'}
             </>
           ) : (
-            <>💳 שלם {priceDisplay(price)}</>
+            <>💳 {isOptional ? 'שלם עכשיו' : `שלם`} {priceDisplay(price)}</>
           )}
         </motion.button>
 
+        {isOptional && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            className="btn-outline w-full justify-center text-base py-4 flex items-center gap-2 mt-3"
+            onClick={handlePayAtShop}
+            disabled={isLoading}
+          >
+            {status === 'paying-at-shop' ? (
+              <>
+                <Spinner size="sm" />
+                יוצר הזמנה...
+              </>
+            ) : (
+              <>🏪 לשלם בעסק</>
+            )}
+          </motion.button>
+        )}
+
         <p className="text-center text-xs mt-3" style={{ color: 'var(--color-muted)' }}>
-          לאחר התשלום תועבר חזרה לאישור ההזמנה
+          {isOptional ? 'ניתן לבטל עד 24 שעות לפני התור' : 'לאחר התשלום תועבר חזרה לאישור ההזמנה'}
         </p>
       </div>
     </div>

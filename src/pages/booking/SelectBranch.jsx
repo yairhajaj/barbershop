@@ -38,8 +38,9 @@ export function SelectBranch() {
     const bookingState = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
     const updated = {
       ...bookingState,
-      branchId:   branch.id,
-      branchName: branch.name,
+      branchId:          branch.id,
+      branchName:        branch.name,
+      branchPaymentMode: branch.payment_mode ?? 'inherit',
     }
     // If a service was pre-selected from homepage, carry it through
     if (preselectedService) {

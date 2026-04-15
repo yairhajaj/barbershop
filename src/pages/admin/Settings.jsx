@@ -451,12 +451,12 @@ export function Settings() {
             <h2 className="font-semibold text-lg">תשלום אונליין</h2>
           </div>
           <p className="text-sm text-muted mb-5">
-            אפשר ללקוחות לשלם בעת ההזמנה דרך מערכת PayPlus. הכסף מועבר ישירות לחשבון שלך.
+            אפשר ללקוחות לשלם בעת ההזמנה דרך PayPlus. הכסף מועבר ישירות לחשבון שלך.
           </p>
 
           <ToggleRow
             label="הפעל סליקה בהזמנה"
-            desc="לקוחות ישלמו עם אישור התור"
+            desc="לקוחות יראו אפשרות תשלום בעת קביעת תור"
             checked={!!form?.payment_enabled}
             onChange={v => setForm(f => ({ ...f, payment_enabled: v }))}
           />
@@ -464,29 +464,25 @@ export function Settings() {
           {form?.payment_enabled && (
             <div className="mt-5 space-y-5">
 
-              {/* Step 1 */}
+              {/* ── Step 1: PayPlus account ── */}
               <div className="rounded-2xl p-4" style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid rgba(201,169,110,0.25)' }}>
                 <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-gold)' }}>שלב 1 — פתח חשבון PayPlus</p>
-                <p className="text-xs text-muted mb-3">
-                  צריך חשבון PayPlus כדי לקבל תשלומים. ההרשמה חינמית, העמלה ~1.5% מכל עסקה.
-                </p>
+                <p className="text-xs text-muted mb-3">ההרשמה חינמית. עמלה ~1.5% מכל עסקה. הכסף מגיע ישירות לחשבון הבנק שלך.</p>
                 <a
                   href="https://www.payplus.co.il"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl"
                   style={{ background: 'var(--color-gold)', color: '#fff' }}
                 >
                   פתח חשבון PayPlus ↗
                 </a>
               </div>
 
-              {/* Step 2 */}
+              {/* ── Step 2: API Keys ── */}
               <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-sm font-bold mb-3">שלב 2 — הדבק את המפתחות מ-PayPlus</p>
-                <p className="text-xs text-muted mb-4">
-                  בדשבורד PayPlus: הגדרות → API → העתק את מפתח ה-API והמפתח הסודי
-                </p>
+                <p className="text-sm font-bold mb-1">שלב 2 — חבר את חשבון PayPlus</p>
+                <p className="text-xs text-muted mb-4">בדשבורד PayPlus: הגדרות ← API ← העתק מפתח API ומפתח סודי</p>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-semibold mb-1 text-muted">מפתח API (UID)</label>
@@ -509,12 +505,86 @@ export function Settings() {
                 </div>
               </div>
 
-              {/* Step 3 info */}
+              {/* ── Step 3: Payment mode ── */}
               <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-sm font-bold mb-1">שלב 3 — שמור והפעל</p>
-                <p className="text-xs text-muted">
-                  לחץ "שמור הגדרות" למטה. מכאן לקוחות יועברו לדף תשלום מאובטח של PayPlus לאחר בחירת התור.
-                </p>
+                <p className="text-sm font-bold mb-3">שלב 3 — בחר מצב תשלום</p>
+
+                <div className="space-y-2">
+                  {[
+                    {
+                      value: 'required',
+                      icon: '🔒',
+                      label: 'חובה לשלם',
+                      desc: 'הלקוח לא יוכל לסיים הזמנה בלי לשלם — מונע no-shows',
+                    },
+                    {
+                      value: 'optional',
+                      icon: '🤝',
+                      label: 'אופציונלי',
+                      desc: 'הלקוח יכול לשלם עכשיו או לשלם בעסק — גמישות מרבית',
+                    },
+                    {
+                      value: 'per_service',
+                      icon: '✂',
+                      label: 'לפי שירות',
+                      desc: 'כל שירות קובע בנפרד — נשלט מעמוד "שירותים"',
+                    },
+                  ].map(opt => {
+                    const active = (form?.payment_mode ?? 'required') === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, payment_mode: opt.value }))}
+                        className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
+                        style={{
+                          background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
+                          border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                        }}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center"
+                          style={{ borderColor: active ? 'var(--color-gold)' : '#ccc' }}
+                        >
+                          {active && <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--color-gold)' }} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span>{opt.icon}</span>
+                            <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{opt.label}</span>
+                          </div>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{opt.desc}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Per-service hint */}
+                {form?.payment_mode === 'per_service' && (
+                  <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid rgba(201,169,110,0.2)' }}>
+                    <span style={{ color: 'var(--color-muted)' }}>
+                      עבור לעמוד{' '}
+                      <a href="/admin/services" className="font-bold underline" style={{ color: 'var(--color-gold)' }}>שירותים</a>
+                      {' '}וקבע לכל שירות את מצב התשלום שלו.
+                    </span>
+                  </div>
+                )}
+
+                {/* Per-branch note */}
+                <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p style={{ color: 'var(--color-muted)' }}>
+                    💡 <strong>לפי סניף:</strong> ניתן לדרוס את המצב לכל סניף בנפרד מעמוד{' '}
+                    <a href="/admin/branches" className="font-bold underline" style={{ color: 'var(--color-gold)' }}>סניפים</a>
+                    {' '}(למשל: סניף מרכז — חובה, סניף שכונה — אופציונלי).
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Step 4: Save ── */}
+              <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-sm font-bold mb-1">שלב 4 — שמור והפעל</p>
+                <p className="text-xs text-muted">לחץ "שמור הגדרות" למטה. הסליקה תיכנס לתוקף מיידית.</p>
               </div>
 
             </div>

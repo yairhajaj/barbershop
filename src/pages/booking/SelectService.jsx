@@ -15,10 +15,11 @@ export function SelectService() {
 
   function selectService(service) {
     const state = {
-      serviceId:       service.id,
-      serviceName:     service.name,
-      serviceDuration: service.duration_minutes,
-      servicePrice:    service.price,
+      serviceId:          service.id,
+      serviceName:        service.name,
+      serviceDuration:    service.duration_minutes,
+      servicePrice:       service.price,
+      servicePaymentMode: service.payment_mode ?? 'inherit',
     }
     if (preselectedStaff) state.staffId = preselectedStaff
     sessionStorage.setItem('booking_state', JSON.stringify(state))

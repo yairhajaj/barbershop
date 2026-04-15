@@ -9,7 +9,7 @@ import { Spinner } from '../../components/ui/Spinner'
 
 const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 
-const EMPTY_BRANCH = { name: '', address: '', phone: '', is_active: true }
+const EMPTY_BRANCH = { name: '', address: '', phone: '', is_active: true, payment_mode: 'inherit' }
 
 const DEFAULT_HOURS = DAYS.map((_, i) => ({
   day_of_week: i,
@@ -20,7 +20,8 @@ const DEFAULT_HOURS = DAYS.map((_, i) => ({
 
 export function Branches() {
   const { reload: reloadBranches } = useBranch()
-  const { fetchBranchHours, saveBranchHours } = useBusinessSettings()
+  const { settings, fetchBranchHours, saveBranchHours } = useBusinessSettings()
+  const paymentEnabled = !!settings?.payment_enabled
   const showToast = useToast()
 
   const [branches, setBranches]   = useState([])
@@ -68,7 +69,7 @@ export function Branches() {
 
   async function openEdit(branch) {
     setEditing(branch)
-    setForm({ name: branch.name, address: branch.address ?? '', phone: branch.phone ?? '', is_active: branch.is_active })
+    setForm({ name: branch.name, address: branch.address ?? '', phone: branch.phone ?? '', is_active: branch.is_active, payment_mode: branch.payment_mode ?? 'inherit' })
     // Load branch hours
     const hrs = await fetchBranchHours(branch.id)
     // Ensure all 7 days present
@@ -284,6 +285,35 @@ export function Branches() {
               ))}
             </div>
           </div>
+
+          {/* Payment mode — only when payment is enabled */}
+          {paymentEnabled && (
+            <div>
+              <p className="text-xs font-bold mb-2" style={{ color: 'var(--color-muted)' }}>💳 מצב תשלום לסניף זה</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'inherit',  label: 'לפי הגדרות ראשיות' },
+                  { value: 'required', label: '🔒 חובה לשלם' },
+                  { value: 'optional', label: '🤝 אופציונלי' },
+                  { value: 'disabled', label: '🚫 ללא תשלום' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, payment_mode: opt.value }))}
+                    className="py-2 px-3 text-xs rounded-xl border font-medium transition-all text-right"
+                    style={{
+                      borderColor: (form.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
+                      background:  (form.payment_mode ?? 'inherit') === opt.value ? 'rgba(201,169,110,0.1)' : 'var(--color-surface)',
+                      color:       (form.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-muted)',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Active toggle */}
           <label className="flex items-center gap-3 cursor-pointer">

@@ -1,16 +1,26 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useServices } from '../../hooks/useServices'
+import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 
-const EMPTY = { name: '', description: '', duration_minutes: 30, price: '', is_active: true, display_order: 0, booking_type: 'online' }
+const EMPTY = { name: '', description: '', duration_minutes: 30, price: '', is_active: true, display_order: 0, booking_type: 'online', payment_mode: 'inherit' }
+
+const PAYMENT_MODE_LABELS = {
+  inherit:  null,           // don't show badge
+  required: { label: '🔒 תשלום חובה',    color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
+  optional: { label: '🤝 תשלום אופציונלי', color: '#d97706', bg: 'rgba(217,119,6,0.08)' },
+  disabled: { label: '🚫 ללא תשלום',      color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+}
 
 export function Services() {
   const { services, loading, upsertService, deleteService } = useServices()
+  const { settings } = useBusinessSettings()
   const toast = useToast()
+  const paymentEnabled = !!settings?.payment_enabled
   const [editService, setEditService] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -63,6 +73,12 @@ export function Services() {
                   <h3 className="font-semibold">{service.name}</h3>
                   {!service.is_active && (
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">לא פעיל</span>
+                  )}
+                  {paymentEnabled && PAYMENT_MODE_LABELS[service.payment_mode ?? 'inherit'] && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: PAYMENT_MODE_LABELS[service.payment_mode].bg, color: PAYMENT_MODE_LABELS[service.payment_mode].color }}>
+                      {PAYMENT_MODE_LABELS[service.payment_mode].label}
+                    </span>
                   )}
                   {service.booking_type === 'by_request' && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(255,133,0,0.12)', color: 'var(--color-primary)' }}>
@@ -178,6 +194,35 @@ export function Services() {
                 <label htmlFor="active_svc" className="text-sm font-medium">פעיל</label>
               </div>
             </div>
+            {/* Payment mode — only when payment is enabled */}
+            {paymentEnabled && (
+              <div>
+                <label className="block text-sm font-medium mb-2">💳 דרישת תשלום</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'inherit',  label: 'לפי הגדרות ראשיות' },
+                    { value: 'required', label: '🔒 חובה לשלם' },
+                    { value: 'optional', label: '🤝 אופציונלי' },
+                    { value: 'disabled', label: '🚫 ללא תשלום' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setEditService(s => ({ ...s, payment_mode: opt.value }))}
+                      className="py-2 px-3 text-xs rounded-lg border-2 font-medium transition-colors text-right"
+                      style={{
+                        borderColor: (editService.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
+                        background:  (editService.payment_mode ?? 'inherit') === opt.value ? 'rgba(201,169,110,0.1)' : 'transparent',
+                        color:       (editService.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-muted)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center">
                 {saving ? 'שומר...' : 'שמור'}

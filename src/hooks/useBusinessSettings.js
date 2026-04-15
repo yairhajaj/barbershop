@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS = {
   waitlist_enabled:   false,
   // Payments (PayPlus)
   payment_enabled:    false,
+  payment_mode:       'required', // 'required' | 'optional' | 'per_service'
   payplus_api_key:    '',
   payplus_secret_key: '',
 }
