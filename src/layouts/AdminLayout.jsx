@@ -94,10 +94,8 @@ export function AdminLayout({ children }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Build nav links — inject Payments only when payment is enabled
-  const NAV_LINKS = settings?.payment_enabled
-    ? [...BASE_NAV_LINKS.slice(0, 7), PAYMENT_LINK, ...BASE_NAV_LINKS.slice(7)]
-    : BASE_NAV_LINKS
+  // Build nav links — TEMP: always show Payments for preview
+  const NAV_LINKS = [...BASE_NAV_LINKS.slice(0, 7), PAYMENT_LINK, ...BASE_NAV_LINKS.slice(7)]
 
   // Scroll to top on every route change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
