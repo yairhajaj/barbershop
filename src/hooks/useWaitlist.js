@@ -9,18 +9,33 @@ export function useWaitlist({ statusFilter = 'all' } = {}) {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      let q = supabase
-        .from('waitlist')
-        .select('*, profiles(name, phone), services(name), branches(name), staff(id, name)')
-        .order('created_at', { ascending: false })
-
-      if (statusFilter !== 'all') {
-        q = q.eq('status', statusFilter)
+      // NOTE: waitlist has TWO FKs to staff (staff_id + offered_staff_id).
+      // Use explicit FK hint to avoid PostgREST ambiguity error.
+      const buildQuery = (includeStaff) => {
+        const sel = includeStaff
+          ? '*, profiles(name, phone), services(name), branches(name), staff!waitlist_staff_id_fkey(id, name)'
+          : '*, profiles(name, phone), services(name), branches(name)'
+        let q = supabase
+          .from('waitlist')
+          .select(sel)
+          .order('created_at', { ascending: false })
+        if (statusFilter !== 'all') q = q.eq('status', statusFilter)
+        return q
       }
 
-      const { data, error } = await q
+      let { data, error } = await buildQuery(true)
+
+      // Fallback without staff join (in case FK hint doesn't match DB constraint name)
+      if (error) {
+        console.warn('useWaitlist: staff join failed, retrying without staff:', error.message)
+        ;({ data, error } = await buildQuery(false))
+      }
+
       if (error) throw error
       setEntries(data ?? [])
+    } catch (err) {
+      console.error('useWaitlist fetchAll error:', err)
+      setEntries([])
     } finally {
       setLoading(false)
     }
