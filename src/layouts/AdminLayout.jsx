@@ -23,25 +23,70 @@ const BASE_NAV_LINKS = [
 
 const PAYMENT_LINK = { to: '/admin/payments', label: 'תשלומים', icon: '💳' }
 
-// Bottom toolbar: 4 most-used items shown directly
+// Bottom toolbar quick items (4 most-used)
 const BOTTOM_QUICK = [
-  { to: '/admin/appointments', label: 'יומן',    icon: '📅' },
-  { to: '/admin',              label: 'בקרה',    icon: '⊞' },
-  { to: '/admin/customers',    label: 'לקוחות',  icon: '👥' },
-  { to: '/admin/messages',     label: 'הודעות',  icon: '📨' },
+  { to: '/admin/appointments', label: 'יומן',   svgIcon: 'calendar' },
+  { to: '/admin',              label: 'בקרה',   svgIcon: 'dashboard' },
+  { to: '/admin/customers',    label: 'לקוחות', svgIcon: 'people' },
+  { to: '/admin/messages',     label: 'הודעות', svgIcon: 'message' },
 ]
 
-// "More" sheet: remaining items (2 rows × 4 cols)
+// "More" sheet — remaining items
 const BOTTOM_MORE = [
-  { to: '/admin/staff',        label: 'ספרים',       icon: '✂' },
-  { to: '/admin/services',     label: 'שירותים',     icon: '📋' },
-  { to: '/admin/products',     label: 'מוצרים',      icon: '🛍️' },
-  { to: '/admin/payments',     label: 'תשלומים',     icon: '💳' },
-  { to: '/admin/invoices',     label: 'חשבוניות',    icon: '🧾' },
-  { to: '/admin/waitlist',     label: 'המתנה',       icon: '📋' },
-  { to: '/admin/appearance',   label: 'עיצוב',       icon: '🎨' },
-  { to: '/admin/settings',     label: 'הגדרות',      icon: '⚙' },
+  { to: '/admin/staff',        label: 'ספרים',   icon: '✂️' },
+  { to: '/admin/services',     label: 'שירותים', icon: '📋' },
+  { to: '/admin/products',     label: 'מוצרים',  icon: '🛍️' },
+  { to: '/admin/payments',     label: 'תשלומים', icon: '💳' },
+  { to: '/admin/invoices',     label: 'חשבוניות',icon: '🧾' },
+  { to: '/admin/waitlist',     label: 'המתנה',   icon: '⏳' },
+  { to: '/admin/appearance',   label: 'עיצוב',   icon: '🎨' },
+  { to: '/admin/settings',     label: 'הגדרות',  icon: '⚙️' },
 ]
+
+// SVG icon set — matches the style of BookingLayout BarIcon
+function AdminBarIcon({ name, size = 24, color = '#fff' }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  if (name === 'calendar') return (
+    <svg {...p}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <circle cx="8" cy="15" r="1" fill={color} stroke="none" />
+      <circle cx="12" cy="15" r="1" fill={color} stroke="none" />
+      <circle cx="16" cy="15" r="1" fill={color} stroke="none" />
+    </svg>
+  )
+  if (name === 'dashboard') return (
+    <svg {...p}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  )
+  if (name === 'people') return (
+    <svg {...p}>
+      <circle cx="9" cy="7" r="3" />
+      <path d="M3 21v-1a6 6 0 0112 0v1" />
+      <path d="M16 3.13a4 4 0 010 7.75" />
+      <path d="M21 21v-1a4 4 0 00-3-3.87" />
+    </svg>
+  )
+  if (name === 'message') return (
+    <svg {...p}>
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    </svg>
+  )
+  if (name === 'menu') return (
+    <svg {...p}>
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  )
+  return null
+}
 
 function BranchSwitcher() {
   const { branches, currentBranch, selectBranch } = useBranch()
@@ -131,9 +176,17 @@ export function AdminLayout({ children }) {
     navigate('/')
   }
 
+  // Bottom bar visual constants — dark glass (matches booking bar in dark/midnight mode)
+  const barBg     = 'rgba(12,12,12,0.90)'
+  const barBorder = 'rgba(255,255,255,0.10)'
+  const barBlur   = 'blur(32px) saturate(1.8)'
+  const barShadow = '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
+  const gold      = 'var(--color-gold)'
+
   return (
     <div dir="rtl" className="flex min-h-screen bg-gray-50" data-admin="true">
-      {/* ── Desktop Sidebar ─────────────────────────────────────────── */}
+
+      {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-64 bg-[var(--color-primary)] text-white fixed top-0 bottom-0 right-0">
         {/* Logo */}
         <div className="flex items-center gap-2 p-5 border-b border-white/10">
@@ -167,7 +220,6 @@ export function AdminLayout({ children }) {
           })}
         </nav>
 
-        {/* Branch Switcher */}
         <BranchSwitcher />
 
         {/* Profile + Sign Out */}
@@ -184,7 +236,7 @@ export function AdminLayout({ children }) {
           <Link
             to="/"
             className="w-full text-sm font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 px-3 mb-2"
-            style={{ background: 'rgba(201,169,110,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}
+            style={{ background: 'rgba(201,169,110,0.15)', color: gold, border: '1px solid rgba(201,169,110,0.3)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(201,169,110,0.25)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(201,169,110,0.15)'}
           >
@@ -199,35 +251,49 @@ export function AdminLayout({ children }) {
         </div>
       </aside>
 
-      {/* ── Mobile: "More" Sheet backdrop ───────────────────────────── */}
+      {/* ── Mobile: "More" Sheet backdrop ────────────────────────────── */}
       <AnimatePresence>
         {sheetOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
             onClick={() => setSheetOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* ── Mobile: "More" Slide-up Sheet ───────────────────────────── */}
+      {/* ── Mobile: "More" Slide-up Sheet ────────────────────────────── */}
       <AnimatePresence>
         {sheetOpen && (
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-2xl"
-            style={{ background: 'var(--color-primary)' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-3xl overflow-hidden"
+            style={{
+              background: 'rgba(10,10,10,0.97)',
+              backdropFilter: barBlur,
+              WebkitBackdropFilter: barBlur,
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderBottom: 'none',
+              boxShadow: '0 -8px 48px rgba(0,0,0,0.5)',
+            }}
           >
-            {/* Drag handle */}
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-4" />
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-9 h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
+            </div>
+
+            {/* Section title */}
+            <div className="px-5 pb-3">
+              <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>תפריט ניהול</p>
+            </div>
 
             {/* Grid of items */}
-            <div className="grid grid-cols-4 gap-1 px-3 pb-2">
+            <div className="grid grid-cols-4 gap-2 px-4 pb-3">
               {BOTTOM_MORE.map(link => {
                 const active = location.pathname === link.to
                 return (
@@ -235,14 +301,15 @@ export function AdminLayout({ children }) {
                     key={link.to}
                     to={link.to}
                     onClick={() => setSheetOpen(false)}
-                    className="flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-colors"
-                    style={{ background: active ? 'rgba(201,169,110,0.2)' : 'rgba(255,255,255,0.05)' }}
+                    className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all"
+                    style={{
+                      background: active ? 'rgba(201,169,110,0.18)' : 'rgba(255,255,255,0.06)',
+                      border: active ? '1px solid rgba(201,169,110,0.3)' : '1px solid rgba(255,255,255,0.05)',
+                    }}
                   >
-                    <span className="text-2xl leading-none">{link.icon}</span>
-                    <span
-                      className="text-[11px] font-medium text-center leading-tight"
-                      style={{ color: active ? 'var(--color-gold)' : '#9ca3af' }}
-                    >
+                    <span className="text-xl leading-none">{link.icon}</span>
+                    <span className="text-[10px] font-semibold text-center leading-tight px-1"
+                      style={{ color: active ? gold : 'rgba(255,255,255,0.6)' }}>
                       {link.label}
                     </span>
                   </Link>
@@ -250,21 +317,21 @@ export function AdminLayout({ children }) {
               })}
             </div>
 
-            {/* Divider + special actions */}
-            <div className="border-t border-white/10 mx-3 mt-1" />
-            <div className="flex gap-3 px-3 py-3 pb-6">
+            {/* Divider + action buttons */}
+            <div className="mx-4 mb-1" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} />
+            <div className="flex gap-3 px-4 py-3" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
               <Link
                 to="/"
                 onClick={() => setSheetOpen(false)}
-                className="flex-1 text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all"
-                style={{ background: 'rgba(201,169,110,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}
+                className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-2xl transition-all"
+                style={{ background: 'rgba(201,169,110,0.15)', color: gold, border: '1px solid rgba(201,169,110,0.25)' }}
               >
                 🌐 צפה באתר
               </Link>
               <button
                 onClick={() => { setSheetOpen(false); handleSignOut() }}
-                className="flex-1 text-sm text-gray-400 py-2.5 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
+                className="flex-1 flex items-center justify-center gap-2 text-sm font-medium py-3 rounded-2xl transition-all"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 ↩ יציאה
               </button>
@@ -273,15 +340,13 @@ export function AdminLayout({ children }) {
         )}
       </AnimatePresence>
 
-      {/* ── Main Content ─────────────────────────────────────────────── */}
+      {/* ── Main Content ──────────────────────────────────────────────── */}
       <div className="flex-1 lg:mr-64 flex flex-col min-h-screen">
         {/* Top bar */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
-          {/* Date — shown on mobile too since hamburger is gone */}
           <div className="text-sm text-gray-500 hidden sm:block">
             {new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
-          {/* Mobile: logo text in top bar */}
           <div className="sm:hidden text-sm font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-primary)' }}>
             {BUSINESS.name}
           </div>
@@ -289,7 +354,7 @@ export function AdminLayout({ children }) {
             <Link
               to="/"
               className="text-sm font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
-              style={{ background: 'rgba(201,169,110,0.1)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.25)' }}
+              style={{ background: 'rgba(201,169,110,0.1)', color: gold, border: '1px solid rgba(201,169,110,0.25)' }}
             >
               🌐 צפה באתר
             </Link>
@@ -300,57 +365,75 @@ export function AdminLayout({ children }) {
           </div>
         </header>
 
-        {/* Page content — extra bottom padding on mobile for the toolbar */}
-        <main className="flex-1 p-4 sm:p-6 pb-24 lg:pb-6">
+        {/* Page content — extra bottom padding on mobile for floating toolbar */}
+        <main className="flex-1 p-4 sm:p-6 pb-28 lg:pb-6">
           {children}
         </main>
       </div>
 
-      {/* ── Mobile Bottom Toolbar ────────────────────────────────────── */}
-      <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 h-16 flex items-center border-t border-white/10"
-        style={{ background: 'var(--color-primary)' }}
+      {/* ── Mobile Floating Bottom Bar ────────────────────────────────── */}
+      {/* Matches the style of BookingLayout's mobile bottom bar */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+        style={{ padding: '0 12px calc(10px + env(safe-area-inset-bottom, 0px))' }}
       >
-        {BOTTOM_QUICK.map(link => {
-          const active = location.pathname === link.to
-          return (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full py-1 transition-colors"
-            >
-              <span
-                className="text-xl leading-none"
-                style={{ filter: active ? 'none' : 'grayscale(1) opacity(0.5)' }}
+        <nav style={{
+          background: barBg,
+          backdropFilter: barBlur,
+          WebkitBackdropFilter: barBlur,
+          border: `1px solid ${barBorder}`,
+          borderRadius: 26,
+          boxShadow: barShadow,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          padding: '10px 6px',
+        }}>
+          {/* 4 quick items */}
+          {BOTTOM_QUICK.map(link => {
+            const active = location.pathname === link.to
+            const iconColor = active ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
+                style={{ minWidth: 56, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
               >
-                {link.icon}
-              </span>
-              <span
-                className="text-[10px] font-medium"
-                style={{ color: active ? 'var(--color-gold)' : '#6b7280' }}
-              >
-                {link.label}
-              </span>
-            </Link>
-          )
-        })}
+                {/* Gold top line for active */}
+                {active && (
+                  <span
+                    className="absolute left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
+                    style={{ background: gold, top: -1 }}
+                  />
+                )}
+                <AdminBarIcon name={link.svgIcon} size={24} color={iconColor} />
+                <span className="text-[10px] font-semibold leading-none" style={{ color: iconColor }}>
+                  {link.label}
+                </span>
+              </Link>
+            )
+          })}
 
-        {/* "More" button */}
-        <button
-          onClick={() => setSheetOpen(true)}
-          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full py-1 transition-colors"
-        >
-          <span className="text-xl leading-none" style={{ color: sheetOpen ? 'var(--color-gold)' : '#6b7280' }}>
-            ☰
-          </span>
-          <span
-            className="text-[10px] font-medium"
-            style={{ color: sheetOpen ? 'var(--color-gold)' : '#6b7280' }}
+          {/* "More" button */}
+          <button
+            onClick={() => setSheetOpen(true)}
+            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
+            style={{ minWidth: 56, background: sheetOpen ? 'rgba(255,255,255,0.08)' : 'transparent' }}
           >
-            עוד
-          </span>
-        </button>
-      </nav>
+            {sheetOpen && (
+              <span
+                className="absolute left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
+                style={{ background: gold, top: -1 }}
+              />
+            )}
+            <AdminBarIcon name="menu" size={24} color={sheetOpen ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'} />
+            <span className="text-[10px] font-semibold leading-none" style={{ color: sheetOpen ? gold : 'rgba(255,255,255,0.55)' }}>
+              עוד
+            </span>
+          </button>
+        </nav>
+      </div>
     </div>
   )
 }
