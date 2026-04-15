@@ -20,8 +20,6 @@ workflows:
         script: |
           npx cap add android 2>/dev/null || true
           npx cap sync android
-          mkdir -p android/app/src/main/assets
-          echo "registration_token=CHIIIGMBS2YF6AAAAAAAAAAAAA" > android/app/src/main/assets/adi-registration.properties
 
       - name: Set up Android signing
         script: |

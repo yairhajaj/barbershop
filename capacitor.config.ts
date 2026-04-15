@@ -8,6 +8,9 @@ import { CapacitorConfig } from '@capacitor/cli'
  *   npm run build && npx cap sync && npx cap open android
  */
 const config: CapacitorConfig = {
+  // NOTE: Android applicationId is actually 'com.barbershop.app'
+  // (see android/app/build.gradle). This appId affects only `npx cap add`,
+  // which already ran — it still matches the iOS bundle identifier.
   appId: 'com.hajaj.app',
   appName: 'HAJAJ',
   webDir: 'dist',
