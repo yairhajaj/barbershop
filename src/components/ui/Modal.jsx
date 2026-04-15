@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-28 md:pb-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ touchAction: 'none' }}
           onTouchMove={handleBackdropTouch}
         >
@@ -50,8 +50,11 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`relative w-full ${sizes[size]} card p-6 z-10 max-h-[88vh] flex flex-col`}
-            style={{ touchAction: 'auto' }}
+            className={`relative w-full ${sizes[size]} card p-6 z-10 flex flex-col`}
+            style={{
+              maxHeight: 'min(88vh, calc(100dvh - 2rem))',
+              touchAction: 'auto',
+            }}
           >
             <div className="flex items-center justify-between mb-5 flex-shrink-0">
               <h3 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -64,12 +67,15 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
                 ×
               </button>
             </div>
+            {/* overflow-y-auto with hidden scrollbar */}
             <div
-              className="overflow-y-auto flex-1 -mx-2 px-2"
+              className="overflow-y-auto flex-1 modal-scroll"
               style={{
                 WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain',
                 touchAction: 'pan-y',
+                scrollbarWidth: 'none',       /* Firefox */
+                msOverflowStyle: 'none',      /* IE/Edge */
               }}
             >
               {children}

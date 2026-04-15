@@ -430,6 +430,9 @@
   }
 }
 
+/* Hide scrollbar inside modals (webkit) */
+.modal-scroll::-webkit-scrollbar { display: none; }
+
 /* ══════════════════════════════════════════════════════════════════
    LAYOUT SYSTEM — shapes, shadows, animations (never colors)
    3 genuinely different visual identities
