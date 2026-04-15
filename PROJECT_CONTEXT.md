@@ -165,6 +165,38 @@ npm run build && npx cap sync android
 | נושא | סטטוס |
 |------|--------|
 | Google Play — העלאת AAB | ממתין לאימות חשבון |
-| iOS — Codemagic build | ממתין לאישור Apple Developer |
+| iOS — Codemagic build | ✅ מוגדר — בהרצה |
 | Screenshots לחנויות | צריך לצלם (ראה store-listing.md) |
 | Privacy Policy URL | לעדכן לאחר domain קבוע |
+| Multi-tenancy (SaaS) | ראה סעיף למטה |
+
+---
+
+## תכנית SaaS — Multi-Tenancy
+
+### המצב הנוכחי
+האפליקציה בנויה לעסק **אחד** — אין הפרדה בין עסקים בDB.
+
+### מה צריך כשמגיע לקוח שני
+Migration אחד שמוסיף `business_id` לכל הטבלאות:
+
+```sql
+ALTER TABLE services     ADD COLUMN business_id uuid REFERENCES businesses(id);
+ALTER TABLE staff        ADD COLUMN business_id uuid REFERENCES businesses(id);
+ALTER TABLE appointments ADD COLUMN business_id uuid REFERENCES businesses(id);
+ALTER TABLE branches     ADD COLUMN business_id uuid REFERENCES businesses(id);
+-- + עדכון RLS policies לפלטר לפי business_id
+```
+
+### למה Supabase project אחד לכל העסקים?
+- חינם עד 2 projects — $25/חודש לכל project נוסף
+- **project אחד** עם `business_id` = $25/חודש בסך הכל, לא משנה כמה עסקים
+- עבודה של **יום אחד** — לא שובר כלום ב-HAJAJ
+
+### Codemagic — עלויות עם גדילה
+- חינם: 500 דקות/חודש (≈150 builds)
+- $49/חודש: 2,000 דקות (≈100 עסקים שמתעדכנים פעם/שבוע)
+- כל build ≈ 3 דקות
+
+### עדיפות
+**לא לגעת בזה עכשיו** — סיים HAJAJ קודם, עלה לחנויות, תביא לקוח שני ואז נעשה את ה-migration.
