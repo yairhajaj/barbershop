@@ -23,8 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
-# Capacitor native projects — android is fully generated, ios has manual edits
-android/
+# Capacitor native projects — android build outputs only (source files ARE in git)
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/hajaj-release.keystore
+android/keystore.properties
 
 # iOS — keep in git but exclude generated/large dirs
 ios/App/Pods/
