@@ -210,83 +210,103 @@ export function HomePage() {
 
           {/* Show upcoming appointment card when user has one */}
           {user && nextAppointment ? (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                  <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
-                  התור הקרוב שלך
-                </h2>
-                <Link to="/my-appointments" className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>כל התורים ←</Link>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: 'easeOut' }}>
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-gold)', letterSpacing: '0.1em' }}>
+                  ✦ התור הקרוב שלך
+                </span>
+                <Link to="/my-appointments" className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>כל התורים ←</Link>
               </div>
 
+              {/* Card */}
               <div
-                className="rounded-3xl p-5 border-2"
-                style={{ background: 'var(--color-card)', borderColor: 'var(--color-gold)', boxShadow: '0 4px 24px rgba(201,169,110,0.12)' }}
+                className="rounded-3xl overflow-hidden relative"
+                style={{
+                  background: 'linear-gradient(145deg, #181208 0%, #251a0c 55%, #181208 100%)',
+                  boxShadow: '0 24px 64px rgba(201,169,110,0.18), 0 6px 24px rgba(0,0,0,0.5)',
+                }}
               >
-                {/* Date + time */}
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--color-gold)' }}>
-                      {format(new Date(nextAppointment.start_at), 'EEEE', { locale: he })}
+                {/* Gold shimmer top bar */}
+                <div style={{ height: 3, background: 'linear-gradient(90deg, transparent, var(--color-gold), #f5d9a0, var(--color-gold), transparent)' }} />
+
+                <div className="p-5">
+                  {/* Top row: date info + avatar */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex-1">
+                      <div className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em' }}>
+                        {format(new Date(nextAppointment.start_at), 'EEEE', { locale: he })}
+                      </div>
+                      <div className="text-2xl font-black leading-tight" style={{ color: '#fff', letterSpacing: '-0.02em' }}>
+                        {format(new Date(nextAppointment.start_at), 'd בMMMM', { locale: he })}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                          style={{ background: 'rgba(201,169,110,0.18)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}>
+                          ⏰ {format(new Date(nextAppointment.start_at), 'HH:mm')}
+                          {nextAppointment.end_at && ` – ${format(new Date(nextAppointment.end_at), 'HH:mm')}`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-2xl font-black" style={{ color: 'var(--color-text)' }}>
-                      {format(new Date(nextAppointment.start_at), 'd בMMMM', { locale: he })}
-                    </div>
-                    <div className="text-base font-semibold mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                      🕐 {format(new Date(nextAppointment.start_at), 'HH:mm')}
-                      {nextAppointment.end_at && (
-                        <span> – {format(new Date(nextAppointment.end_at), 'HH:mm')}</span>
+
+                    {/* Staff avatar with glow ring */}
+                    <div className="relative flex-shrink-0">
+                      <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle, rgba(201,169,110,0.4) 0%, transparent 70%)', filter: 'blur(10px)', transform: 'scale(1.3)' }} />
+                      {nextAppointment.staff?.photo_url ? (
+                        <img
+                          src={nextAppointment.staff.photo_url}
+                          alt={nextAppointment.staff.name}
+                          className="w-16 h-16 rounded-full object-cover relative"
+                          style={{ border: '2px solid rgba(201,169,110,0.55)', boxShadow: '0 0 0 4px rgba(201,169,110,0.1)' }}
+                        />
+                      ) : (
+                        <div
+                          className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black relative"
+                          style={{ background: 'linear-gradient(135deg, var(--color-gold), #f5d9a0)', color: '#181208', boxShadow: '0 0 0 4px rgba(201,169,110,0.15)' }}
+                        >
+                          ✂
+                        </div>
                       )}
                     </div>
                   </div>
-                  {/* Staff photo */}
-                  {nextAppointment.staff?.photo_url ? (
-                    <img
-                      src={nextAppointment.staff.photo_url}
-                      alt={nextAppointment.staff.name}
-                      className="w-14 h-14 rounded-full object-cover border-2"
-                      style={{ borderColor: 'var(--color-gold)' }}
-                    />
-                  ) : (
-                    <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-black"
-                      style={{ background: 'var(--color-gold)', color: '#fff' }}
+
+                  {/* Divider */}
+                  <div className="mb-4" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+
+                  {/* Service + staff row */}
+                  <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    {nextAppointment.services?.name && (
+                      <span className="text-sm font-bold" style={{ color: '#fff' }}>
+                        {nextAppointment.services.name}
+                      </span>
+                    )}
+                    {nextAppointment.staff?.name && (
+                      <>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>·</span>
+                        <span className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                          עם {nextAppointment.staff.name}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <Link
+                      to={bookHref}
+                      className="flex-1 text-center text-sm font-black py-2.5 rounded-2xl transition-all"
+                      style={{ background: 'var(--color-gold)', color: '#181208', boxShadow: '0 4px 20px rgba(201,169,110,0.35)' }}
                     >
-                      ✂
-                    </div>
-                  )}
-                </div>
-
-                {/* Service + staff */}
-                <div className="flex flex-col gap-1 mb-4">
-                  {nextAppointment.services?.name && (
-                    <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
-                      ✂ {nextAppointment.services.name}
-                    </div>
-                  )}
-                  {nextAppointment.staff?.name && (
-                    <div className="text-sm" style={{ color: 'var(--color-muted)' }}>
-                      👤 {nextAppointment.staff.name}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-3 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                  <Link
-                    to={bookHref}
-                    className="flex-1 text-center text-sm font-bold py-2.5 rounded-2xl transition-all"
-                    style={{ background: 'var(--color-gold)', color: '#fff' }}
-                  >
-                    קבע תור נוסף
-                  </Link>
-                  <Link
-                    to="/my-appointments"
-                    className="flex-1 text-center text-sm font-bold py-2.5 rounded-2xl border transition-all"
-                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-                  >
-                    ניהול תורים
-                  </Link>
+                      + תור נוסף
+                    </Link>
+                    <Link
+                      to="/my-appointments"
+                      className="flex-1 text-center text-sm font-semibold py-2.5 rounded-2xl transition-all"
+                      style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.09)' }}
+                    >
+                      ניהול תורים
+                    </Link>
+                  </div>
                 </div>
               </div>
             </motion.div>

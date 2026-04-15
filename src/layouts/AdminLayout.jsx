@@ -23,12 +23,14 @@ const BASE_NAV_LINKS = [
 
 const PAYMENT_LINK = { to: '/admin/payments', label: 'תשלומים', icon: '💳' }
 
-// Bottom toolbar quick items (4 most-used)
-const BOTTOM_QUICK = [
-  { to: '/admin/appointments', label: 'יומן',   svgIcon: 'calendar' },
-  { to: '/admin',              label: 'בקרה',   svgIcon: 'dashboard' },
-  { to: '/admin/customers',    label: 'לקוחות', svgIcon: 'people' },
-  { to: '/admin/messages',     label: 'הודעות', svgIcon: 'message' },
+// Bottom toolbar: 2 left + center (elevated) + 2 right + more
+const BOTTOM_LEFT  = [
+  { to: '/admin',           label: 'בקרה',   svgIcon: 'dashboard' },
+  { to: '/admin/customers', label: 'לקוחות', svgIcon: 'people'    },
+]
+const BOTTOM_CENTER = { to: '/admin/appointments', label: 'יומן', svgIcon: 'calendar' }
+const BOTTOM_RIGHT  = [
+  { to: '/admin/messages',  label: 'הודעות', svgIcon: 'message'   },
 ]
 
 // "More" sheet — remaining items
@@ -389,8 +391,8 @@ export function AdminLayout({ children }) {
           justifyContent: 'space-around',
           padding: '10px 6px',
         }}>
-          {/* 4 quick items */}
-          {BOTTOM_QUICK.map(link => {
+          {/* Left items */}
+          {BOTTOM_LEFT.map(link => {
             const active = location.pathname === link.to
             const iconColor = active ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'
             return (
@@ -398,19 +400,61 @@ export function AdminLayout({ children }) {
                 key={link.to}
                 to={link.to}
                 className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
-                style={{ minWidth: 56, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
+                style={{ minWidth: 52, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
               >
-                {/* Gold top line for active */}
                 {active && (
-                  <span
-                    className="absolute left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
-                    style={{ background: gold, top: -1 }}
-                  />
+                  <span className="absolute left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full" style={{ background: gold, top: -1 }} />
                 )}
-                <AdminBarIcon name={link.svgIcon} size={24} color={iconColor} />
-                <span className="text-[10px] font-semibold leading-none" style={{ color: iconColor }}>
-                  {link.label}
+                <AdminBarIcon name={link.svgIcon} size={22} color={iconColor} />
+                <span className="text-[10px] font-semibold leading-none" style={{ color: iconColor }}>{link.label}</span>
+              </Link>
+            )
+          })}
+
+          {/* Center — elevated calendar button (like FAB) */}
+          {(() => {
+            const active = location.pathname === BOTTOM_CENTER.to
+            return (
+              <Link
+                to={BOTTOM_CENTER.to}
+                className="flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl relative"
+                style={{
+                  background: active
+                    ? 'var(--color-gold)'
+                    : 'linear-gradient(145deg, rgba(201,169,110,0.22), rgba(201,169,110,0.12))',
+                  border: `1.5px solid ${active ? 'var(--color-gold)' : 'rgba(201,169,110,0.35)'}`,
+                  boxShadow: active
+                    ? '0 8px 32px rgba(201,169,110,0.45), 0 2px 12px rgba(0,0,0,0.3)'
+                    : '0 6px 24px rgba(201,169,110,0.2), 0 2px 8px rgba(0,0,0,0.25)',
+                  transform: 'translateY(-8px)',
+                  minWidth: 64,
+                  textAlign: 'center',
+                }}
+              >
+                <AdminBarIcon name={BOTTOM_CENTER.svgIcon} size={26} color={active ? '#fff' : 'var(--color-gold)'} />
+                <span className="text-[10px] font-black leading-none" style={{ color: active ? '#fff' : 'var(--color-gold)' }}>
+                  {BOTTOM_CENTER.label}
                 </span>
+              </Link>
+            )
+          })()}
+
+          {/* Right items */}
+          {BOTTOM_RIGHT.map(link => {
+            const active = location.pathname === link.to
+            const iconColor = active ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
+                style={{ minWidth: 52, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
+              >
+                {active && (
+                  <span className="absolute left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full" style={{ background: gold, top: -1 }} />
+                )}
+                <AdminBarIcon name={link.svgIcon} size={22} color={iconColor} />
+                <span className="text-[10px] font-semibold leading-none" style={{ color: iconColor }}>{link.label}</span>
               </Link>
             )
           })}
@@ -419,15 +463,12 @@ export function AdminLayout({ children }) {
           <button
             onClick={() => setSheetOpen(true)}
             className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
-            style={{ minWidth: 56, background: sheetOpen ? 'rgba(255,255,255,0.08)' : 'transparent' }}
+            style={{ minWidth: 52, background: sheetOpen ? 'rgba(255,255,255,0.08)' : 'transparent' }}
           >
             {sheetOpen && (
-              <span
-                className="absolute left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
-                style={{ background: gold, top: -1 }}
-              />
+              <span className="absolute left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full" style={{ background: gold, top: -1 }} />
             )}
-            <AdminBarIcon name="menu" size={24} color={sheetOpen ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'} />
+            <AdminBarIcon name="menu" size={22} color={sheetOpen ? gold : 'rgba(255,255,255,0.55)'} />
             <span className="text-[10px] font-semibold leading-none" style={{ color: sheetOpen ? gold : 'rgba(255,255,255,0.55)' }}>
               עוד
             </span>

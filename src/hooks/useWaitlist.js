@@ -18,6 +18,7 @@ export function useWaitlist({ statusFilter = 'all' } = {}) {
         let q = supabase
           .from('waitlist')
           .select(sel)
+          .neq('status', 'removed')   // never show removed entries
           .order('created_at', { ascending: false })
         if (statusFilter !== 'all') q = q.eq('status', statusFilter)
         return q

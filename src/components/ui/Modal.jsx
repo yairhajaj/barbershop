@@ -26,9 +26,10 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`relative w-full ${sizes[size]} card p-6 z-10`}
+            className={`relative w-full ${sizes[size]} card p-6 z-10 max-h-[90vh] flex flex-col`}
+            style={{ overscrollBehavior: 'contain' }}
           >
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 flex-shrink-0">
               <h3 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
                 {title}
               </h3>
@@ -39,7 +40,9 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
                 ×
               </button>
             </div>
-            {children}
+            <div className="overflow-y-auto flex-1 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {children}
+            </div>
           </motion.div>
         </div>
       )}
