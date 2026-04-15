@@ -26,6 +26,42 @@ Booking and management app for barbershops — customers book appointments, admi
 - `src/layouts/` — AdminLayout, BookingLayout
 - `src/components/ui/` — Badge, Modal, Spinner, Toast, ImageUpload
 
+## Deployment — כל שינוי קוד צריך להגיע ל-3 פלטפורמות
+
+### 1. אתר (Vercel) — אוטומטי
+```bash
+git add <files>
+git commit -m "תיאור"
+git push
+# Vercel מפרס אוטומטית מ-branch main — ממתין ~1-2 דקות
+```
+
+### 2. Android (Google Play) — Codemagic
+1. לאחר git push → נכנס ל-https://codemagic.io
+2. Apps → barbershop-app → **Start new build**
+3. Branch: `main` | Workflow: **Android Release (AAB)**
+4. לאחר ~10 דקות → הורד `app-release.aab` מ-Artifacts
+5. Google Play Console → HAJAJ Hair Design → בדיקות → בדיקה פנימית → **יצירת גרסה חדשה** → העלה AAB
+- Package: `com.hajajhairdesign.booking`
+- Keystore: `android/hajaj-release.keystore` (alias: hajaj)
+
+### 3. iOS (TestFlight / App Store) — Codemagic
+1. לאחר git push → נכנס ל-https://codemagic.io
+2. Apps → barbershop-app → **Start new build**
+3. Branch: `main` | Workflow: **iOS Release (IPA)**
+4. ה-IPA עולה אוטומטית ל-TestFlight בסיום ✅
+5. לפני כל build חדש ל-iOS — יש לעדכן `CURRENT_PROJECT_VERSION` ב:
+   `ios/App/App.xcodeproj/project.pbxproj` (לערך גבוה מהקודם)
+- Bundle ID: `com.hajaj.app`
+- App Store Connect App ID: `6762282148`
+
+### ⚠️ חשוב
+- שינויי **DB** (Supabase migrations) → מריצים ידנית ב-SQL Editor
+- שינויי **Edge Functions** → פרסום ידני ב-Supabase Dashboard → Edge Functions
+- שינויי **קוד בלבד** → רק git push (Vercel) + Codemagic build
+
+---
+
 ## What Looks Ready
 
 - Full booking flow (6 pages)
