@@ -105,8 +105,10 @@ export function Confirmation() {
       sessionStorage.removeItem('booking_state')
       setAppointment(appt)
       setStatus('success')
-      // Show push permission banner if supported and VAPID key configured
-      if (pushSupported && import.meta.env.VITE_VAPID_PUBLIC_KEY && Notification.permission === 'default') {
+      // Show push permission banner — web only (native iOS needs APNs entitlement setup)
+      const isNativeApp = typeof window !== 'undefined' && !!window?.Capacitor?.isNativePlatform?.()
+      if (!isNativeApp && pushSupported && import.meta.env.VITE_VAPID_PUBLIC_KEY &&
+          typeof Notification !== 'undefined' && Notification.permission === 'default') {
         setPushBanner(true)
       }
     } catch (err) {
