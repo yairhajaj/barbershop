@@ -51,9 +51,8 @@ workflows:
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
-      groups:
-        - apple_credentials   # APP_STORE_CONNECT_API_KEY, APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APPLE_TEAM_ID
+      integrations:
+        app_store_connect: Codemagic
       vars:
         BUNDLE_ID: com.hajaj.app
         APP_STORE_APP_ID: "6762282148"
@@ -72,9 +71,6 @@ workflows:
           keychain initialize
           app-store-connect fetch-signing-files $BUNDLE_ID \
             --type IOS_APP_STORE \
-            --issuer-id $APP_STORE_CONNECT_ISSUER_ID \
-            --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER \
-            --private-key $APP_STORE_CONNECT_PRIVATE_KEY \
             --create
           keychain add-certificates
           xcode-project use-profiles
@@ -83,8 +79,7 @@ workflows:
         script: |
           xcode-project build-ipa \
             --project "ios/App/App.xcodeproj" \
-            --scheme "App" \
-            --archive-xcargs "DEVELOPMENT_TEAM=$APPLE_TEAM_ID"
+            --scheme "App"
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -92,8 +87,6 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        api_key: Codemagic
         submit_to_testflight: true
         submit_to_app_store: false
