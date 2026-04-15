@@ -8,24 +8,41 @@ workflows:
       node: 20
       java: 17
       groups:
-        - android_signing   # keystore_file, keystore_password, key_alias, key_password
+        - android_signing   # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
     scripts:
       - name: Install dependencies
         script: npm ci
+
       - name: Build web app
         script: npm run build
-      - name: Sync Capacitor
-        script: npx cap sync android
+
+      - name: Add & sync Android platform
+        script: |
+          npx cap add android 2>/dev/null || true
+          npx cap sync android
+
+      - name: Set up Android signing
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > android/hajaj-release.keystore
+          cat > android/keystore.properties << EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=hajaj-release.keystore
+          EOF
+
       - name: Build release AAB
         script: |
           cd android
           ./gradlew bundleRelease
+
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
+
     publishing:
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal   # internal → alpha → beta → production
+        track: internal
 
   # ── iOS Release ──────────────────────────────────────────────────
   ios-release:
@@ -36,7 +53,7 @@ workflows:
       xcode: latest
       cocoapods: default
       groups:
-        - apple_credentials   # APP_STORE_CONNECT_API_KEY, CERTIFICATE_PRIVATE_KEY, etc.
+        - apple_credentials   # APP_STORE_CONNECT_API_KEY, APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APPLE_TEAM_ID
       vars:
         BUNDLE_ID: com.hajaj.app
         APP_STORE_APP_ID: PLACEHOLDER   # ← Replace after creating app in App Store Connect
@@ -47,7 +64,7 @@ workflows:
       - name: Build web app
         script: npm run build
 
-      - name: Sync Capacitor
+      - name: Sync Capacitor iOS
         script: npx cap sync ios
 
       - name: Install CocoaPods
@@ -74,7 +91,6 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
     publishing:
       app_store_connect:
@@ -82,4 +98,4 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-        submit_to_app_store: false   # Change to true for direct production release
+        submit_to_app_store: false
