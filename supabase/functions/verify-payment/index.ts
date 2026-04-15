@@ -6,13 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const GROW_API = 'https://secure.meshulam.co.il/api/light/server/1.0'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { payment_id, action } = await req.json()
+    const { payment_id, transaction_code, action } = await req.json()
     // action: 'verify' (default) | 'refund'
 
     if (!payment_id) {
@@ -27,7 +29,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Get payment + credentials
+    // Get payment record + business credentials
     const { data: payment } = await supabase
       .from('payments')
       .select('*, appointments(customer_id, service_id)')
@@ -36,42 +38,39 @@ serve(async (req) => {
 
     const { data: settings } = await supabase
       .from('business_settings')
-      .select('payplus_api_key, payplus_secret_key')
+      .select('grow_api_key')
       .single()
 
-    if (!payment || !settings?.payplus_api_key) {
+    if (!payment || !settings?.grow_api_key) {
       return new Response(
         JSON.stringify({ error: 'לא נמצא' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const authHeader = JSON.stringify({
-      api_key: settings.payplus_api_key,
-      secret_key: settings.payplus_secret_key,
-    })
+    const apiKey = settings.grow_api_key
 
+    // ── Refund ─────────────────────────────────────────────────────────────
     if (action === 'refund') {
-      // Refund via PayPlus
-      const refundRes = await fetch(
-        'https://reapi.payplus.co.il/api/v1.0/PaymentPages/RefundCharge',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: authHeader },
-          body: JSON.stringify({
-            payment_page_uid: settings.payplus_api_key,
-            transaction_uid: payment.payplus_transaction_id,
-            amount: payment.amount,
-          }),
-        }
-      )
-      const refundData = await refundRes.json()
-
-      if (refundData.results?.status !== '1') {
-        throw new Error(refundData.results?.description || 'שגיאה בביצוע החזר')
+      const txCode = payment.grow_transaction_code
+      if (!txCode) {
+        return new Response(
+          JSON.stringify({ error: 'אין מזהה עסקה להחזר' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
 
-      // Update payment + appointment
+      const refundRes = await fetch(`${GROW_API}/refundTransaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, transactionCode: txCode, sum: payment.amount }),
+      })
+      const refundData = await refundRes.json()
+
+      if (refundData.err !== 0) {
+        throw new Error(refundData.errMsg || 'שגיאה בביצוע החזר')
+      }
+
       await supabase.from('payments').update({ status: 'refunded' }).eq('id', payment_id)
       await supabase
         .from('appointments')
@@ -84,22 +83,29 @@ serve(async (req) => {
       )
     }
 
-    // Default: verify payment status via PayPlus
+    // ── Verify ─────────────────────────────────────────────────────────────
+    // transaction_code comes from Grow redirect URL (?transactionCode=XXX)
+    const txCode = transaction_code || payment.grow_transaction_code
+    if (!txCode) {
+      return new Response(
+        JSON.stringify({ paid: false, error: 'חסר מזהה עסקה' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const verifyRes = await fetch(
-      `https://reapi.payplus.co.il/api/v1.0/PaymentPages/GetPageRequestDetails/${payment.payplus_page_request_uid}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
-      }
+      `${GROW_API}/getTransactionInfo?apiKey=${encodeURIComponent(apiKey)}&transactionCode=${encodeURIComponent(txCode)}`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
     )
     const verifyData = await verifyRes.json()
-    const isPaid = verifyData.data?.status === 'CHARGED'
+
+    // transactionStatusCode === 0 means success in Grow/Meshulam
+    const isPaid = verifyData.err === 0 && verifyData.data?.transactionStatusCode === 0
 
     if (isPaid) {
-      const transactionId = verifyData.data?.transactions?.[0]?.transaction_uid
       await supabase
         .from('payments')
-        .update({ status: 'paid', payplus_transaction_id: transactionId })
+        .update({ status: 'paid', grow_transaction_code: txCode })
         .eq('id', payment_id)
       await supabase
         .from('appointments')

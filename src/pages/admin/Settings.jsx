@@ -464,42 +464,53 @@ export function Settings() {
           {form?.payment_enabled && (
             <div className="mt-5 space-y-5">
 
-              {/* ── Step 1: PayPlus account ── */}
+              {/* ── Step 1: Grow account ── */}
               <div className="rounded-2xl p-4" style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid rgba(201,169,110,0.25)' }}>
-                <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-gold)' }}>שלב 1 — פתח חשבון PayPlus</p>
-                <p className="text-xs text-muted mb-3">ההרשמה חינמית. עמלה ~1.5% מכל עסקה. הכסף מגיע ישירות לחשבון הבנק שלך.</p>
+                <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-gold)' }}>שלב 1 — פתח חשבון Grow</p>
+                <p className="text-xs text-muted mb-3">ההרשמה חינמית. תומך ב-Bit, Apple Pay, Google Pay, PayBox. הכסף מגיע ישירות לחשבון הבנק שלך.</p>
                 <a
-                  href="https://www.payplus.co.il"
+                  href="https://grow.business"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl"
                   style={{ background: 'var(--color-gold)', color: '#fff' }}
                 >
-                  פתח חשבון PayPlus ↗
+                  פתח חשבון Grow ↗
                 </a>
               </div>
 
               {/* ── Step 2: API Keys ── */}
               <div className="rounded-2xl p-4" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-sm font-bold mb-1">שלב 2 — חבר את חשבון PayPlus</p>
-                <p className="text-xs text-muted mb-4">בדשבורד PayPlus: הגדרות ← API ← העתק מפתח API ומפתח סודי</p>
+                <p className="text-sm font-bold mb-1">שלב 2 — חבר את חשבון Grow</p>
+                <p className="text-xs text-muted mb-4">בדשבורד Grow: API ← העתק את שלושת הפרטים הבאים</p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold mb-1 text-muted">מפתח API (UID)</label>
+                    <label className="block text-xs font-semibold mb-1 text-muted">API Key</label>
+                    <PaymentKeyInput
+                      value={form?.grow_api_key ?? ''}
+                      onChange={v => setForm(f => ({ ...f, grow_api_key: v }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-muted">User ID</label>
                     <input
                       type="text"
                       className="input w-full font-mono text-sm"
-                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      value={form?.payplus_api_key ?? ''}
-                      onChange={e => setForm(f => ({ ...f, payplus_api_key: e.target.value }))}
+                      placeholder="12345"
+                      value={form?.grow_user_id ?? ''}
+                      onChange={e => setForm(f => ({ ...f, grow_user_id: e.target.value }))}
                       dir="ltr"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1 text-muted">מפתח סודי (Secret Key)</label>
-                    <PaymentKeyInput
-                      value={form?.payplus_secret_key ?? ''}
-                      onChange={v => setForm(f => ({ ...f, payplus_secret_key: v }))}
+                    <label className="block text-xs font-semibold mb-1 text-muted">Page Code</label>
+                    <input
+                      type="text"
+                      className="input w-full font-mono text-sm"
+                      placeholder="abc123"
+                      value={form?.grow_page_code ?? ''}
+                      onChange={e => setForm(f => ({ ...f, grow_page_code: e.target.value }))}
+                      dir="ltr"
                     />
                   </div>
                 </div>
@@ -509,20 +520,20 @@ export function Settings() {
               <div
                 className="rounded-2xl p-4"
                 style={{
-                  background: settings?.payplus_api_key && settings?.payplus_secret_key
+                  background: settings?.grow_api_key && settings?.grow_user_id && settings?.grow_page_code
                     ? 'rgba(22,163,74,0.06)'
                     : 'var(--color-surface)',
-                  border: `1px solid ${settings?.payplus_api_key && settings?.payplus_secret_key
+                  border: `1px solid ${settings?.grow_api_key && settings?.grow_user_id && settings?.grow_page_code
                     ? 'rgba(22,163,74,0.25)'
                     : 'var(--color-border)'}`,
                 }}
               >
-                {settings?.payplus_api_key && settings?.payplus_secret_key ? (
+                {settings?.grow_api_key && settings?.grow_user_id && settings?.grow_page_code ? (
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-base">✅</span>
-                        <p className="text-sm font-bold" style={{ color: '#16a34a' }}>PayPlus מחובר בהצלחה</p>
+                        <p className="text-sm font-bold" style={{ color: '#16a34a' }}>Grow מחובר בהצלחה</p>
                       </div>
                       <p className="text-xs" style={{ color: 'var(--color-muted)' }}>שלב 3 — הגדר מצב תשלום, לפי שירות ולפי סניף</p>
                     </div>
@@ -538,7 +549,7 @@ export function Settings() {
                   <div>
                     <p className="text-sm font-bold mb-1">שלב 3 — הגדרות תשלום</p>
                     <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                      מלא את מפתחות PayPlus ושמור — לאחר מכן תוכל להגדיר מצב תשלום, לפי שירות ולפי סניף.
+                      מלא את פרטי Grow ושמור — לאחר מכן תוכל להגדיר מצב תשלום, לפי שירות ולפי סניף.
                     </p>
                   </div>
                 )}

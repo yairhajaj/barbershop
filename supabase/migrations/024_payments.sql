@@ -1,10 +1,11 @@
--- Migration 024: Payment support (PayPlus integration)
+-- Migration 024: Payment support (Grow / Meshulam integration)
 
--- Add PayPlus settings to business_settings
+-- Add Grow settings to business_settings
 ALTER TABLE business_settings
-  ADD COLUMN IF NOT EXISTS payment_enabled      boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS payplus_api_key      text,
-  ADD COLUMN IF NOT EXISTS payplus_secret_key   text;
+  ADD COLUMN IF NOT EXISTS payment_enabled  boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS grow_api_key     text,
+  ADD COLUMN IF NOT EXISTS grow_user_id     text,
+  ADD COLUMN IF NOT EXISTS grow_page_code   text;
 
 -- Add payment status to appointments
 ALTER TABLE appointments
@@ -13,15 +14,14 @@ ALTER TABLE appointments
 
 -- Payments table
 CREATE TABLE IF NOT EXISTS payments (
-  id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  appointment_id          uuid REFERENCES appointments(id) ON DELETE SET NULL,
-  amount                  numeric(10,2) NOT NULL,
-  currency                text NOT NULL DEFAULT 'ILS',
-  payplus_page_request_uid text,
-  payplus_transaction_id  text,
-  status                  text NOT NULL DEFAULT 'pending',
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  appointment_id        uuid REFERENCES appointments(id) ON DELETE SET NULL,
+  amount                numeric(10,2) NOT NULL,
+  currency              text NOT NULL DEFAULT 'ILS',
+  grow_transaction_code text,
+  status                text NOT NULL DEFAULT 'pending',
   -- values: 'pending' | 'paid' | 'failed' | 'refunded'
-  created_at              timestamptz DEFAULT now()
+  created_at            timestamptz DEFAULT now()
 );
 
 -- Index for fast lookup by appointment

@@ -17,9 +17,10 @@ export function Confirmation() {
   const { user, profile } = useAuth()
 
   // Payment redirect params
-  const paymentResult = searchParams.get('payment')   // 'success' | null
-  const paymentApptId = searchParams.get('appt_id')  // appointment id from PayPlus redirect
-  const paymentId     = searchParams.get('payment_id')
+  const paymentResult      = searchParams.get('payment')          // 'success' | null
+  const paymentApptId      = searchParams.get('appt_id')          // appointment id from Grow redirect
+  const paymentId          = searchParams.get('payment_id')
+  const growTransactionCode = searchParams.get('transactionCode') // Grow appends this on success
 
   // Read booking state ONCE at mount — never re-read (so sessionStorage.removeItem doesn't break display)
   const [bookingState] = useState(() =>
@@ -39,10 +40,12 @@ export function Confirmation() {
   const [wantsReminder, setWantsReminder] = useState(true)
 
   useEffect(() => {
-    // If coming back from successful PayPlus payment — verify and show success automatically
+    // If coming back from successful Grow payment — verify and show success automatically
     if (paymentResult === 'success' && paymentId && paymentApptId) {
       setStatus('loading')
-      supabase.functions.invoke('verify-payment', { body: { payment_id: paymentId } })
+      supabase.functions.invoke('verify-payment', {
+        body: { payment_id: paymentId, transaction_code: growTransactionCode ?? undefined },
+      })
         .then(({ data }) => {
           if (data?.paid) {
             // Fetch the appointment to display

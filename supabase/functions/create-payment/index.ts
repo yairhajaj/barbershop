@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const GROW_API = 'https://secure.meshulam.co.il/api/light/server/1.0'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -21,15 +23,15 @@ serve(async (req) => {
       )
     }
 
-    // Get business PayPlus credentials from Supabase
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // Get business Grow credentials
     const { data: settings } = await supabase
       .from('business_settings')
-      .select('payplus_api_key, payplus_secret_key, payment_enabled')
+      .select('grow_api_key, grow_user_id, grow_page_code, payment_enabled')
       .single()
 
     if (!settings?.payment_enabled) {
@@ -39,14 +41,14 @@ serve(async (req) => {
       )
     }
 
-    if (!settings.payplus_api_key || !settings.payplus_secret_key) {
+    if (!settings.grow_api_key || !settings.grow_user_id || !settings.grow_page_code) {
       return new Response(
-        JSON.stringify({ error: 'מפתחות PayPlus לא מוגדרים' }),
+        JSON.stringify({ error: 'פרטי Grow לא מוגדרים' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create payment record in DB
+    // Create pending payment record in DB
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .insert({
@@ -60,55 +62,39 @@ serve(async (req) => {
 
     if (paymentError) throw paymentError
 
-    // Call PayPlus GenerateLink API
-    const payplusPayload = {
-      payment_page_uid: settings.payplus_api_key,
-      charge_method: 1, // Regular charge
-      more_info: appointment_id,
-      more_info_1: payment.id,
-      refURL_success: `${success_url}&payment_id=${payment.id}`,
-      refURL_failure: `${failure_url}&payment_id=${payment.id}`,
-      refURL_cancel:  `${failure_url}&payment_id=${payment.id}&cancelled=true`,
-      items: [
-        {
-          name: 'תשלום תור',
-          quantity: 1,
-          price: amount,
-          currency_code: 'ILS',
-          vat_type: 0,
-        },
-      ],
+    // Call Grow (Meshulam) createPaymentProcess API
+    const growPayload = {
+      apiKey:      settings.grow_api_key,
+      userId:      settings.grow_user_id,
+      pageCode:    settings.grow_page_code,
+      sum:         amount,
+      description: 'תשלום תור',
+      successUrl:  `${success_url}&payment_id=${payment.id}`,
+      cancelUrl:   `${failure_url}&payment_id=${payment.id}`,
+      notifyUrl:   '',   // אופציונלי — להגדיר אם רוצים webhook
+      cField1:     payment.id,  // מזהה פנימי שחוזר ב-redirect
     }
 
-    const payplusResponse = await fetch(
-      'https://reapi.payplus.co.il/api/v1.0/PaymentPages/generateLink',
+    const growResponse = await fetch(
+      `${GROW_API}/createPaymentProcess`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: JSON.stringify({
-            api_key: settings.payplus_api_key,
-            secret_key: settings.payplus_secret_key,
-          }),
-        },
-        body: JSON.stringify(payplusPayload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(growPayload),
       }
     )
 
-    const payplusData = await payplusResponse.json()
+    const growData = await growResponse.json()
 
-    if (!payplusResponse.ok || payplusData.results?.status !== '1') {
-      throw new Error(payplusData.results?.description || 'שגיאה ביצירת דף תשלום')
+    if (!growResponse.ok || growData.err !== 0) {
+      throw new Error(growData.errMsg || 'שגיאה ביצירת דף תשלום Grow')
     }
 
-    const pageRequestUid = payplusData.data?.page_request_uid
-    const paymentUrl = payplusData.data?.payment_page_link
+    const paymentUrl = growData.data?.url
 
-    // Save page_request_uid to payment record
-    await supabase
-      .from('payments')
-      .update({ payplus_page_request_uid: pageRequestUid })
-      .eq('id', payment.id)
+    if (!paymentUrl) {
+      throw new Error('לא התקבל URL לתשלום מ-Grow')
+    }
 
     return new Response(
       JSON.stringify({ payment_url: paymentUrl, payment_id: payment.id }),

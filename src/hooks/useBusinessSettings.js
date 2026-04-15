@@ -28,11 +28,12 @@ const DEFAULT_SETTINGS = {
   reminder_3_enabled: false,
   reminder_3_hours:   1,
   waitlist_enabled:   false,
-  // Payments (PayPlus)
-  payment_enabled:    false,
-  payment_mode:       'required', // 'required' | 'optional' | 'per_service'
-  payplus_api_key:    '',
-  payplus_secret_key: '',
+  // Payments (Grow / Meshulam)
+  payment_enabled:  false,
+  payment_mode:     'required', // 'required' | 'optional' | 'per_service'
+  grow_api_key:     '',
+  grow_user_id:     '',
+  grow_page_code:   '',
 }
 
 export function useBusinessSettings() {
