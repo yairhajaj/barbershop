@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-28 md:pb-4"
           style={{ touchAction: 'none' }}
           onTouchMove={handleBackdropTouch}
         >
