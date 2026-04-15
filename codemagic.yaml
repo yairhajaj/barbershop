@@ -39,10 +39,10 @@ workflows:
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
 
-    publishing:
-      google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
+    # publishing:  ← הפעל אחרי שמגדירים Google Play service account
+    #   google_play:
+    #     credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    #     track: internal
 
   # ── iOS Release ──────────────────────────────────────────────────
   ios-release:
