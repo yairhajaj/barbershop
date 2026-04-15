@@ -32,6 +32,10 @@ workflows:
           keyAlias=$CM_KEY_ALIAS
           storeFile=hajaj-release.keystore
           EOF
+          echo "=== KEYSTORE SHA-256 FINGERPRINT ==="
+          keytool -list -v -keystore android/hajaj-release.keystore \
+            -alias $CM_KEY_ALIAS -storepass $CM_KEYSTORE_PASSWORD 2>/dev/null | grep "SHA256:"
+          echo "===================================="
 
       - name: Build release AAB + APK
         script: |
