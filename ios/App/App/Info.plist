@@ -41,6 +41,8 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>לצילום תמונת פרופיל</string>
 	<key>NSPhotoLibraryUsageDescription</key>
