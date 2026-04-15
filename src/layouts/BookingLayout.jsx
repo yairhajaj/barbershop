@@ -338,10 +338,13 @@ export function BookingLayout({ children }) {
         )}
       </motion.header>
 
-      <main className="pb-24 md:pb-0">{children}</main>
+      <main>{children}</main>
 
-      {/* Footer */}
-      <footer className="border-t py-10 mt-8" style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}>
+      {/* Footer — extra bottom padding on mobile to clear the floating bottom bar */}
+      <footer
+        className="border-t pt-10 pb-32 md:pb-10 mt-8"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}
+      >
         <div className="container px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
