@@ -56,7 +56,7 @@ workflows:
         - apple_credentials   # APP_STORE_CONNECT_API_KEY, APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APPLE_TEAM_ID
       vars:
         BUNDLE_ID: com.hajaj.app
-        APP_STORE_APP_ID: PLACEHOLDER   # ← Replace after creating app in App Store Connect
+        APP_STORE_APP_ID: "6762282148"
     scripts:
       - name: Install dependencies
         script: npm ci
