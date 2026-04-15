@@ -37,10 +37,21 @@ workflows:
         script: |
           cd android
           ./gradlew bundleRelease assembleRelease
+          # Sign the APK explicitly with the release keystore
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -r | head -1)
+          APK_UNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk
+          APK_SIGNED=app/build/outputs/apk/release/app-release-signed.apk
+          $APKSIGNER sign \
+            --ks hajaj-release.keystore \
+            --ks-pass pass:$CM_KEYSTORE_PASSWORD \
+            --ks-key-alias $CM_KEY_ALIAS \
+            --key-pass pass:$CM_KEY_PASSWORD \
+            --out $APK_SIGNED \
+            $APK_UNSIGNED
 
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
-      - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/apk/release/app-release-signed.apk
 
     # publishing:  ← הפעל אחרי שמגדירים Google Play service account
     #   google_play:
