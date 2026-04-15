@@ -49,5 +49,7 @@
 	<string>לבחירת תמונת פרופיל מהגלריה</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
