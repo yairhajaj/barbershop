@@ -38,6 +38,7 @@ workflows:
       - name: Build release AAB + APK
         script: |
           cd android
+          chmod +x ./gradlew
           ./gradlew bundleRelease assembleRelease
           # Sign the APK explicitly with the release keystore
           APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -r | head -1)
