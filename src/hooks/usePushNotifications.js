@@ -71,6 +71,7 @@ async function requestWebPush(userId) {
     return { ok: false, reason: 'not_supported' }
   }
 
+  if (typeof Notification === 'undefined') return { ok: false, reason: 'not_supported' }
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return { ok: false, reason: 'denied' }
 

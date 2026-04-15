@@ -105,12 +105,16 @@ export function Confirmation() {
       sessionStorage.removeItem('booking_state')
       setAppointment(appt)
       setStatus('success')
-      // Show push permission banner — web only (native iOS needs APNs entitlement setup)
-      const isNativeApp = typeof window !== 'undefined' && !!window?.Capacitor?.isNativePlatform?.()
-      if (!isNativeApp && pushSupported && import.meta.env.VITE_VAPID_PUBLIC_KEY &&
-          typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        setPushBanner(true)
-      }
+      // Show push permission banner — web only, never on native iOS
+      try {
+        const isNativeApp = !!(window?.Capacitor?.isNativePlatform?.())
+        const notifPermission = !isNativeApp && typeof Notification !== 'undefined'
+          ? Notification.permission : 'denied'
+        if (!isNativeApp && pushSupported && import.meta.env.VITE_VAPID_PUBLIC_KEY &&
+            notifPermission === 'default') {
+          setPushBanner(true)
+        }
+      } catch { /* ignore on iOS native */ }
     } catch (err) {
       setErrorMsg(err.message ?? 'שגיאה בקביעת התור')
       setStatus('error')
