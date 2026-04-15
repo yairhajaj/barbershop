@@ -51,8 +51,8 @@ workflows:
     environment:
       node: 22
       xcode: latest
-      integrations:
-        app_store_connect: Codemagic
+      groups:
+        - apple_credentials
       vars:
         BUNDLE_ID: com.hajaj.app
         APP_STORE_APP_ID: "6762282148"
@@ -87,6 +87,8 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key: Codemagic
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         submit_to_app_store: false
