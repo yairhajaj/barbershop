@@ -33,13 +33,14 @@ workflows:
           storeFile=hajaj-release.keystore
           EOF
 
-      - name: Build release AAB
+      - name: Build release AAB + APK
         script: |
           cd android
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease assembleRelease
 
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/apk/release/*.apk
 
     # publishing:  ← הפעל אחרי שמגדירים Google Play service account
     #   google_play:
