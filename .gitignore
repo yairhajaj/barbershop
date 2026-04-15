@@ -23,9 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# Capacitor native projects (generated — run `npx cap sync` to recreate)
+# Capacitor native projects — android is fully generated, ios has manual edits
 android/
-ios/
+
+# iOS — keep in git but exclude generated/large dirs
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/DerivedData/
 
 # Capacitor temp
 .capacitor/

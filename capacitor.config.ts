@@ -8,8 +8,8 @@ import { CapacitorConfig } from '@capacitor/cli'
  *   npm run build && npx cap sync && npx cap open android
  */
 const config: CapacitorConfig = {
-  appId: 'com.barbershop.app',
-  appName: 'Barbershop',
+  appId: 'com.hajaj.app',
+  appName: 'HAJAJ',
   webDir: 'dist',
 
   server: {

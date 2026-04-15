@@ -38,40 +38,48 @@ workflows:
       groups:
         - apple_credentials   # APP_STORE_CONNECT_API_KEY, CERTIFICATE_PRIVATE_KEY, etc.
       vars:
-        BUNDLE_ID: com.barbershop.app
+        BUNDLE_ID: com.hajaj.app
         APP_STORE_APP_ID: PLACEHOLDER   # ← Replace after creating app in App Store Connect
     scripts:
       - name: Install dependencies
         script: npm ci
+
       - name: Build web app
         script: npm run build
+
       - name: Sync Capacitor
         script: npx cap sync ios
+
       - name: Install CocoaPods
         script: |
           cd ios/App
           pod install
-      - name: Set up signing
+
+      - name: Set up code signing
         script: |
+          keychain initialize
+          app-store-connect fetch-signing-files $BUNDLE_ID \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
           xcode-project use-profiles
+
       - name: Build IPA
         script: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath $CM_BUILD_DIR/App.xcarchive \
-            archive
-          xcodebuild -exportArchive \
-            -archivePath $CM_BUILD_DIR/App.xcarchive \
-            -exportOptionsPlist /tmp/exportOptions.plist \
-            -exportPath $CM_BUILD_DIR/output
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App" \
+            --archive-xcargs "DEVELOPMENT_TEAM=$APPLE_TEAM_ID"
+
     artifacts:
-      - "**/*.ipa"
-      - "**/*.dSYM.zip"
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_API_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+        submit_to_app_store: false   # Change to true for direct production release
