@@ -233,11 +233,12 @@ export function Payments() {
             </div>
           </div>
 
-          {/* Per-service overrides */}
+          {/* Per-service overrides — only when per_service mode */}
+          {globalMode === 'per_service' && (
           <div className="card p-5">
-            <p className="font-bold mb-1" style={{ color: 'var(--color-text)' }}>דריסה לפי שירות</p>
+            <p className="font-bold mb-1" style={{ color: 'var(--color-text)' }}>הגדרה לפי שירות</p>
             <p className="text-xs mb-4" style={{ color: 'var(--color-muted)' }}>
-              ניתן לקבוע מצב שונה לכל שירות — מנצח את ההגדרה הגלובלית
+              קבע מצב תשלום נפרד לכל שירות
             </p>
             {servicesLoading ? (
               <div className="flex justify-center py-6"><Spinner /></div>
@@ -266,13 +267,14 @@ export function Payments() {
               </div>
             )}
           </div>
+          )}
 
           {/* Per-branch overrides */}
           {branches.length > 0 && (
             <div className="card p-5">
-              <p className="font-bold mb-1" style={{ color: 'var(--color-text)' }}>דריסה לפי סניף</p>
+              <p className="font-bold mb-1" style={{ color: 'var(--color-text)' }}>הגדרה לפי סניף</p>
               <p className="text-xs mb-4" style={{ color: 'var(--color-muted)' }}>
-                מנצח את ההגדרה הגלובלית (אלא אם שירות מוגדר ספציפית)
+                קבע מצב תשלום שונה לכל סניף — מנצח את ההגדרה הגלובלית
               </p>
               <div className="space-y-3">
                 {branches.map(branch => (
