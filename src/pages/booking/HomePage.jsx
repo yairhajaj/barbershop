@@ -11,6 +11,7 @@ import { useStaffPortfolio } from '../../hooks/useStaffPortfolio'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useToast } from '../../components/ui/Toast'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
@@ -24,9 +25,11 @@ export function HomePage() {
   const { settings } = useBusinessSettings()
   const { user, profile } = useAuth()
   const { theme, layout } = useTheme()
+  const showToast = useToast()
 
   // Upcoming appointment — direct query so it's always fresh and never blocked by hook re-fetch timing
   const [nextAppointment, setNextAppointment] = useState(undefined) // undefined = loading, null = none
+  const [calAdded, setCalAdded] = useState(false)
 
   useEffect(() => {
     if (!user) { setNextAppointment(null); return }
@@ -44,6 +47,49 @@ export function HomePage() {
         setNextAppointment(data?.[0] ?? null)
       })
   }, [user?.id])
+
+  // ── Add to calendar ────────────────────────────────────────────────
+  function buildICS(appt) {
+    const start = new Date(appt.start_at)
+    const end   = appt.end_at
+      ? new Date(appt.end_at)
+      : new Date(start.getTime() + (appt.services?.duration_minutes || 60) * 60_000)
+    const fmt   = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+    const service = appt.services?.name || 'תור'
+    const staff   = appt.staff?.name ? ` עם ${appt.staff.name}` : ''
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//HAJAJ Hair Design//Booking//HE',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:appt-${appt.id}@hajaj`,
+      `DTSTAMP:${fmt(new Date())}`,
+      `DTSTART:${fmt(start)}`,
+      `DTEND:${fmt(end)}`,
+      `SUMMARY:${service}${staff} — ${BUSINESS.name}`,
+      `DESCRIPTION:${service}${staff}`,
+      BUSINESS.address ? `LOCATION:${BUSINESS.address}` : '',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n')
+  }
+
+  function handleAddToCalendar() {
+    const blob = new Blob([buildICS(nextAppointment)], { type: 'text/calendar;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = 'תור.ics'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    setCalAdded(true)
+    showToast({ message: 'תזכורת נוספה ליומן', type: 'success', duration: 3000 })
+    setTimeout(() => setCalAdded(false), 3000)
+  }
 
   const [portfolioMember, setPortfolioMember] = useState(null)
 
@@ -331,6 +377,33 @@ export function HomePage() {
                     ניהול
                   </Link>
                 </div>
+
+                {/* Add to calendar */}
+                <button
+                  onClick={handleAddToCalendar}
+                  className="w-full flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-2xl mt-2 transition-all"
+                  style={
+                    calAdded
+                      ? { background: 'rgba(34,197,94,0.13)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.28)' }
+                      : theme === 'midnight' || layout === 'luxury'
+                        ? { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }
+                        : { background: 'rgba(0,0,0,0.04)', color: 'var(--color-muted)', border: '1px solid rgba(0,0,0,0.07)' }
+                  }
+                >
+                  {calAdded ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      נוסף ליומן
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="10" y1="17" x2="14" y2="17"/>
+                      </svg>
+                      הוסף ליומן
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           ) : nextAppointment === null && (
