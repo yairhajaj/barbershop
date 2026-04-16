@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { findGapOpportunities } from '../lib/utils'
 
@@ -132,15 +132,15 @@ export function useAppointments({ staffId, date, customerId } = {}) {
   }
 }
 
-// Hook for all appointments (admin use)
+// Hook for all appointments (admin use) — includes realtime subscription
 export function useAllAppointments({ startDate, endDate, staffId, status, branchId } = {}) {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
 
-  useEffect(() => {
-    fetchAll()
-  }, [startDate?.toISOString(), endDate?.toISOString(), staffId, status, branchId])
+  // Always-current ref so the realtime handler calls the latest fetchAll
+  // even though the subscription is set up only once.
+  const fetchAllRef = useRef(null)
 
   async function fetchAll() {
     setLoading(true)
@@ -165,6 +165,31 @@ export function useAllAppointments({ startDate, endDate, staffId, status, branch
     else setAppointments(data ?? [])
     setLoading(false)
   }
+
+  // Keep the ref pointing at the latest closure so the realtime handler
+  // always re-fetches with the current date range / filters.
+  fetchAllRef.current = fetchAll
+
+  // Re-fetch whenever the visible date range or filters change
+  useEffect(() => {
+    fetchAll()
+  }, [startDate?.toISOString(), endDate?.toISOString(), staffId, status, branchId])
+
+  // Realtime subscription — stays alive for the lifetime of the hook instance.
+  // Listens to every INSERT / UPDATE / DELETE on the appointments table and
+  // triggers a fresh fetch so the admin calendar never shows stale data.
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-appointments-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        () => { fetchAllRef.current?.() },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, []) // intentionally empty — subscription lives for the duration of the mount
 
   async function markNoShow(id) {
     const { error } = await supabase
