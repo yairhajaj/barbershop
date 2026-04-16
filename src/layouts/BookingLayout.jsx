@@ -376,22 +376,29 @@ export function BookingLayout({ children }) {
         const icon     = iconMap[announcement.announcement_color]  ?? iconMap.gold
         return (
           <Modal open={annOpen} onClose={handleAnnouncementClose}>
-            <div className="text-center">
-              <div className="text-4xl mb-3">{icon}</div>
-              <h2 className="text-lg font-bold mb-3" style={{ color }}>
+            {/* Colored accent strip at top */}
+            <div className="rounded-t-xl -mx-6 -mt-6 mb-5 px-6 pt-5 pb-4 text-center"
+              style={{ background: `${color}18`, borderBottom: `3px solid ${color}` }}>
+              <div className="text-3xl mb-2">{icon}</div>
+              <h2 className="text-lg font-bold leading-snug" style={{ color }}>
                 {announcement.announcement_title}
               </h2>
-              <p className="text-sm mb-6" style={{ color: 'var(--color-muted)', whiteSpace: 'pre-wrap' }}>
-                {announcement.announcement_body}
-              </p>
-              <button
-                onClick={handleAnnouncementClose}
-                className="btn-primary px-8 py-2.5 text-sm"
-                style={{ background: color }}
-              >
-                הבנתי
-              </button>
             </div>
+
+            {/* Body */}
+            <p className="text-sm leading-relaxed text-center mb-6"
+              style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', opacity: 0.85 }}>
+              {announcement.announcement_body}
+            </p>
+
+            {/* Button */}
+            <button
+              onClick={handleAnnouncementClose}
+              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
+              style={{ background: color }}
+            >
+              הבנתי ✓
+            </button>
           </Modal>
         )
       })()}

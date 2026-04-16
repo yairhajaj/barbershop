@@ -41,6 +41,17 @@ export function Messages() {
   // History
   const [logs, setLogs] = useState([])
 
+  // Announcement
+  const [annForm, setAnnForm] = useState({
+    announcement_enabled: false,
+    announcement_title: '',
+    announcement_body: '',
+    announcement_color: 'gold',
+    announcement_expires_at: '',
+  })
+  const [annLoading, setAnnLoading] = useState(false)
+  const [annSaving, setAnnSaving] = useState(false)
+
   // ── Load recipients ────────────────────────────────────────────────────
   useEffect(() => {
     loadRecipients()
@@ -48,6 +59,7 @@ export function Messages() {
 
   useEffect(() => {
     loadLogs()
+    loadAnnouncement()
   }, [])
 
   async function loadRecipients() {
@@ -106,6 +118,33 @@ export function Messages() {
     ...(willSendPush ? pushRecipients.map(r => r.id) : []),
     ...(willSendWa   ? waRecipients.map(r => r.id)   : []),
   ]).size
+
+  // ── Announcement ──────────────────────────────────────────────────────
+  async function loadAnnouncement() {
+    setAnnLoading(true)
+    const { data } = await supabase.from('business_settings').select('announcement_enabled,announcement_title,announcement_body,announcement_expires_at,announcement_color').eq('id', 1).single()
+    if (data) setAnnForm({
+      announcement_enabled: data.announcement_enabled ?? false,
+      announcement_title: data.announcement_title ?? '',
+      announcement_body: data.announcement_body ?? '',
+      announcement_color: data.announcement_color ?? 'gold',
+      announcement_expires_at: data.announcement_expires_at ?? '',
+    })
+    setAnnLoading(false)
+  }
+
+  async function saveAnnouncement() {
+    setAnnSaving(true)
+    await supabase.from('business_settings').update({
+      announcement_enabled: annForm.announcement_enabled,
+      announcement_title: annForm.announcement_title,
+      announcement_body: annForm.announcement_body,
+      announcement_color: annForm.announcement_color,
+      announcement_expires_at: annForm.announcement_expires_at || null,
+    }).eq('id', 1)
+    toast({ message: 'ההודעה נשמרה', type: 'success' })
+    setAnnSaving(false)
+  }
 
   // ── Send ───────────────────────────────────────────────────────────────
   async function handleSend() {
@@ -168,6 +207,111 @@ export function Messages() {
       <div>
         <h1 className="text-2xl font-black" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>📨 שליחת הודעות ללקוחות</h1>
         <p className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>שלח Push Notification או WhatsApp ללקוחות נבחרים</p>
+      </div>
+
+      {/* ── Announcement Popup ── */}
+      <div className="card p-6" style={{ borderLeft: '4px solid var(--color-gold)' }}>
+        <h2 className="font-bold text-base mb-0.5" style={{ color: 'var(--color-text)' }}>📢 הודעת פופאפ באפליקציה</h2>
+        <p className="text-xs mb-4" style={{ color: 'var(--color-muted)' }}>הודעה שמופיעה אוטומטית ללקוח בכניסה לאפליקציה — לא נשלחת ב-WhatsApp</p>
+
+        {annLoading ? (
+          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>טוען...</p>
+        ) : (
+          <>
+            <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <div>
+                <p className="font-medium text-sm">הפעל הודעת פופאפ</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>ייראה ללקוח כשנכנס לאפליקציה</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAnnForm(f => ({ ...f, announcement_enabled: !f.announcement_enabled }))}
+                className="w-12 h-6 rounded-full transition-all relative flex-shrink-0"
+                style={{ background: annForm.announcement_enabled ? 'var(--color-gold)' : 'var(--color-border)' }}
+              >
+                <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                  style={{ left: annForm.announcement_enabled ? '26px' : '2px' }} />
+              </button>
+            </div>
+
+            {annForm.announcement_enabled && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">כותרת</label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="למשל: שינוי בשעות פעילות"
+                    value={annForm.announcement_title}
+                    onChange={e => setAnnForm(f => ({ ...f, announcement_title: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">תוכן ההודעה</label>
+                  <textarea
+                    className="input min-h-[100px] resize-y"
+                    placeholder="פרטי ההודעה..."
+                    value={annForm.announcement_body}
+                    onChange={e => setAnnForm(f => ({ ...f, announcement_body: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">צבע</label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'gold', label: 'זהב', color: 'var(--color-gold)' },
+                      { value: 'red',  label: 'אדום', color: '#ef4444' },
+                      { value: 'blue', label: 'כחול', color: '#3b82f6' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setAnnForm(f => ({ ...f, announcement_color: opt.value }))}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
+                        style={{
+                          borderColor: annForm.announcement_color === opt.value ? opt.color : 'var(--color-border)',
+                          background: annForm.announcement_color === opt.value ? `${opt.color}22` : 'transparent',
+                          color: annForm.announcement_color === opt.value ? opt.color : 'var(--color-muted)',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">תפוגה (אופציונלי)</label>
+                  <input
+                    className="input"
+                    type="datetime-local"
+                    value={annForm.announcement_expires_at || ''}
+                    onChange={e => setAnnForm(f => ({ ...f, announcement_expires_at: e.target.value || '' }))}
+                  />
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>אם לא תמלא — ההודעה תוצג ללא הגבלת זמן</p>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={saveAnnouncement}
+              disabled={annSaving}
+              className="btn-primary mt-4 text-sm px-6 py-2"
+              style={{ opacity: annSaving ? 0.7 : 1 }}
+            >
+              {annSaving ? 'שומר...' : 'שמור הודעה'}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── Send Messages Section ── */}
+      <div>
+        <h2 className="text-lg font-bold mb-0.5" style={{ color: 'var(--color-text)' }}>📤 שליחה ישירה ללקוחות (Push / WhatsApp)</h2>
+        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>שולח הודעה ידנית לקבוצת לקוחות שבחרת</p>
       </div>
 
       {/* ── 1. Filter ── */}
