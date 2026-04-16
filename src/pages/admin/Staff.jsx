@@ -124,6 +124,9 @@ export function Staff() {
       staff_branches: defaultBranches,
       staff_hours: DEFAULT_STAFF_HOURS,
       staff_services: services.map(s => s.id),
+      commission_type: 'inherit',
+      commission_rate: null,
+      monthly_salary: null,
     })
   }
 
@@ -134,6 +137,9 @@ export function Staff() {
       staff_services: member.staff_services?.map(ss => ss.service_id) ?? [],
       // staff_branches from DB: [{branch_id: uuid}, ...] → flatten to [uuid, ...]
       staff_branches: member.staff_branches?.map(sb => sb.branch_id) ?? [],
+      commission_type: member.commission_type ?? 'inherit',
+      commission_rate: member.commission_rate ?? null,
+      monthly_salary: member.monthly_salary ?? null,
     })
   }
 
@@ -711,6 +717,65 @@ export function Staff() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Commission section */}
+            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <p className="text-sm font-bold">💰 תגמול</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { value: 'inherit', label: 'לפי הגדרות ראשיות' },
+                  { value: 'percentage', label: 'אחוזים %' },
+                  { value: 'fixed', label: 'סכום קבוע ₪ לשירות' },
+                  { value: 'salary', label: 'משכורת חודשית ₪' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEditMember(m => ({ ...m, commission_type: opt.value }))}
+                    className="px-3 py-2 rounded-xl text-xs font-medium border-2 transition-all text-center"
+                    style={{
+                      background: editMember.commission_type === opt.value ? 'var(--color-gold)' : 'var(--color-card)',
+                      borderColor: editMember.commission_type === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
+                      color: editMember.commission_type === opt.value ? '#fff' : 'var(--color-text)',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {(editMember.commission_type === 'percentage' || editMember.commission_type === 'fixed') && (
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-muted)' }}>
+                    {editMember.commission_type === 'percentage' ? 'אחוז עמלה (%)' : 'סכום קבוע לתור (₪)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step={editMember.commission_type === 'percentage' ? '0.1' : '1'}
+                    className="input w-40"
+                    value={editMember.commission_rate ?? ''}
+                    onChange={e => setEditMember(m => ({ ...m, commission_rate: e.target.value === '' ? null : Number(e.target.value) }))}
+                    placeholder={editMember.commission_type === 'percentage' ? 'לדוגמה: 30' : 'לדוגמה: 50'}
+                  />
+                </div>
+              )}
+
+              {editMember.commission_type === 'salary' && (
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-muted)' }}>משכורת חודשית (₪)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    className="input w-40"
+                    value={editMember.monthly_salary ?? ''}
+                    onChange={e => setEditMember(m => ({ ...m, monthly_salary: e.target.value === '' ? null : Number(e.target.value) }))}
+                    placeholder="לדוגמה: 8000"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pb-1">

@@ -1,10 +1,155 @@
 import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import { useFinanceDashboard } from '../../../hooks/useFinanceDashboard'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
+import { useStaffCommissions } from '../../../hooks/useStaffCommissions'
 import { formatILS } from '../../../lib/finance'
 import { Spinner } from '../../../components/ui/Spinner'
-import { format } from 'date-fns'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale'
+import { supabase } from '../../../lib/supabase'
+
+function StaffPaymentsSection({ settings }) {
+  const now = new Date()
+  const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
+  const monthEnd   = format(endOfMonth(now), 'yyyy-MM-dd')
+
+  const { markAllPaid } = useStaffCommissions({ startDate: monthStart, endDate: monthEnd })
+
+  const [staffList, setStaffList]   = useState([])
+  const [appts, setAppts]           = useState([])
+  const [loadingData, setLoadingData] = useState(true)
+  const [paying, setPaying]         = useState(null)
+
+  useEffect(() => {
+    async function load() {
+      setLoadingData(true)
+      const [{ data: staffData }, { data: apptData }] = await Promise.all([
+        supabase
+          .from('staff')
+          .select('id, name, photo_url, commission_type, commission_rate, monthly_salary')
+          .eq('is_active', true),
+        supabase
+          .from('appointments')
+          .select('staff_id, services(price)')
+          .eq('status', 'completed')
+          .gte('start_at', monthStart + 'T00:00:00')
+          .lte('start_at', monthEnd + 'T23:59:59'),
+      ])
+      setStaffList(staffData ?? [])
+      setAppts(apptData ?? [])
+      setLoadingData(false)
+    }
+    load()
+  }, [monthStart, monthEnd])
+
+  function calcStaff(member) {
+    const effectiveType = member.commission_type === 'inherit'
+      ? (settings?.commission_type ?? 'percentage')
+      : member.commission_type
+    const effectiveRate = member.commission_type === 'inherit'
+      ? (settings?.commission_default_rate ?? 0)
+      : (member.commission_rate ?? 0)
+
+    const memberAppts = appts.filter(a => a.staff_id === member.id)
+    const count = memberAppts.length
+    const revenue = memberAppts.reduce((sum, a) => sum + (a.services?.price ?? 0), 0)
+
+    let amount = 0
+    if (effectiveType === 'salary') {
+      amount = member.monthly_salary ?? 0
+    } else if (effectiveType === 'percentage') {
+      amount = revenue * (effectiveRate / 100)
+    } else if (effectiveType === 'fixed') {
+      amount = count * effectiveRate
+    }
+
+    return { count, revenue, amount, effectiveType }
+  }
+
+  async function handleMarkAllPaid(staffId) {
+    setPaying(staffId)
+    try {
+      await markAllPaid(staffId)
+    } finally {
+      setPaying(null)
+    }
+  }
+
+  const rows = staffList.map(m => ({ ...m, ...calcStaff(m) }))
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="card p-5"
+    >
+      <h2 className="font-bold text-base mb-4" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+        💈 תשלומי ספרים החודש
+      </h2>
+
+      {loadingData ? (
+        <div className="flex justify-center py-6"><Spinner size="md" /></div>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-center py-6" style={{ color: 'var(--color-muted)' }}>אין ספרים פעילים</p>
+      ) : (
+        <div className="overflow-x-auto -mx-1">
+          <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead>
+              <tr>
+                {['ספר', 'תורים', 'הכנסות', 'עמלה/משכורת', 'לתשלום', ''].map(h => (
+                  <th key={h} className="text-right py-2 px-2 text-xs font-semibold" style={{ color: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((member, i) => (
+                <tr
+                  key={member.id}
+                  style={{ background: i % 2 === 0 ? 'transparent' : 'var(--color-surface)' }}
+                >
+                  <td className="py-2.5 px-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden bg-[var(--color-gold)]/10 flex items-center justify-center text-xs font-bold" style={{ color: 'var(--color-gold)' }}>
+                        {member.photo_url
+                          ? <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+                          : member.name[0]}
+                      </div>
+                      <span className="font-medium" style={{ color: 'var(--color-text)' }}>{member.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2 text-center" style={{ color: 'var(--color-text)' }}>{member.count}</td>
+                  <td className="py-2.5 px-2" style={{ color: 'var(--color-text)' }}>{formatILS(member.revenue)}</td>
+                  <td className="py-2.5 px-2 text-xs" style={{ color: 'var(--color-muted)' }}>
+                    {member.effectiveType === 'salary' && 'משכורת'}
+                    {member.effectiveType === 'percentage' && `${member.commission_type === 'inherit' ? settings?.commission_default_rate : member.commission_rate}%`}
+                    {member.effectiveType === 'fixed' && `₪${member.commission_type === 'inherit' ? settings?.commission_default_rate : member.commission_rate} לתור`}
+                  </td>
+                  <td className="py-2.5 px-2 font-bold" style={{ color: 'var(--color-gold)' }}>
+                    {formatILS(member.amount)}
+                  </td>
+                  <td className="py-2.5 px-2">
+                    <button
+                      onClick={() => handleMarkAllPaid(member.id)}
+                      disabled={paying === member.id}
+                      className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors"
+                      style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
+                    >
+                      {paying === member.id ? '...' : '💳 שולם'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </motion.div>
+  )
+}
 
 export function DashboardTab() {
   const { stats, monthly, recent, loading } = useFinanceDashboard()
@@ -174,6 +319,9 @@ export function DashboardTab() {
           </p>
         )}
       </motion.div>
+
+      {/* Staff payments */}
+      <StaffPaymentsSection settings={settings} />
 
       {/* Recent activity */}
       <motion.div
