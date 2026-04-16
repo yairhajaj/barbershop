@@ -990,6 +990,31 @@ export function Appointments() {
         </span>
       </div>
 
+      {/* ── Day-at-a-glance stats ── */}
+      {view === 'day' && !loading && (() => {
+        const active    = appointments.filter(a => a.status !== 'cancelled')
+        const completed = appointments.filter(a => a.status === 'completed').length
+        const pending   = appointments.filter(a => a.status === 'pending').length
+        const revenue   = appointments
+          .filter(a => a.status === 'completed')
+          .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+        return (
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {[
+              { label: 'תורים היום', value: active.length,                      color: 'var(--color-gold)' },
+              { label: 'הושלמו',     value: completed,                          color: '#22c55e' },
+              { label: 'ממתינים',    value: pending,                            color: '#f97316' },
+              { label: 'הכנסה',      value: revenue > 0 ? `₪${revenue}` : '—', color: 'var(--color-primary)' },
+            ].map(stat => (
+              <div key={stat.label} className="card p-3 text-center" style={{ border: '1px solid var(--color-border)' }}>
+                <div className="text-xl font-black" style={{ color: stat.color }}>{stat.value}</div>
+                <div className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--color-muted)' }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* ── Gap Closer Alert ── */}
       {gapAppts.length > 0 && (
         <motion.div
@@ -1039,7 +1064,7 @@ export function Appointments() {
       {loading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : view === 'list' ? (
-        <ListViewAppointments appointments={appointments} onSelect={setSelectedAppt} />
+        <ListViewAppointments appointments={appointments} onSelect={setSelectedAppt} staff={staff} />
       ) : view === 'day' ? (
         <DayView
           date={currentDate}
@@ -1067,6 +1092,7 @@ export function Appointments() {
           endHour={calEndHour}
           waitlistByDate={waitlistByDate}
           onScheduleWaitlist={handleScheduleFromWaitlist}
+          onReschedule={openReschedule}
         />
       )}
 
@@ -2230,50 +2256,120 @@ export function Appointments() {
 }
 
 // ─── List View ─────────────────────────────────────────────────────────────────
-function ListViewAppointments({ appointments, onSelect }) {
-  const sorted = [...appointments].sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+const STATUS_OPTIONS = [
+  { value: '',           label: 'כל הסטטוסים' },
+  { value: 'confirmed',  label: 'מאושר' },
+  { value: 'pending',    label: 'ממתין' },
+  { value: 'completed',  label: 'הושלם' },
+  { value: 'cancelled',  label: 'בוטל' },
+  { value: 'no_show',    label: 'לא הגיע' },
+]
 
-  if (sorted.length === 0) {
-    return (
-      <div className="card p-12 text-center text-muted">
-        <div className="text-4xl mb-3">📭</div>
-        <p>אין תורים בטווח זה</p>
-      </div>
-    )
-  }
+function ListViewAppointments({ appointments, onSelect, staff = [] }) {
+  const [search,       setSearch]       = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [staffFilter,  setStaffFilter]  = useState('')
+
+  const filtered = appointments.filter(a => {
+    if (statusFilter && a.status !== statusFilter) return false
+    if (staffFilter  && a.staff_id !== staffFilter) return false
+    if (search) {
+      const q     = search.toLowerCase()
+      const name  = (a.profiles?.name  || '').toLowerCase()
+      const phone = (a.profiles?.phone || '').toLowerCase()
+      if (!name.includes(q) && !phone.includes(q)) return false
+    }
+    return true
+  })
+  const sorted = [...filtered].sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
   return (
-    <div className="flex flex-col gap-2">
-      {sorted.map(appt => (
-        <motion.button
-          key={appt.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => onSelect(appt)}
-          className="card p-4 text-right hover:ring-2 hover:ring-[var(--color-gold)] transition-all w-full"
+    <div className="flex flex-col gap-3">
+      {/* ── Filter bar ── */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <input
+          className="input flex-1 min-w-[180px] py-2 text-sm"
+          placeholder="🔍 חפש לפי שם או טלפון..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select
+          className="input py-2 text-sm w-auto"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-center">
-                <div className="text-xs text-muted">{format(new Date(appt.start_at), 'EEE', { locale: he })}</div>
-                <div className="font-bold">{formatTime(appt.start_at)}</div>
-                <div className="text-xs text-muted">{formatDate(appt.start_at)}</div>
-              </div>
-              <div>
-                <p className="font-semibold">{appt.profiles?.name}</p>
-                <p className="text-sm text-muted">{appt.services?.name} · {appt.staff?.name}</p>
-              </div>
-            </div>
-            <StatusBadge status={appt.status} />
-          </div>
-        </motion.button>
-      ))}
+          {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        {staff.length > 0 && (
+          <select
+            className="input py-2 text-sm w-auto"
+            value={staffFilter}
+            onChange={e => setStaffFilter(e.target.value)}
+          >
+            <option value="">כל הספרים</option>
+            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        )}
+        {(search || statusFilter || staffFilter) && (
+          <button
+            onClick={() => { setSearch(''); setStatusFilter(''); setStaffFilter('') }}
+            className="text-xs px-3 py-2 rounded-lg transition-all"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', border: '1px solid var(--color-border)' }}
+          >
+            נקה
+          </button>
+        )}
+        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          {sorted.length} תורים
+        </span>
+      </div>
+
+      {/* ── Appointment rows ── */}
+      {sorted.length === 0 ? (
+        <div className="card p-12 text-center text-muted">
+          <div className="text-4xl mb-3">📭</div>
+          <p>{search || statusFilter || staffFilter ? 'אין תורים התואמים את הסינון' : 'אין תורים בטווח זה'}</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {sorted.map(appt => {
+            const isGroup = appt.notes?.includes('קבוצה של')
+            return (
+              <motion.button
+                key={appt.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={() => onSelect(appt)}
+                className="card p-4 text-right hover:ring-2 hover:ring-[var(--color-gold)] transition-all w-full"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-center">
+                      <div className="text-xs text-muted">{format(new Date(appt.start_at), 'EEE', { locale: he })}</div>
+                      <div className="font-bold">{formatTime(appt.start_at)}</div>
+                      <div className="text-xs text-muted">{formatDate(appt.start_at)}</div>
+                    </div>
+                    <div>
+                      <p className="font-semibold">
+                        {isGroup && <span className="text-sm mr-1">👥</span>}
+                        {appt.profiles?.name}
+                      </p>
+                      <p className="text-sm text-muted">{appt.services?.name} · {appt.staff?.name}</p>
+                    </div>
+                  </div>
+                  <StatusBadge status={appt.status} />
+                </div>
+              </motion.button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── Week View ─────────────────────────────────────────────────────────────────
-function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist }) {
+function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist }) {
   const SLOT_PX   = 24                                   // px per 15-minute slot
   const HOUR_PX   = SLOT_PX * 4                         // 96px per hour
   const TOTAL_H   = (endHour - startHour) * HOUR_PX     // total grid height
@@ -2448,42 +2544,61 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
                   const top    = apptTop(appt)
                   const height = apptHeight(appt)
                   const dur    = Math.round((new Date(appt.end_at) - new Date(appt.start_at)) / 60000)
-                  // how many 15-min slots tall
-                  const slots15 = Math.round(dur / 15)
                   const showService = height >= SLOT_PX * 2     // ≥ 30 min
                   const showDur     = height >= SLOT_PX * 3     // ≥ 45 min
+                  const isGroupAppt = appt.notes?.includes('קבוצה של')
+                  const wkStatusBorder = appt.no_show ? undefined
+                    : appt.status === 'pending'   ? 'rgba(251,191,36,0.95)'
+                    : appt.status === 'confirmed' ? 'rgba(34,197,94,0.95)'
+                    : undefined
 
                   return (
-                    <button
+                    <div
                       key={appt.id}
-                      type="button"
-                      onClick={() => onSelect(appt)}
-                      className="absolute text-right hover:brightness-110 hover:z-30 active:scale-95 transition-all"
-                      style={{
-                        top,
-                        height:       height - 2,        // 2px gap so slot lines show through
-                        left:         2,
-                        right:        2,
-                        zIndex:       10,
-                        background:   color,
-                        color:        '#fff',
-                        borderRadius: 5,
-                        overflow:     'hidden',
-                        padding:      '2px 5px',
-                        boxShadow:    '0 1px 4px rgba(0,0,0,0.22)',
-                        fontSize:     10,
-                        fontWeight:   700,
-                        lineHeight:   1.25,
-                      }}
+                      className="absolute"
+                      style={{ top, height: height - 2, left: 2, right: 2, zIndex: 10 }}
                     >
-                      <div className="truncate leading-tight">{appt.profiles?.name}</div>
-                      {showService && (
-                        <div className="truncate opacity-80" style={{ fontSize: 9 }}>{appt.services?.name}</div>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(appt)}
+                        className="absolute inset-0 text-right hover:brightness-110 hover:z-30 active:scale-95 transition-all"
+                        style={{
+                          background:   color,
+                          color:        '#fff',
+                          borderRadius: 5,
+                          overflow:     'hidden',
+                          padding:      '2px 5px',
+                          boxShadow:    '0 1px 4px rgba(0,0,0,0.22)',
+                          fontSize:     10,
+                          fontWeight:   700,
+                          lineHeight:   1.25,
+                          borderRight:  wkStatusBorder ? `3px solid ${wkStatusBorder}` : undefined,
+                          border:       'none',
+                          cursor:       'pointer',
+                        }}
+                      >
+                        <div className="truncate leading-tight">
+                          {isGroupAppt && <span style={{ opacity: 0.9 }}>👥 </span>}{appt.profiles?.name}
+                        </div>
+                        {showService && (
+                          <div className="truncate opacity-80" style={{ fontSize: 9 }}>{appt.services?.name}</div>
+                        )}
+                        {showDur && (
+                          <div className="opacity-60" style={{ fontSize: 9 }}>{dur}ד׳</div>
+                        )}
+                      </button>
+                      {onReschedule && height >= SLOT_PX * 2 && (
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); onReschedule(appt) }}
+                          className="absolute bottom-0.5 left-0.5"
+                          style={{ fontSize: 7, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.85)', borderRadius: 2, padding: '1px 3px', lineHeight: 1, zIndex: 15, border: 'none', cursor: 'pointer' }}
+                          title="שנה מועד"
+                        >
+                          📅
+                        </button>
                       )}
-                      {showDur && (
-                        <div className="opacity-60" style={{ fontSize: 9 }}>{dur}ד׳</div>
-                      )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
