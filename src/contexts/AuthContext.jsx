@@ -36,12 +36,18 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }
 
-  async function signUp({ phone, password, name }) {
+  async function signUp({ phone, password, name, birthDate, gender, termsAccepted }) {
     const email = phoneToEmail(phone)
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
     if (data.user) {
-      await supabase.from('profiles').insert({ id: data.user.id, name, phone, role: 'customer' })
+      await supabase.from('profiles').insert({
+        id: data.user.id, name, phone, role: 'customer',
+        birth_date: birthDate || null,
+        gender: gender || null,
+        terms_accepted: termsAccepted || false,
+        terms_accepted_at: termsAccepted ? new Date().toISOString() : null,
+      })
     }
     return data
   }
