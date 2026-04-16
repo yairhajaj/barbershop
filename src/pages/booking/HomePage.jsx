@@ -220,14 +220,26 @@ export function HomePage() {
                 <Link to="/my-appointments" className="text-xs font-semibold" style={{ color: 'var(--color-gold)' }}>כל התורים ←</Link>
               </div>
 
-              {/* Card — uses theme variables so it adapts to the chosen layout */}
+              {/* Card — glassmorphism: dark glass for midnight/luxury, light frosted for other themes */}
               <div
                 className="rounded-3xl p-5"
-                style={{
-                  background: 'var(--color-card)',
-                  border: '1px solid var(--color-border)',
-                  boxShadow: 'var(--shadow-card)',
-                }}
+                style={
+                  theme === 'midnight' || layout === 'luxury'
+                    ? {
+                        background: 'rgba(255,255,255,0.07)',
+                        backdropFilter: 'blur(28px) saturate(1.5)',
+                        WebkitBackdropFilter: 'blur(28px) saturate(1.5)',
+                        border: '1px solid rgba(255,255,255,0.11)',
+                        boxShadow: '0 8px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+                      }
+                    : {
+                        background: 'rgba(255,255,255,0.78)',
+                        backdropFilter: 'blur(24px) saturate(1.6)',
+                        WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                        border: '1px solid rgba(255,255,255,0.92)',
+                        boxShadow: '0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,1)',
+                      }
+                }
               >
                 {/* Top row: avatar + service info */}
                 <div className="flex items-center gap-3 mb-4">
@@ -265,7 +277,11 @@ export function HomePage() {
                 {/* Date + time row — separated by subtle divider */}
                 <div
                   className="rounded-2xl p-3 mb-4 flex items-center gap-3"
-                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                  style={
+                    theme === 'midnight' || layout === 'luxury'
+                      ? { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
+                      : { background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }
+                  }
                 >
                   {/* Date block */}
                   <div className="flex-1">
@@ -306,7 +322,11 @@ export function HomePage() {
                   <Link
                     to="/my-appointments"
                     className="flex-1 text-center text-sm font-bold py-3 rounded-2xl transition-all"
-                    style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
+                    style={
+                      theme === 'midnight' || layout === 'luxury'
+                        ? { background: 'rgba(255,255,255,0.07)', color: 'var(--color-text)', border: '1px solid rgba(255,255,255,0.1)' }
+                        : { background: 'rgba(0,0,0,0.05)', color: 'var(--color-text)', border: '1px solid rgba(0,0,0,0.07)' }
+                    }
                   >
                     ניהול
                   </Link>
