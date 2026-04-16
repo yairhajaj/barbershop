@@ -32,6 +32,9 @@ const config: CapacitorConfig = {
   // iOS-specific
   ios: {
     contentInset: 'automatic',
+    allowsLinkPreview: false,
+    scrollEnabled: true,
+    allowsInlineMediaPlayback: true,
   },
 
   // Android-specific

@@ -152,6 +152,7 @@ export function HomePage() {
   }
 
   const [portfolioMember, setPortfolioMember] = useState(null)
+  const heroVideoRef = useRef(null)
 
   // hero source: prefer DB → localStorage → BUSINESS config → gradient
   const heroType = settings?.hero_type
@@ -163,6 +164,19 @@ export function HomePage() {
     || BUSINESS.heroSrc
     || null
   const logoUrl  = settings?.logo_url || null
+
+  // Force hero video play on mobile (some browsers block autoplay)
+  useEffect(() => {
+    const v = heroVideoRef.current
+    if (!v || heroType !== 'video') return
+    v.muted = true // ensure muted (required for autoplay)
+    const tryPlay = () => v.play().catch(() => {})
+    tryPlay()
+    // Also retry on user first interaction (covers strict browsers)
+    const handler = () => { tryPlay(); window.removeEventListener('touchstart', handler) }
+    window.addEventListener('touchstart', handler, { once: true, passive: true })
+    return () => window.removeEventListener('touchstart', handler)
+  }, [heroType, heroSrc])
 
   // portfolio display mode: 'grid' | 'story'
   const portfolioMode = settings?.portfolio_view_mode
@@ -204,7 +218,18 @@ export function HomePage() {
         {/* Background — completely still, acts as a stage */}
         <div className="absolute inset-0 overflow-hidden">
           {heroType === 'video' && heroSrc ? (
-            <video className="absolute inset-0 w-full h-full object-cover" src={heroSrc} autoPlay muted loop playsInline />
+            <video
+              ref={heroVideoRef}
+              className="absolute inset-0 w-full h-full object-cover"
+              src={heroSrc}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="auto"
+              onCanPlay={e => e.target.play().catch(() => {})}
+            />
           ) : heroType === 'image' && heroSrc ? (
             <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero" />
           ) : (
