@@ -35,7 +35,16 @@
       "Bash(grep -r \"profiles.*select\\\\|services.*select\\\\|staff.*select\" /c/Users/yairh/barbershop-app/src/hooks/*.js -A 3)",
       "Bash(grep -r \"FOREIGN\\\\|REFERENCES\" /c/Users/yairh/barbershop-app/supabase/migrations/*.sql)",
       "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\yairh\\\\barbershop-app\\\\src\\\\pages\\\\admin\\\\Settings.jsx' | Measure-Object -Line\")",
-      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\yairh\\\\barbershop-app\\\\src\\\\pages\\\\admin\\\\Settings.jsx' | Select-Object -Last 20\")"
+      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\yairh\\\\barbershop-app\\\\src\\\\pages\\\\admin\\\\Settings.jsx' | Select-Object -Last 20\")",
+      "Read(//mnt/c/Users/yairh/**)",
+      "Bash(ls supabase/functions/)",
+      "Bash(keytool -list -v -keystore \"C:/Users/yairh/barbershop-app/android/hajaj-release.keystore\" -alias hajaj -storepass XKyn43ZBeVJtK5zD)",
+      "Bash(keytool -list -keystore \"C:/Users/yairh/barbershop-app/android/hajaj-release.keystore\" -storepass XKyn43ZBeVJtK5zD)",
+      "WebFetch(domain:grow.business)",
+      "WebFetch(domain:grow-il.readme.io)",
+      "WebSearch",
+      "Bash(grep -n \"waitlist\\\\|branch_id\" /c/Users/yairh/barbershop-app/supabase/migrations/02*.sql)",
+      "Bash(node -e \"const p = require\\('./node_modules/date-fns/package.json'\\); console.log\\('date-fns version:', p.version\\);\")"
     ]
   }
 }
