@@ -3,16 +3,14 @@ import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 import { useToast } from '../../components/ui/Toast'
 import { Spinner } from '../../components/ui/Spinner'
-import { dayName } from '../../lib/utils'
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 
 export function Settings() {
-  const { settings, hours, loading, saveSettings, saveBusinessHours } = useBusinessSettings()
+  const { settings, loading, saveSettings } = useBusinessSettings()
   const { breaks, loading: breaksLoading, addBreak, deleteBreak } = useRecurringBreaks()
   const toast = useToast()
   const [form, setForm] = useState(null)
-  const [hoursForm, setHoursForm] = useState([])
   const [saving, setSaving] = useState(false)
 
   // Recurring breaks form state
@@ -28,28 +26,11 @@ export function Settings() {
     if (settings) setForm({ ...settings })
   }, [settings])
 
-  useEffect(() => {
-    if (hours.length) setHoursForm([...hours])
-    else setHoursForm(
-      Array.from({ length: 7 }, (_, i) => ({
-        day_of_week: i,
-        open_time: '09:00',
-        close_time: '19:00',
-        is_closed: i === 6,
-      }))
-    )
-  }, [hours])
-
-  function updateHour(day, field, value) {
-    setHoursForm(h => h.map(r => r.day_of_week === day ? { ...r, [field]: value } : r))
-  }
-
   async function handleSave(e) {
     e.preventDefault()
     setSaving(true)
     try {
       await saveSettings(form)
-      await saveBusinessHours(hoursForm)
       toast({ message: 'הגדרות נשמרו', type: 'success' })
     } catch (err) {
       toast({ message: err.message, type: 'error' })
@@ -85,42 +66,6 @@ export function Settings() {
       <h1 className="text-2xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)' }}>הגדרות</h1>
 
       <form onSubmit={handleSave} className="space-y-8">
-
-        {/* Business Hours */}
-        <section className="card p-6">
-          <h2 className="font-semibold text-lg mb-4">שעות פעילות</h2>
-          <div className="space-y-3">
-            {hoursForm.map(h => (
-              <div key={h.day_of_week} className="flex items-center gap-3 text-sm">
-                <div className="w-16 font-medium">{dayName(h.day_of_week)}</div>
-                <input
-                  type="checkbox"
-                  checked={!h.is_closed}
-                  onChange={e => updateHour(h.day_of_week, 'is_closed', !e.target.checked)}
-                />
-                {!h.is_closed ? (
-                  <>
-                    <input
-                      type="time"
-                      className="input w-28 py-1"
-                      value={h.open_time || '09:00'}
-                      onChange={e => updateHour(h.day_of_week, 'open_time', e.target.value)}
-                    />
-                    <span className="text-muted">—</span>
-                    <input
-                      type="time"
-                      className="input w-28 py-1"
-                      value={h.close_time || '19:00'}
-                      onChange={e => updateHour(h.day_of_week, 'close_time', e.target.value)}
-                    />
-                  </>
-                ) : (
-                  <span className="text-muted">סגור</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* Cancellation Policy */}
         <section className="card p-6">

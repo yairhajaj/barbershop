@@ -147,7 +147,9 @@ export function Appointments() {
   const { breaks: recurringBreaks } = useRecurringBreaks()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { services } = useServices({ activeOnly: false })
-  const { hours: businessHours } = useBusinessSettings()
+  const { hours: businessHours, saveBusinessHours } = useBusinessSettings()
+  const [hoursForm, setHoursForm] = useState([])
+  const [savingHours, setSavingHours] = useState(false)
 
   // Slot picker for booking modal
   const [bookSlots, setBookSlots]                   = useState([])
@@ -175,6 +177,31 @@ export function Appointments() {
       return next
     })
   }, [])
+
+  // Sync hoursForm from DB whenever businessHours loads/changes
+  useEffect(() => {
+    if (businessHours.length) {
+      setHoursForm([...businessHours])
+    } else {
+      setHoursForm(
+        Array.from({ length: 7 }, (_, i) => ({
+          day_of_week: i,
+          open_time: '09:00',
+          close_time: '19:00',
+          is_closed: i === 6,
+        }))
+      )
+    }
+  }, [businessHours])
+
+  function updateHour(day, field, value) {
+    setHoursForm(h => h.map(r => r.day_of_week === day ? { ...r, [field]: value } : r))
+  }
+
+  async function handleSaveHours() {
+    setSavingHours(true)
+    try { await saveBusinessHours(hoursForm) } finally { setSavingHours(false) }
+  }
 
   // ── Waitlist prefill: auto-open booking modal if navigated from waitlist ──────
   useEffect(() => {
@@ -799,19 +826,25 @@ export function Appointments() {
             ⚙ הגדרות
           </button>
 
-          {/* View switcher — bigger */}
-          <div className="flex rounded-xl border overflow-hidden shadow-sm" style={{ borderColor: 'var(--color-border)' }}>
+          {/* View switcher */}
+          <div
+            className="flex gap-1 p-1 rounded-2xl"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+          >
             {VIEWS.map(v => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={view === v
-                  ? { background: 'var(--color-primary)', color: '#fff' }
-                  : { background: 'var(--color-card)', color: 'var(--color-muted)' }
+                  ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px rgba(255,133,0,0.25)' }
+                  : { background: 'transparent', color: 'var(--color-muted)' }
                 }
+                onMouseEnter={e => { if (view !== v) e.currentTarget.style.color = 'var(--color-text)' }}
+                onMouseLeave={e => { if (view !== v) e.currentTarget.style.color = 'var(--color-muted)' }}
               >
-                {VIEW_ICONS[v]} {VIEW_LABELS[v]}
+                <span>{VIEW_ICONS[v]}</span>
+                <span className="hidden sm:inline">{VIEW_LABELS[v]}</span>
               </button>
             ))}
           </div>
@@ -838,30 +871,34 @@ export function Appointments() {
             className="overflow-hidden"
           >
             <div className="card p-5 mb-4 space-y-5">
-              <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>הגדרות יומן</h2>
+              <h2 className="text-base font-bold" style={{ color: 'var(--color-text)' }}>הגדרות יומן</h2>
 
               {/* Slot size */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>גודל סלוט</span>
-                <div className="flex gap-2">
+              <div>
+                <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>גודל סלוט</p>
+                <div
+                  className="flex gap-1 p-1 rounded-2xl w-fit"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                >
                   {[15, 30, 60].map(m => (
                     <button
                       key={m}
                       onClick={() => setSlotMinutes(m)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
-                        slotMinutes === m ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : ''
-                      }`}
-                      style={slotMinutes !== m ? { background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' } : {}}
+                      className="px-4 py-1.5 rounded-xl text-sm font-semibold transition-all"
+                      style={slotMinutes === m
+                        ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px rgba(255,133,0,0.25)' }
+                        : { background: 'transparent', color: 'var(--color-muted)' }
+                      }
                     >
-                      {m} דק׳
+                      {m}ד׳
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Hour range */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>שעות פעילות</span>
+              <div>
+                <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>שעות תצוגה</p>
                 <div className="flex items-center gap-2">
                   <select
                     className="input py-1 text-sm w-20"
@@ -886,17 +923,21 @@ export function Appointments() {
               </div>
 
               {/* Columns */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>עמודות יומי</span>
-                <div className="flex gap-2">
+              <div>
+                <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>עמודות תצוגה יומית</p>
+                <div
+                  className="flex gap-1 p-1 rounded-2xl w-fit"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                >
                   {Array.from({ length: Math.min(staff.length || 5, 6) }, (_, i) => i + 1).map(n => (
                     <button
                       key={n}
                       onClick={() => setCalColumns(n)}
-                      className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors border ${
-                        calColumns === n ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : ''
-                      }`}
-                      style={calColumns !== n ? { background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' } : {}}
+                      className="w-9 h-9 rounded-xl text-sm font-semibold transition-all"
+                      style={calColumns === n
+                        ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px rgba(255,133,0,0.25)' }
+                        : { background: 'transparent', color: 'var(--color-muted)' }
+                      }
                     >
                       {n}
                     </button>
@@ -952,6 +993,41 @@ export function Appointments() {
                   </div>
                 </div>
               )}
+
+              {/* Business Hours */}
+              <div>
+                <p className="text-xs font-bold mb-3 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>שעות פעילות עסק</p>
+                <div className="space-y-2">
+                  {hoursForm.map(h => (
+                    <div key={h.day_of_week} className="flex items-center gap-3 text-sm">
+                      <span className="w-14 font-medium text-right shrink-0" style={{ color: 'var(--color-text)' }}>{dayName(h.day_of_week)}</span>
+                      <input
+                        type="checkbox"
+                        checked={!h.is_closed}
+                        onChange={e => updateHour(h.day_of_week, 'is_closed', !e.target.checked)}
+                        className="accent-[var(--color-primary)]"
+                      />
+                      {!h.is_closed ? (
+                        <>
+                          <input type="time" className="input py-1 text-sm w-24" value={h.open_time || '09:00'} onChange={e => updateHour(h.day_of_week, 'open_time', e.target.value)} />
+                          <span style={{ color: 'var(--color-muted)' }}>—</span>
+                          <input type="time" className="input py-1 text-sm w-24" value={h.close_time || '19:00'} onChange={e => updateHour(h.day_of_week, 'close_time', e.target.value)} />
+                        </>
+                      ) : (
+                        <span style={{ color: 'var(--color-muted)' }}>סגור</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={handleSaveHours}
+                  disabled={savingHours}
+                  className="mt-3 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+                  style={{ background: 'var(--color-primary)', color: '#fff', opacity: savingHours ? 0.7 : 1 }}
+                >
+                  {savingHours ? 'שומר…' : 'שמור שעות'}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
