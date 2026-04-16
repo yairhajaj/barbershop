@@ -215,7 +215,7 @@ export function MyAppointments() {
     .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
   const past = appointments
-    .filter(a => a.status === 'completed' || (a.status !== 'confirmed' && new Date(a.start_at) <= new Date()))
+    .filter(a => a.status === 'completed' || a.status === 'cancelled' || (a.status !== 'confirmed' && new Date(a.start_at) <= new Date()))
     .sort((a, b) => new Date(b.start_at) - new Date(a.start_at))
 
   // Date options for reschedule picker
@@ -380,21 +380,22 @@ export function MyAppointments() {
         )}
 
         {/* Past */}
-        {past.length > 0 && (
-          <section>
-            {!showHistory ? (
-              <button
-                onClick={() => setShowHistory(true)}
-                className="w-full text-center text-sm font-bold py-3 rounded-2xl transition-all"
-                style={{
-                  background: 'var(--color-card)',
-                  color: 'var(--color-muted)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                לצפייה בהיסטוריית התורים ({past.length})
-              </button>
-            ) : (
+        <section>
+          {!showHistory || past.length === 0 ? (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="w-full text-center text-sm font-bold py-3 rounded-2xl transition-all"
+              style={{
+                background: 'var(--color-card)',
+                color: 'var(--color-muted)',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              {past.length > 0
+                ? `לצפייה בהיסטוריית התורים (${past.length})`
+                : 'לצפייה בהיסטוריית התורים'}
+            </button>
+          ) : (
             <>
             <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--color-muted)' }}>היסטוריה</h2>
             <div className="flex flex-col gap-2.5">
@@ -433,9 +434,8 @@ export function MyAppointments() {
               ))}
             </div>
             </>
-            )}
-          </section>
-        )}
+          )}
+        </section>
       </div>
 
       {/* Review modal */}
