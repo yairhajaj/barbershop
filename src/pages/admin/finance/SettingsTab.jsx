@@ -10,9 +10,10 @@ import { Spinner } from '../../../components/ui/Spinner'
 // ── Payment mode constants (migrated from Payments.jsx) ──
 
 const GLOBAL_MODE_OPTS = [
-  { value: 'required',    icon: '🔒', label: 'חובה לשלם',  desc: 'הלקוח חייב לשלם כדי לסיים הזמנה — מונע no-shows' },
-  { value: 'optional',    icon: '🤝', label: 'אופציונלי',  desc: 'הלקוח יכול לשלם עכשיו או לשלם בעסק' },
-  { value: 'per_service', icon: '✂️', label: 'לפי שירות',  desc: 'כל שירות קובע את מצב התשלום שלו בנפרד' },
+  { value: 'disabled',    icon: '🚫', label: 'ללא תשלום באפליקציה', desc: 'לקוחות מזמינים ללא תשלום — ישלמו בעסק' },
+  { value: 'optional',    icon: '🤝', label: 'אופציונלי',           desc: 'הלקוח יכול לשלם עכשיו או לשלם בעסק' },
+  { value: 'required',    icon: '🔒', label: 'חובה לשלם',           desc: 'הלקוח חייב לשלם כדי לסיים הזמנה — מונע no-shows' },
+  { value: 'per_service', icon: '✂️', label: 'לפי שירות',           desc: 'כל שירות קובע את מצב התשלום שלו בנפרד' },
 ]
 
 const ENTITY_MODE_OPTS = [
@@ -80,7 +81,8 @@ export function SettingsTab() {
   const [invoiceFooterText, setInvoiceFooterText] = useState('')
 
   // Section 3: Payment mode
-  const [globalMode, setGlobalMode] = useState('required')
+  const [paymentEnabled, setPaymentEnabled] = useState(false)
+  const [globalMode, setGlobalMode] = useState('disabled')
   const [servicesModes, setServicesModes] = useState({})
   const [branchesModes, setBranchesModes] = useState({})
   const [branches, setBranches] = useState([])
@@ -112,7 +114,8 @@ export function SettingsTab() {
     setInvoicePrefix(settings.invoice_prefix || 'INV')
     setInvoiceNextNumber(settings.invoice_next_number ?? 1)
     setInvoiceFooterText(settings.invoice_footer_text || '')
-    setGlobalMode(settings.payment_mode || 'required')
+    setPaymentEnabled(settings.payment_enabled ?? false)
+    setGlobalMode(settings.payment_mode || 'disabled')
     setCommissionType(settings.commission_type || 'percentage')
     setCommissionRate(settings.commission_default_rate ?? 50)
     setAccountantName(settings.accountant_name || '')
@@ -150,6 +153,7 @@ export function SettingsTab() {
         business_tax_id: businessTaxId,
         invoice_prefix: invoicePrefix,
         invoice_footer_text: invoiceFooterText,
+        payment_enabled: paymentEnabled,
         payment_mode: globalMode,
         commission_type: commissionType,
         commission_default_rate: commissionRate,
@@ -392,68 +396,83 @@ export function SettingsTab() {
           ברירת המחדל לכל ההזמנות — ניתן לדרוס לפי שירות או סניף
         </p>
 
-        {/* Warning: no payment gateway connected */}
-        {!settings?.payment_enabled || !settings?.grow_api_key ? (
-          <div
-            className="rounded-xl p-3 mb-4 flex items-start gap-2 text-sm"
-            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
-          >
-            <span className="text-base flex-shrink-0">⚠️</span>
-            <div>
-              <p className="font-bold" style={{ color: '#ef4444' }}>אין סליקה מחוברת</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                כדי להפעיל "חובה לשלם" יש לחבר סליקה (Grow) תחת{' '}
-                <strong>הגדרות ← תשלומים</strong> ולהזין API Key.
-              </p>
-            </div>
+        {/* Toggle: הפעל תשלום אונליין */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>הפעל תשלום אונליין</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+              אפשר ללקוחות לשלם דרך האפליקציה
+            </p>
           </div>
-        ) : null}
-
-        {/* Global payment mode */}
-        <div className="space-y-2 mb-4">
-          {GLOBAL_MODE_OPTS.map(opt => {
-            const active = globalMode === opt.value
-            const isBlocked = opt.value === 'required' && (!settings?.payment_enabled || !settings?.grow_api_key)
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  if (isBlocked) {
-                    showToast({ message: 'יש לחבר סליקה לפני הפעלת חובה לשלם', type: 'error' })
-                    return
-                  }
-                  setGlobalMode(opt.value)
-                }}
-                className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
-                style={{
-                  background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
-                  border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                  opacity: isBlocked ? 0.5 : 1,
-                  cursor: isBlocked ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <div
-                  className="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center"
-                  style={{ borderColor: active ? 'var(--color-gold)' : '#ccc' }}
-                >
-                  {active && <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--color-gold)' }} />}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span>{opt.icon}</span>
-                    <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{opt.label}</span>
-                    {isBlocked && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>דרוש API Key</span>}
-                  </div>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{opt.desc}</p>
-                </div>
-              </button>
-            )
-          })}
+          <button
+            onClick={() => setPaymentEnabled(!paymentEnabled)}
+            className="w-12 h-7 rounded-full transition-colors relative flex-shrink-0"
+            style={{ background: paymentEnabled ? 'var(--color-gold)' : 'var(--color-border)' }}
+          >
+            <div
+              className="absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all"
+              style={{ [paymentEnabled ? 'left' : 'right']: 2 }}
+            />
+          </button>
         </div>
 
+        {/* OFF: neutral info message */}
+        {!paymentEnabled ? (
+          <div
+            className="rounded-xl p-3 text-sm"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+          >
+            <p style={{ color: 'var(--color-muted)' }}>
+              לקוחות יזמינו ללא תשלום באפליקציה. להפעלת תשלום, חבר סליקה בהגדרות ← הגדרות כלליות.
+            </p>
+          </div>
+        ) : (
+          /* ON: Global payment mode */
+          <div className="space-y-2 mb-4">
+            {GLOBAL_MODE_OPTS.map(opt => {
+              const active = globalMode === opt.value
+              const isBlocked = opt.value !== 'disabled' && (!settings?.payment_enabled || !settings?.grow_api_key)
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    if (isBlocked) {
+                      showToast({ message: 'יש לחבר סליקה (Grow) תחת הגדרות כלליות', type: 'error' })
+                      return
+                    }
+                    setGlobalMode(opt.value)
+                  }}
+                  className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
+                  style={{
+                    background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
+                    border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                    opacity: isBlocked ? 0.5 : 1,
+                    cursor: isBlocked ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <div
+                    className="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center"
+                    style={{ borderColor: active ? 'var(--color-gold)' : '#ccc' }}
+                  >
+                    {active && <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--color-gold)' }} />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span>{opt.icon}</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{opt.label}</span>
+                      {isBlocked && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>דרוש API Key</span>}
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{opt.desc}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Per-service overrides — only when per_service mode */}
-        {globalMode === 'per_service' && (
+        {paymentEnabled && globalMode === 'per_service' && (
           <div
             className="rounded-xl p-4 mb-4"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
@@ -492,7 +511,7 @@ export function SettingsTab() {
         )}
 
         {/* Per-branch overrides */}
-        {branches.length > 0 && (
+        {paymentEnabled && branches.length > 0 && (
           <div
             className="rounded-xl p-4 mb-4"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
@@ -519,13 +538,15 @@ export function SettingsTab() {
           </div>
         )}
 
-        {/* Priority legend */}
-        <div className="rounded-xl p-3 text-xs" style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)' }}>
-          <p className="font-bold mb-1" style={{ color: 'var(--color-gold)' }}>סדר עדיפויות</p>
-          <p style={{ color: 'var(--color-muted)' }}>
-            <strong>שירות</strong> &gt; <strong>סניף</strong> &gt; <strong>גלובלי</strong> — הספציפי תמיד מנצח
-          </p>
-        </div>
+        {/* Priority legend — only when payment on */}
+        {paymentEnabled && (
+          <div className="rounded-xl p-3 text-xs" style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)' }}>
+            <p className="font-bold mb-1" style={{ color: 'var(--color-gold)' }}>סדר עדיפויות</p>
+            <p style={{ color: 'var(--color-muted)' }}>
+              <strong>שירות</strong> &gt; <strong>סניף</strong> &gt; <strong>גלובלי</strong> — הספציפי תמיד מנצח
+            </p>
+          </div>
+        )}
       </motion.div>
 
       {/* ══════════ Section 4: Staff Commission ══════════ */}
