@@ -36,29 +36,28 @@ export function Finance() {
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div
-        className="flex gap-1 mb-6 p-1 rounded-2xl overflow-x-auto w-full"
-        style={{
-          background: 'var(--color-card)',
-          border: '1px solid var(--color-border)',
-          scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
+      {/* Tab bar — grid on mobile, horizontal on desktop */}
+      <div className="grid grid-cols-3 gap-2 mb-6 lg:flex lg:gap-1 lg:p-1 lg:rounded-2xl"
+        style={{ '--lg-bg': 'var(--color-card)' }}
       >
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
-            style={{
-              background: tab === t.key ? 'var(--color-gold)' : 'transparent',
-              color: tab === t.key ? '#fff' : 'var(--color-muted)',
-            }}
-          >
-            {t.icon} {t.label}
-          </button>
-        ))}
+        {TABS.map(t => {
+          const active = tab === t.key
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-1.5 py-3 lg:py-2 lg:px-3 rounded-2xl lg:rounded-xl text-xs lg:text-sm font-semibold transition-all"
+              style={{
+                background: active ? 'var(--color-gold)' : 'var(--color-card)',
+                color: active ? '#fff' : 'var(--color-muted)',
+                border: active ? 'none' : '1px solid var(--color-border)',
+              }}
+            >
+              <span className="text-xl lg:text-base leading-none">{t.icon}</span>
+              <span className="leading-tight text-center">{t.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Active tab content */}
