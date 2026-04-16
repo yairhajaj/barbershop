@@ -178,20 +178,22 @@ export function Appointments() {
     })
   }, [])
 
-  // Sync hoursForm from DB whenever businessHours loads/changes
+  // Sync hoursForm from DB whenever businessHours loads/changes.
+  // Always build a complete 7-day array: DB rows take priority; any day
+  // missing from the DB falls back to a sensible default.  This prevents
+  // a partial save from silently wiping missing days out of the DB.
   useEffect(() => {
-    if (businessHours.length) {
-      setHoursForm([...businessHours])
-    } else {
-      setHoursForm(
-        Array.from({ length: 7 }, (_, i) => ({
-          day_of_week: i,
-          open_time: '09:00',
-          close_time: '19:00',
-          is_closed: i === 6,
-        }))
-      )
-    }
+    const defaults = Array.from({ length: 7 }, (_, i) => ({
+      day_of_week: i,
+      open_time:   '09:00',
+      close_time:  '19:00',
+      is_closed:   i === 6,   // Saturday closed by default
+    }))
+    const merged = defaults.map(def => {
+      const dbRow = businessHours.find(h => h.day_of_week === def.day_of_week)
+      return dbRow ?? def
+    })
+    setHoursForm(merged)
   }, [businessHours])
 
   function updateHour(day, field, value) {
@@ -199,6 +201,7 @@ export function Appointments() {
   }
 
   async function handleSaveHours() {
+    if (hoursForm.length < 7) return   // guard: never save a partial form
     setSavingHours(true)
     try { await saveBusinessHours(hoursForm) } finally { setSavingHours(false) }
   }
