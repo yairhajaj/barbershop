@@ -79,6 +79,48 @@ export function Confirmation() {
       const groupSize = bookingState.groupSize ?? 1
       const duration  = bookingState.serviceDuration ?? 30
 
+      // ── Conflict check (client-side guard against double booking) ────────────
+      // Compute the full time range we're about to occupy
+      const rangeStart = bookingState.slotStart
+      const rangeEnd   = groupSize > 1
+        ? (bookingState.slotGroupEnd ?? new Date(new Date(bookingState.slotStart).getTime() + groupSize * duration * 60_000).toISOString())
+        : bookingState.slotEnd
+
+      if (bookingState.staffId && rangeStart && rangeEnd) {
+        // 1. Check if the staff slot is already taken by anyone
+        const { data: staffConflicts } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('staff_id', bookingState.staffId)
+          .neq('status', 'cancelled')
+          .lt('start_at', rangeEnd)    // existing starts before new range ends
+          .gt('end_at',   rangeStart)  // existing ends   after  new range starts
+          .limit(1)
+
+        if (staffConflicts?.length > 0) {
+          setErrorMsg('השעה שבחרת כבר תפוסה — אנא חזור ובחר שעה אחרת.')
+          setStatus('error')
+          return
+        }
+
+        // 2. Check if this customer already has an overlapping appointment
+        const { data: selfConflicts } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('customer_id', user.id)
+          .neq('status', 'cancelled')
+          .lt('start_at', rangeEnd)
+          .gt('end_at',   rangeStart)
+          .limit(1)
+
+        if (selfConflicts?.length > 0) {
+          setErrorMsg('כבר יש לך תור בשעה זו — בדוק את התורים שלך.')
+          setStatus('error')
+          return
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
       const baseData = {
         customer_id:       user.id,
         service_id:        bookingState.serviceId,
