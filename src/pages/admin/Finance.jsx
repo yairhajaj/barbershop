@@ -38,19 +38,19 @@ export function Finance() {
 
       {/* Tab bar */}
       <div
-        className="flex gap-1 mb-6 p-1 rounded-2xl overflow-x-auto"
+        className="flex gap-1 mb-6 p-1 rounded-2xl overflow-x-auto w-full"
         style={{
           background: 'var(--color-card)',
           border: '1px solid var(--color-border)',
-          width: 'fit-content',
-          maxWidth: '100%',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className="px-3 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
+            className="flex-shrink-0 px-3 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap"
             style={{
               background: tab === t.key ? 'var(--color-gold)' : 'transparent',
               color: tab === t.key ? '#fff' : 'var(--color-muted)',
