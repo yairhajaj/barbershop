@@ -2830,6 +2830,10 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: appt.id })
 
   const isNoShow = appt.no_show
+  const statusBorderColor = isNoShow ? undefined
+    : appt.status === 'pending'   ? 'rgba(251,191,36,0.95)'
+    : appt.status === 'confirmed' ? 'rgba(34,197,94,0.95)'
+    : undefined
 
   const style = {
     position: 'absolute',
@@ -2847,7 +2851,7 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
     userSelect: 'none',
     boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.22)' : '0 1px 4px rgba(0,0,0,0.14)',
     transition: isDragging ? 'none' : 'box-shadow 0.15s',
-    // Striped overlay for no-show
+    borderRight: statusBorderColor ? `3px solid ${statusBorderColor}` : undefined,
     backgroundImage: isNoShow
       ? 'repeating-linear-gradient(45deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 3px, transparent 3px, transparent 9px)'
       : undefined,
@@ -2855,6 +2859,13 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {/* Drag grip hint */}
+      {height >= 24 && (
+        <div className="absolute top-0.5 left-1 pointer-events-none select-none"
+          style={{ fontSize: 8, lineHeight: 1, color: 'rgba(255,255,255,0.35)', letterSpacing: 1 }}>
+          ⠿
+        </div>
+      )}
       <button
         onClick={e => { e.stopPropagation(); onSelect(appt) }}
         onPointerDown={e => e.stopPropagation()}
