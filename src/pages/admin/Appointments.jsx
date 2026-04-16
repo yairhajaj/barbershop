@@ -782,33 +782,34 @@ export function Appointments() {
 
           <button
             onClick={() => setAddEventOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg border transition-colors"
+            style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
           >
             🚫 חסימת שעות
           </button>
 
           <button
             onClick={() => setSettingsOpen(o => !o)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 text-sm rounded-lg border font-medium transition-colors ${
-              settingsOpen
-                ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
+            className="flex items-center gap-1.5 px-3 py-2.5 text-sm rounded-lg border font-medium transition-colors"
+            style={settingsOpen
+              ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: '#fff' }
+              : { background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }
+            }
           >
             ⚙ הגדרות
           </button>
 
           {/* View switcher — bigger */}
-          <div className="flex rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="flex rounded-xl border overflow-hidden shadow-sm" style={{ borderColor: 'var(--color-border)' }}>
             {VIEWS.map(v => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  view === v
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold transition-colors"
+                style={view === v
+                  ? { background: 'var(--color-primary)', color: '#fff' }
+                  : { background: 'var(--color-card)', color: 'var(--color-muted)' }
+                }
               >
                 {VIEW_ICONS[v]} {VIEW_LABELS[v]}
               </button>
@@ -836,22 +837,21 @@ export function Appointments() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="card p-5 mb-4 border border-gray-100 space-y-5">
-              <h2 className="font-semibold text-gray-800">הגדרות יומן</h2>
+            <div className="card p-5 mb-4 space-y-5">
+              <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>הגדרות יומן</h2>
 
               {/* Slot size */}
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium text-gray-700 w-32">גודל סלוט</span>
+                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>גודל סלוט</span>
                 <div className="flex gap-2">
                   {[15, 30, 60].map(m => (
                     <button
                       key={m}
                       onClick={() => setSlotMinutes(m)}
                       className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors border ${
-                        slotMinutes === m
-                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        slotMinutes === m ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : ''
                       }`}
+                      style={slotMinutes !== m ? { background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' } : {}}
                     >
                       {m} דק׳
                     </button>
@@ -861,7 +861,7 @@ export function Appointments() {
 
               {/* Hour range */}
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium text-gray-700 w-32">שעות תצוגה</span>
+                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>שעות תצוגה</span>
                 <div className="flex items-center gap-2">
                   <select
                     className="input py-1 text-sm w-20"
@@ -887,17 +887,16 @@ export function Appointments() {
 
               {/* Columns */}
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium text-gray-700 w-32">עמודות יומי</span>
+                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>עמודות יומי</span>
                 <div className="flex gap-2">
                   {Array.from({ length: Math.min(staff.length || 5, 6) }, (_, i) => i + 1).map(n => (
                     <button
                       key={n}
                       onClick={() => setCalColumns(n)}
                       className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors border ${
-                        calColumns === n
-                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        calColumns === n ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : ''
                       }`}
+                      style={calColumns !== n ? { background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' } : {}}
                     >
                       {n}
                     </button>
@@ -908,13 +907,13 @@ export function Appointments() {
               {/* Service colors */}
               {services.length > 0 && (
                 <div className="space-y-3">
-                  <span className="text-sm font-medium text-gray-700">צבע שירות</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-muted)' }}>צבע שירות</span>
                   <div className="space-y-2">
                     {services.map(svc => {
                       const currentColor = serviceColors[svc.id] || DEFAULT_COLOR
                       return (
                         <div key={svc.id} className="flex items-center gap-3 flex-wrap">
-                          <span className="text-sm text-gray-600 w-36 truncate">{svc.name}</span>
+                          <span className="text-sm w-36 truncate" style={{ color: 'var(--color-muted)' }}>{svc.name}</span>
                           <div className="flex gap-2 flex-wrap items-center">
                             {COLOR_PRESETS.map(color => {
                               const isSelected = currentColor === color
@@ -962,7 +961,8 @@ export function Appointments() {
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm"
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-colors shadow-sm"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           הקודם
@@ -976,12 +976,13 @@ export function Appointments() {
         </button>
         <button
           onClick={() => navigate(1)}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm"
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-colors shadow-sm"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
         >
           הבא
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <span className="text-base font-bold text-gray-700">
+        <span className="text-base font-bold" style={{ color: 'var(--color-text)' }}>
           {view === 'day'
             ? format(currentDate, 'EEEE, d בMMMM', { locale: he })
             : `${format(startDate, 'd MMM', { locale: he })} — ${format(endDate, 'd MMM yyyy', { locale: he })}`
@@ -1012,7 +1013,7 @@ export function Appointments() {
           </div>
           <div className="mt-3 flex flex-col gap-2">
             {gapAppts.map(({ appointment }) => (
-              <div key={appointment.id} className="flex items-center justify-between bg-white rounded-lg p-2 text-sm">
+              <div key={appointment.id} className="flex items-center justify-between rounded-lg p-2 text-sm" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
                 <span>{appointment.profiles?.name} — {formatTime(appointment.start_at)}</span>
                 <button
                   onClick={async () => {
@@ -1091,7 +1092,7 @@ export function Appointments() {
               ))}
             </div>
             {selectedAppt.notes && (
-              <p className="text-sm bg-gray-50 rounded-lg p-3">
+              <p className="text-sm rounded-lg p-3" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 <span className="text-muted">הערות: </span>{selectedAppt.notes}
               </p>
             )}
@@ -2151,7 +2152,7 @@ export function Appointments() {
               <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
                 האם לשלוח הודעת WhatsApp ל<strong style={{ color: 'var(--color-text)' }}>{whatsappAfterMove.name}</strong> על שינוי המועד?
               </p>
-              <div className="bg-gray-50 rounded-xl p-3 text-sm text-right" style={{ direction: 'rtl' }}>
+              <div className="rounded-xl p-3 text-sm text-right" style={{ direction: 'rtl', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
                 שלום {whatsappAfterMove.name}, תורך שונה ל-{newDate} בשעה {newTime}. נתראה! 💈
               </div>
               <div className="flex gap-3">
@@ -2181,10 +2182,10 @@ export function Appointments() {
       >
         {pendingMove && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm" style={{ color: 'var(--color-text)' }}>
               האם להעביר את התור הבא?
             </p>
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+            <div className="rounded-xl p-4 space-y-2 text-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div>
                 <span className="text-muted">לקוח: </span>
                 <span className="font-semibold">{pendingMove.appt.profiles?.name}</span>
@@ -2329,10 +2330,10 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
     <div className="card overflow-hidden select-none" style={{ border: '1px solid var(--color-border)' }}>
 
       {/* ── Column headers (sticky) ── */}
-      <div className="flex border-b border-gray-200 sticky top-0 z-20 bg-white"
-        style={{ borderColor: 'var(--color-border)' }}>
+      <div className="flex border-b sticky top-0 z-20"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}>
         {/* time gutter */}
-        <div className="flex-shrink-0 border-r border-gray-200" style={{ width: 52 }} />
+        <div className="flex-shrink-0 border-r" style={{ width: 52, borderColor: 'var(--color-border)' }} />
         {days.map(day => {
           const isNow     = isSameDay(day, new Date())
           const count     = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
@@ -2341,8 +2342,8 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
           const wlCount   = wlEntries.length
           return (
             <div key={day.toISOString()}
-              className="flex-1 py-2 px-1 text-center border-r border-gray-100 last:border-0 min-w-0"
-              style={{ background: isNow ? 'rgba(255,133,0,0.07)' : undefined }}>
+              className="flex-1 py-2 px-1 text-center border-r last:border-0 min-w-0"
+              style={{ background: isNow ? 'rgba(255,133,0,0.07)' : undefined, borderColor: 'var(--color-border)' }}>
               <div className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-muted)' }}>
                 {format(day, 'EEE', { locale: he })}
@@ -2377,7 +2378,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
         <div className="flex" style={{ height: TOTAL_H }}>
 
           {/* Time-label gutter */}
-          <div className="flex-shrink-0 relative border-r border-gray-200" style={{ width: 52, height: TOTAL_H }}>
+          <div className="flex-shrink-0 relative border-r" style={{ width: 52, height: TOTAL_H, borderColor: 'var(--color-border)' }}>
             {slots.filter(s => s.isHour || s.isHalf).map(s => (
               <div key={s.i}
                 className="absolute right-0 left-0 flex items-center justify-end pr-1.5"
@@ -2402,10 +2403,11 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
 
             return (
               <div key={day.toISOString()}
-                className="flex-1 relative border-r border-gray-100 last:border-0 min-w-0"
+                className="flex-1 relative border-r last:border-0 min-w-0"
                 style={{
                   height: TOTAL_H,
                   background: isNow ? 'rgba(255,133,0,0.015)' : 'transparent',
+                  borderColor: 'var(--color-border)',
                 }}>
 
                 {/* 15-minute slot lines */}
@@ -2416,10 +2418,11 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
                       top:       s.i * SLOT_PX,
                       height:    SLOT_PX,
                       borderTop: s.isHour
-                        ? '1.5px solid #d1d5db'
+                        ? '1.5px solid var(--color-border)'
                         : s.isHalf
-                          ? '1px dashed #e2e4e8'
-                          : '1px dotted #eceef1',
+                          ? '1px dashed var(--color-border)'
+                          : '1px dotted var(--color-border)',
+                    opacity: s.isHour ? 1 : s.isHalf ? 0.5 : 0.25,
                     }}
                   />
                 ))}
@@ -2431,8 +2434,8 @@ function WeekView({ days, appointments, serviceColors, onSelect, recurringBreaks
                     style={{
                       top:        band.top,
                       height:     band.height,
-                      background: 'repeating-linear-gradient(135deg,#f0f1f3 0,#f0f1f3 4px,#e2e4e7 4px,#e2e4e7 8px)',
-                      opacity:    0.75,
+                      background: 'repeating-linear-gradient(135deg,var(--color-surface) 0,var(--color-surface) 4px,var(--color-border) 4px,var(--color-border) 8px)',
+                      opacity:    0.85,
                       zIndex:     1,
                     }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>{band.label}</span>
@@ -2551,6 +2554,8 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
   )
 
+  const scrollRef = useRef(null)
+
   const totalMinutes = (endHour - startHour) * 60
   const slotsCount = totalMinutes / slotMinutes
   const TOTAL_HEIGHT = slotsCount * SLOT_HEIGHT
@@ -2569,6 +2574,17 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
     const iv = setInterval(calcNow, 60000)
     return () => clearInterval(iv)
   }, [date, slotMinutes, totalMinutes])
+
+  // Auto-scroll to current time when viewing today
+  useEffect(() => {
+    if (!isToday(date) || !scrollRef.current) return
+    const now = new Date()
+    const mins = (now.getHours() - startHour) * 60 + now.getMinutes()
+    if (mins < 0 || mins > totalMinutes) return
+    const targetTop = (mins / slotMinutes) * SLOT_HEIGHT
+    const offset = Math.max(0, targetTop - 120)
+    setTimeout(() => scrollRef.current?.scrollTo({ top: offset, behavior: 'smooth' }), 150)
+  }, [date])
 
   // All time slots — for row labels
   const timeSlots = useMemo(() => {
@@ -2638,15 +2654,15 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
       <div className="card overflow-hidden">
         {/* Header */}
         <div
-          className="grid border-b border-gray-200 sticky top-0 z-10"
-          style={{ gridTemplateColumns: `52px repeat(${staffColumns.length}, 1fr)`, background: 'var(--color-card)' }}
+          className="grid border-b sticky top-0 z-10"
+          style={{ gridTemplateColumns: `52px repeat(${staffColumns.length}, 1fr)`, background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
         >
-          <div className="border-r border-gray-100" />
+          <div className="border-r" style={{ borderColor: 'var(--color-border)' }} />
           {staffColumns.map(s => (
             <div
               key={s.id}
-              className="p-3 text-center font-bold text-gray-800 border-r border-gray-100 last:border-0"
-              style={{ fontSize: '13px' }}
+              className="p-3 text-center font-bold border-r last:border-0"
+              style={{ fontSize: '13px', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
             >
               {s.name}
             </div>
@@ -2654,7 +2670,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
         </div>
 
         {/* Scrollable grid */}
-        <div className="overflow-auto max-h-[700px]">
+        <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <div
             className="grid"
             style={{
@@ -2664,7 +2680,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
             }}
           >
             {/* Time axis */}
-            <div className="relative border-r border-gray-200" style={{ height: TOTAL_HEIGHT }}>
+            <div className="relative border-r" style={{ height: TOTAL_HEIGHT, borderColor: 'var(--color-border)' }}>
               {timeSlots.map(minuteOff => {
                 const isHour   = minuteOff % 60 === 0
                 const isHalf   = !isHour && minuteOff % 30 === 0
@@ -2674,11 +2690,11 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
                 return (
                   <div key={minuteOff} className="absolute w-full flex items-start justify-center" style={{ top, height: SLOT_HEIGHT }}>
                     {isHour ? (
-                      <span className="text-xs font-bold text-gray-500 mt-0.5 select-none leading-none">
+                      <span className="text-xs font-bold mt-0.5 select-none leading-none" style={{ color: 'var(--color-muted)' }}>
                         {String(hour).padStart(2,'0')}:00
                       </span>
                     ) : isHalf ? (
-                      <span className="text-[10px] text-gray-300 mt-0.5 select-none leading-none">
+                      <span className="text-[10px] mt-0.5 select-none leading-none" style={{ color: 'var(--color-border)' }}>
                         :{String(min).padStart(2,'0')}
                       </span>
                     ) : null}
@@ -2693,7 +2709,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
               const breakBlocks = getBreakBlocks(s.id)
 
               return (
-                <div key={s.id} className="relative border-r border-gray-200 last:border-0" style={{ height: TOTAL_HEIGHT }}>
+                <div key={s.id} className="relative border-r last:border-0" style={{ height: TOTAL_HEIGHT, borderColor: 'var(--color-border)' }}>
                   {/* Droppable slots */}
                   {timeSlots.map(minuteOff => {
                     const isHour  = minuteOff % 60 === 0
@@ -2766,9 +2782,9 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
   let borderTop
-  if (isHour)       borderTop = '1.5px solid #d1d5db'   // hour — solid gray
-  else if (isHalf)  borderTop = '1px dashed #e5e7eb'    // half-hour — dashed
-  else              borderTop = '1px dotted #f0f0f0'     // 15-min — dotted subtle
+  if (isHour)       borderTop = '1.5px solid var(--color-border)'
+  else if (isHalf)  borderTop = '1px dashed var(--color-border)'
+  else              borderTop = '1px dotted var(--color-border)'
 
   return (
     <div
@@ -2795,9 +2811,9 @@ function BreakBlock({ top, height, label }) {
         top,
         height: h,
         zIndex: 3,  // above DroppableSlots (auto) and appointments (2) — but pointer-events-none so clicks pass through
-        background: 'repeating-linear-gradient(135deg, #f0f1f3 0px, #f0f1f3 5px, #e2e4e7 5px, #e2e4e7 10px)',
-        borderTop: '1.5px solid #c8ccd2',
-        borderBottom: '1.5px solid #c8ccd2',
+        background: 'repeating-linear-gradient(135deg, var(--color-surface) 0px, var(--color-surface) 5px, var(--color-border) 5px, var(--color-border) 10px)',
+        borderTop: '1.5px solid var(--color-border)',
+        borderBottom: '1.5px solid var(--color-border)',
       }}
     >
       {h >= 20 && (
