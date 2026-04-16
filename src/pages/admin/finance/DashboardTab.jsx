@@ -101,11 +101,11 @@ export function DashboardTab() {
         </h2>
 
         {monthly.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="w-full">
             <svg
-              width={monthly.length * (barWidth * 2 + gap) + gap}
+              viewBox={`0 0 ${monthly.length * (barWidth * 2 + gap) + gap} ${chartHeight + 40}`}
+              width="100%"
               height={chartHeight + 40}
-              className="mx-auto"
               dir="ltr"
             >
               {monthly.map((m, i) => {
