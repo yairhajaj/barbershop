@@ -861,7 +861,7 @@ export function Appointments() {
 
               {/* Hour range */}
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>שעות תצוגה</span>
+                <span className="text-sm font-medium w-32" style={{ color: 'var(--color-muted)' }}>שעות פעילות</span>
                 <div className="flex items-center gap-2">
                   <select
                     className="input py-1 text-sm w-20"
@@ -872,7 +872,7 @@ export function Appointments() {
                       <option key={h} value={h}>{String(h).padStart(2,'0')}:00</option>
                     ))}
                   </select>
-                  <span className="text-gray-500 text-sm font-medium">—</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-muted)' }}>—</span>
                   <select
                     className="input py-1 text-sm w-20"
                     value={calEndHour}
@@ -2451,7 +2451,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
               <div className="flex items-center justify-center gap-1 mt-0.5">
                 {count > 0 && (
                   <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none"
-                    style={{ background: isNow ? 'var(--color-primary)' : '#e5e7eb', color: isNow ? '#fff' : '#6b7280' }}>
+                    style={{ background: isNow ? 'var(--color-primary)' : 'var(--color-border)', color: isNow ? '#fff' : 'var(--color-muted)' }}>
                     {count}
                   </span>
                 )}
@@ -2482,7 +2482,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                 <span style={{
                   fontSize: s.isHour ? 11 : 9,
                   fontWeight: s.isHour ? 700 : 500,
-                  color: s.isHour ? '#6b7280' : '#b0b5be',
+                  color: s.isHour ? 'var(--color-muted)' : 'var(--color-border)',
                   lineHeight: 1,
                 }}>
                   {String(s.h).padStart(2,'0')}:{String(s.m).padStart(2,'0')}
@@ -2773,15 +2773,26 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
           style={{ gridTemplateColumns: `52px repeat(${staffColumns.length}, 1fr)`, background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
         >
           <div className="border-r" style={{ borderColor: 'var(--color-border)' }} />
-          {staffColumns.map(s => (
-            <div
-              key={s.id}
-              className="p-3 text-center font-bold border-r last:border-0"
-              style={{ fontSize: '13px', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
-            >
-              {s.name}
-            </div>
-          ))}
+          {staffColumns.map(s => {
+            const staffCount = dayAppts.filter(a => a.staff_id === s.id).length
+            return (
+              <div
+                key={s.id}
+                className="p-3 text-center font-bold border-r last:border-0"
+                style={{ fontSize: '13px', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+              >
+                {s.name}
+                {staffCount > 0 && (
+                  <span
+                    className="inline-block mr-1.5 text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none align-middle"
+                    style={{ background: 'var(--color-primary)', color: '#fff' }}
+                  >
+                    {staffCount}
+                  </span>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Scrollable grid */}
