@@ -35,6 +35,7 @@ export function BookingLayout({ children }) {
           .select('announcement_enabled,announcement_title,announcement_body,announcement_expires_at,announcement_color')
           .single()
         if (!data?.announcement_enabled) return
+        if (!data.announcement_title?.trim() && !data.announcement_body?.trim()) return
         const expiresAt = data.announcement_expires_at
         if (expiresAt && new Date() >= new Date(expiresAt)) return
         if (sessionStorage.getItem('announcement_seen')) return

@@ -49,6 +49,7 @@ export function Messages() {
     announcement_color: 'gold',
     announcement_expires_at: '',
   })
+  const [annSettingsId, setAnnSettingsId] = useState(null)
   const [annLoading, setAnnLoading] = useState(false)
   const [annSaving, setAnnSaving] = useState(false)
 
@@ -122,27 +123,34 @@ export function Messages() {
   // ── Announcement ──────────────────────────────────────────────────────
   async function loadAnnouncement() {
     setAnnLoading(true)
-    const { data } = await supabase.from('business_settings').select('announcement_enabled,announcement_title,announcement_body,announcement_expires_at,announcement_color').eq('id', 1).single()
-    if (data) setAnnForm({
-      announcement_enabled: data.announcement_enabled ?? false,
-      announcement_title: data.announcement_title ?? '',
-      announcement_body: data.announcement_body ?? '',
-      announcement_color: data.announcement_color ?? 'gold',
-      announcement_expires_at: data.announcement_expires_at ?? '',
-    })
+    const { data } = await supabase.from('business_settings')
+      .select('id,announcement_enabled,announcement_title,announcement_body,announcement_expires_at,announcement_color')
+      .single()
+    if (data) {
+      setAnnSettingsId(data.id)
+      setAnnForm({
+        announcement_enabled: data.announcement_enabled ?? false,
+        announcement_title: data.announcement_title ?? '',
+        announcement_body: data.announcement_body ?? '',
+        announcement_color: data.announcement_color ?? 'gold',
+        announcement_expires_at: data.announcement_expires_at ?? '',
+      })
+    }
     setAnnLoading(false)
   }
 
   async function saveAnnouncement() {
+    if (!annSettingsId) { toast({ message: 'שגיאה: הגדרות לא נטענו', type: 'error' }); return }
     setAnnSaving(true)
-    await supabase.from('business_settings').update({
+    const { error } = await supabase.from('business_settings').update({
       announcement_enabled: annForm.announcement_enabled,
       announcement_title: annForm.announcement_title,
       announcement_body: annForm.announcement_body,
       announcement_color: annForm.announcement_color,
       announcement_expires_at: annForm.announcement_expires_at || null,
-    }).eq('id', 1)
-    toast({ message: 'ההודעה נשמרה', type: 'success' })
+    }).eq('id', annSettingsId)
+    if (error) toast({ message: 'שגיאה בשמירה', type: 'error' })
+    else toast({ message: 'ההודעה נשמרה', type: 'success' })
     setAnnSaving(false)
   }
 
