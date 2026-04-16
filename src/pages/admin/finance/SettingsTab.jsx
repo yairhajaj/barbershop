@@ -392,19 +392,45 @@ export function SettingsTab() {
           ברירת המחדל לכל ההזמנות — ניתן לדרוס לפי שירות או סניף
         </p>
 
+        {/* Warning: no payment gateway connected */}
+        {!settings?.payment_enabled || !settings?.grow_api_key ? (
+          <div
+            className="rounded-xl p-3 mb-4 flex items-start gap-2 text-sm"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+          >
+            <span className="text-base flex-shrink-0">⚠️</span>
+            <div>
+              <p className="font-bold" style={{ color: '#ef4444' }}>אין סליקה מחוברת</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                כדי להפעיל "חובה לשלם" יש לחבר סליקה (Grow) תחת{' '}
+                <strong>הגדרות ← תשלומים</strong> ולהזין API Key.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {/* Global payment mode */}
         <div className="space-y-2 mb-4">
           {GLOBAL_MODE_OPTS.map(opt => {
             const active = globalMode === opt.value
+            const isBlocked = opt.value === 'required' && (!settings?.payment_enabled || !settings?.grow_api_key)
             return (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setGlobalMode(opt.value)}
+                onClick={() => {
+                  if (isBlocked) {
+                    showToast({ message: 'יש לחבר סליקה לפני הפעלת חובה לשלם', type: 'error' })
+                    return
+                  }
+                  setGlobalMode(opt.value)
+                }}
                 className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
                 style={{
                   background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
                   border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                  opacity: isBlocked ? 0.5 : 1,
+                  cursor: isBlocked ? 'not-allowed' : 'pointer',
                 }}
               >
                 <div
@@ -417,6 +443,7 @@ export function SettingsTab() {
                   <div className="flex items-center gap-1.5">
                     <span>{opt.icon}</span>
                     <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{opt.label}</span>
+                    {isBlocked && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>דרוש API Key</span>}
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{opt.desc}</p>
                 </div>
