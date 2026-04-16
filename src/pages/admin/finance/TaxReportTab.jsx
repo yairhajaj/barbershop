@@ -73,9 +73,8 @@ export function TaxReportTab() {
     return getBiMonthlyPeriods(year)
   }, [periodType, year])
 
-  // Reset period index when periods change
+  // Auto-select current period when periods change
   useEffect(() => {
-    // Auto-select current period
     const now = new Date()
     if (year === now.getFullYear()) {
       const month = now.getMonth()
@@ -91,7 +90,6 @@ export function TaxReportTab() {
 
   const currentPeriod = periods[periodIdx]
 
-  // Fetch data
   useEffect(() => {
     if (!currentPeriod) return
     fetchData()
@@ -109,13 +107,12 @@ export function TaxReportTab() {
       .gte('created_at', startDate)
       .lte('created_at', endDate + 'T23:59:59')
 
-    // Fetch invoices as additional income source
-    const { data: invoices } = await supabase
-      .from('invoices')
-      .select('total_amount, vat_amount, amount_before_vat, service_date, status')
-      .in('status', ['sent', 'paid'])
-      .gte('service_date', startDate)
-      .lte('service_date', endDate + 'T23:59:59')
+    // Fetch manual income entries
+    const { data: manualIncome } = await supabase
+      .from('manual_income')
+      .select('amount, date, description, method')
+      .gte('date', startDate)
+      .lte('date', endDate)
 
     // Fetch expenses
     const { data: expenses } = await supabase
@@ -124,12 +121,20 @@ export function TaxReportTab() {
       .gte('date', startDate)
       .lte('date', endDate)
 
-    // Summarize income by method
+    // Summarize income by method (payments + manual_income combined)
     const incomeByMethod = {}
+
     ;(payments ?? []).forEach(p => {
       const method = p.method || 'other'
       if (!incomeByMethod[method]) incomeByMethod[method] = { amount: 0, count: 0 }
       incomeByMethod[method].amount += Number(p.amount || 0)
+      incomeByMethod[method].count++
+    })
+
+    ;(manualIncome ?? []).forEach(m => {
+      const method = m.method || 'other'
+      if (!incomeByMethod[method]) incomeByMethod[method] = { amount: 0, count: 0 }
+      incomeByMethod[method].amount += Number(m.amount || 0)
       incomeByMethod[method].count++
     })
 
@@ -179,6 +184,7 @@ export function TaxReportTab() {
   const totalExpenses = expenseData.reduce((s, r) => s + r.amount, 0)
   const totalExpenseVat = expenseData.reduce((s, r) => s + r.vatAmount, 0)
   const netVat = totalIncomeVat - totalExpenseVat
+  const grossProfit = totalIncome - totalExpenses
 
   function handleExportCSV() {
     const headers = ['קטגוריה', 'סוג', 'סכום', 'מע"מ']
@@ -188,9 +194,10 @@ export function TaxReportTab() {
       [],
       ['סה"כ הכנסות', '', totalIncome, totalIncomeVat],
       ['סה"כ הוצאות', '', totalExpenses, totalExpenseVat],
-      ['מע"מ לתשלום', '', '', netVat],
+      ['רווח גולמי', '', grossProfit, ''],
+      ...(!isOsekPatur ? [['מע"מ לתשלום', '', netVat, '']] : []),
     ]
-    downloadCSV(headers, rows, `tax-report-${currentPeriod?.startDate}-${currentPeriod?.endDate}.csv`)
+    downloadCSV(headers, rows, `report-${currentPeriod?.startDate}-${currentPeriod?.endDate}.csv`)
     showToast({ message: 'הקובץ הורד בהצלחה', type: 'success' })
   }
 
@@ -206,59 +213,43 @@ export function TaxReportTab() {
     setShowAccountant(true)
   }
 
+  function buildWhatsAppText() {
+    const totalIncomeCount = incomeData.reduce((s, r) => s + r.count, 0)
+    const totalExpenseCount = expenseData.reduce((s, r) => s + r.count, 0)
+
+    let text = `דוח ריכוז — ${currentPeriod?.label}\n\n`
+    text += `📈 הכנסות: ${formatILS(totalIncome)} (${totalIncomeCount} פריטים)\n`
+    text += `📉 הוצאות: ${formatILS(totalExpenses)} (${totalExpenseCount} פריטים)\n`
+    text += `💰 רווח: ${formatILS(grossProfit)}\n`
+
+    if (!isOsekPatur) {
+      text += `\n🧾 מע"מ הכנסות: ${formatILS(totalIncomeVat)}\n`
+      text += `🧾 מע"מ הוצאות: ${formatILS(totalExpenseVat)}\n`
+      text += `⚖️ מע"מ לתשלום: ${formatILS(netVat)}\n`
+    }
+
+    if (expenseData.length > 0) {
+      text += `\nפירוט הוצאות לפי קטגוריה:\n`
+      expenseData.forEach(row => {
+        text += `${row.category}: ${formatILS(row.amount)}\n`
+      })
+    }
+
+    return text
+  }
+
   function sendWhatsAppToAccountant() {
     const phone = (settings?.accountant_phone || '').replace(/\D/g, '')
     const intlPhone = phone.startsWith('0') ? `972${phone.slice(1)}` : phone
-
-    const text = encodeURIComponent(
-      `דוח מס - ${currentPeriod?.label}\n\n` +
-      `סה"כ הכנסות: ${formatILS(totalIncome)}\n` +
-      `מע"מ הכנסות: ${formatILS(totalIncomeVat)}\n\n` +
-      `סה"כ הוצאות: ${formatILS(totalExpenses)}\n` +
-      `מע"מ הוצאות: ${formatILS(totalExpenseVat)}\n\n` +
-      `מע"מ לתשלום: ${formatILS(netVat)}`
-    )
-
+    const text = encodeURIComponent(buildWhatsAppText())
     window.open(`https://wa.me/${intlPhone}?text=${text}`, '_blank')
     setShowAccountant(false)
-  }
-
-  // Osek patur — simplified view
-  if (isOsekPatur) {
-    return (
-      <div className="space-y-4">
-        <div
-          className="rounded-2xl p-5 text-center"
-          style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)' }}
-        >
-          <p className="font-bold text-lg mb-1" style={{ color: 'var(--color-gold)' }}>
-            עוסק פטור
-          </p>
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            עוסק פטור — אין חובת דיווח מע"מ
-          </p>
-        </div>
-
-        {/* Simple income/expense summary */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="סה&quot;כ הכנסות" value={totalIncome} delay={0} />
-          <StatCard label="סה&quot;כ הוצאות" value={totalExpenses} delay={1} />
-        </div>
-
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={handleExportCSV} className="btn-primary px-4 py-2 text-sm">
-            ייצוא CSV
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
     <div className="space-y-4">
       {/* Period selector */}
       <div className="flex gap-3 flex-wrap items-end">
-        {/* Year */}
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>שנה</label>
           <select
@@ -277,7 +268,6 @@ export function TaxReportTab() {
           </select>
         </div>
 
-        {/* Period type */}
         <div>
           <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>סוג תקופה</label>
           <select
@@ -296,7 +286,6 @@ export function TaxReportTab() {
           </select>
         </div>
 
-        {/* Period */}
         <div className="flex-1 min-w-[180px]">
           <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>תקופה</label>
           <select
@@ -320,22 +309,42 @@ export function TaxReportTab() {
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
         <>
-          {/* 3 stat cards */}
-          <div className="grid grid-cols-3 gap-3">
-            <StatCard label='מע"מ הכנסות' value={totalIncomeVat} delay={0} />
-            <StatCard label='מע"מ הוצאות' value={totalExpenseVat} delay={1} />
+          {/* 4 stat cards in 2×2 grid (VAT card hidden for osek_patur) */}
+          <div className={`grid gap-3 ${isOsekPatur ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
             <StatCard
-              label='מע"מ לתשלום'
-              value={netVat}
-              delay={2}
-              highlight
+              label="סה״כ הכנסות"
+              value={totalIncome}
+              delay={0}
+              color="#22c55e"
             />
+            <StatCard
+              label="סה״כ הוצאות"
+              value={totalExpenses}
+              delay={1}
+              color="#ef4444"
+            />
+            <StatCard
+              label="רווח גולמי"
+              value={grossProfit}
+              delay={2}
+              color={grossProfit >= 0 ? 'var(--color-gold)' : '#ef4444'}
+              highlight={grossProfit >= 0}
+            />
+            {!isOsekPatur && (
+              <StatCard
+                label='מע"מ לתשלום'
+                value={netVat}
+                delay={3}
+                color="var(--color-gold)"
+                highlight
+              />
+            )}
           </div>
 
           {/* Income breakdown */}
           <div className="card p-4">
             <p className="font-bold text-sm mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-              הכנסות
+              📈 הכנסות
             </p>
             {incomeData.length === 0 ? (
               <p className="text-sm py-3 text-center" style={{ color: 'var(--color-muted)' }}>אין הכנסות בתקופה זו</p>
@@ -343,12 +352,19 @@ export function TaxReportTab() {
               <div className="space-y-1">
                 {incomeData.map((row, i) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                    <span className="text-sm" style={{ color: 'var(--color-text)' }}>{row.category}</span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                        מע"מ {formatILS(row.vatAmount)}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm" style={{ color: 'var(--color-text)' }}>{row.category}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
+                        {row.count} פריטים
                       </span>
-                      <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                      {!isOsekPatur && (
+                        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                          מע"מ {formatILS(row.vatAmount)}
+                        </span>
+                      )}
+                      <span className="text-sm font-bold" style={{ color: '#22c55e' }}>
                         {formatILS(row.amount)}
                       </span>
                     </div>
@@ -358,10 +374,12 @@ export function TaxReportTab() {
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>סה"כ</span>
                   <div className="flex gap-4 items-center">
-                    <span className="text-xs font-bold" style={{ color: 'var(--color-muted)' }}>
-                      מע"מ {formatILS(totalIncomeVat)}
-                    </span>
-                    <span className="text-sm font-black" style={{ color: 'var(--color-gold)' }}>
+                    {!isOsekPatur && (
+                      <span className="text-xs font-bold" style={{ color: 'var(--color-muted)' }}>
+                        מע"מ {formatILS(totalIncomeVat)}
+                      </span>
+                    )}
+                    <span className="text-sm font-black" style={{ color: '#22c55e' }}>
                       {formatILS(totalIncome)}
                     </span>
                   </div>
@@ -373,7 +391,7 @@ export function TaxReportTab() {
           {/* Expense breakdown */}
           <div className="card p-4">
             <p className="font-bold text-sm mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-              הוצאות
+              📉 הוצאות
             </p>
             {expenseData.length === 0 ? (
               <p className="text-sm py-3 text-center" style={{ color: 'var(--color-muted)' }}>אין הוצאות בתקופה זו</p>
@@ -381,12 +399,19 @@ export function TaxReportTab() {
               <div className="space-y-1">
                 {expenseData.map((row, i) => (
                   <div key={i} className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                    <span className="text-sm" style={{ color: 'var(--color-text)' }}>{row.category}</span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                        מע"מ {formatILS(row.vatAmount)}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm" style={{ color: 'var(--color-text)' }}>{row.category}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
+                        {row.count} פריטים
                       </span>
-                      <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                      {!isOsekPatur && (
+                        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                          מע"מ {formatILS(row.vatAmount)}
+                        </span>
+                      )}
+                      <span className="text-sm font-bold" style={{ color: '#ef4444' }}>
                         {formatILS(row.amount)}
                       </span>
                     </div>
@@ -396,10 +421,12 @@ export function TaxReportTab() {
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>סה"כ</span>
                   <div className="flex gap-4 items-center">
-                    <span className="text-xs font-bold" style={{ color: 'var(--color-muted)' }}>
-                      מע"מ {formatILS(totalExpenseVat)}
-                    </span>
-                    <span className="text-sm font-black" style={{ color: '#dc2626' }}>
+                    {!isOsekPatur && (
+                      <span className="text-xs font-bold" style={{ color: 'var(--color-muted)' }}>
+                        מע"מ {formatILS(totalExpenseVat)}
+                      </span>
+                    )}
+                    <span className="text-sm font-black" style={{ color: '#ef4444' }}>
                       {formatILS(totalExpenses)}
                     </span>
                   </div>
@@ -408,21 +435,53 @@ export function TaxReportTab() {
             )}
           </div>
 
-          {/* Export buttons */}
+          {/* VAT section — osek_morsheh / company only */}
+          {!isOsekPatur && (
+            <div
+              className="card p-4"
+              style={{ border: '1px solid rgba(201,169,110,0.3)', background: 'rgba(201,169,110,0.04)' }}
+            >
+              <p className="font-bold text-sm mb-3" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
+                🧾 מע"מ
+              </p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--color-muted)' }}>מע"מ הכנסות</span>
+                  <span style={{ color: 'var(--color-text)' }}>{formatILS(totalIncomeVat)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: 'var(--color-muted)' }}>מע"מ הוצאות (תשומות)</span>
+                  <span style={{ color: 'var(--color-text)' }}>{formatILS(totalExpenseVat)}</span>
+                </div>
+                <div
+                  className="flex justify-between text-sm font-bold pt-2 mt-2 border-t"
+                  style={{ borderColor: 'rgba(201,169,110,0.3)' }}
+                >
+                  <span style={{ color: 'var(--color-gold)' }}>מע"מ לתשלום</span>
+                  <span style={{ color: 'var(--color-gold)' }}>{formatILS(netVat)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action buttons */}
           <div className="flex gap-3 flex-wrap">
-            <button onClick={handleExportCSV} className="btn-primary px-4 py-2.5 text-sm">
-              ייצוא CSV
-            </button>
             <button
               onClick={handleSendAccountant}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              className="btn-primary px-4 py-2.5 text-sm flex items-center gap-2"
+            >
+              📤 שלח לרואה חשבון
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2"
               style={{
                 background: 'var(--color-card)',
                 border: '1px solid var(--color-border)',
                 color: 'var(--color-text)',
               }}
             >
-              שלח לרואה חשבון
+              📥 ייצוא CSV
             </button>
           </div>
         </>
@@ -455,24 +514,20 @@ export function TaxReportTab() {
                 className="rounded-xl p-4"
                 style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
               >
-                <p className="text-xs font-bold mb-2" style={{ color: 'var(--color-muted)' }}>סיכום שיישלח:</p>
-                <p className="text-sm" style={{ color: 'var(--color-text)' }}>
-                  דוח מס - {currentPeriod?.label}
-                </p>
-                <div className="flex flex-col gap-1 mt-2 text-xs" style={{ color: 'var(--color-muted)' }}>
-                  <span>הכנסות: {formatILS(totalIncome)} (מע"מ: {formatILS(totalIncomeVat)})</span>
-                  <span>הוצאות: {formatILS(totalExpenses)} (מע"מ: {formatILS(totalExpenseVat)})</span>
-                  <span className="font-bold" style={{ color: 'var(--color-text)' }}>
-                    מע"מ לתשלום: {formatILS(netVat)}
-                  </span>
-                </div>
+                <p className="text-xs font-bold mb-2" style={{ color: 'var(--color-muted)' }}>תצוגה מקדימה של ההודעה:</p>
+                <pre
+                  className="text-xs whitespace-pre-wrap"
+                  style={{ color: 'var(--color-text)', fontFamily: 'inherit', direction: 'rtl' }}
+                >
+                  {buildWhatsAppText()}
+                </pre>
               </div>
 
               <button
                 onClick={sendWhatsAppToAccountant}
                 className="btn-primary w-full py-3 text-base"
               >
-                שלח בWhatsApp
+                📤 שלח בWhatsApp
               </button>
             </>
           )}
@@ -482,7 +537,8 @@ export function TaxReportTab() {
   )
 }
 
-function StatCard({ label, value, delay = 0, highlight = false }) {
+function StatCard({ label, value, delay = 0, highlight = false, color }) {
+  const textColor = color || (highlight ? 'var(--color-gold)' : 'var(--color-text)')
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -495,10 +551,7 @@ function StatCard({ label, value, delay = 0, highlight = false }) {
       }}
     >
       <p className="text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>{label}</p>
-      <p
-        className="text-xl font-black"
-        style={{ color: highlight ? 'var(--color-gold)' : 'var(--color-text)' }}
-      >
+      <p className="text-xl font-black" style={{ color: textColor }}>
         {formatILS(value)}
       </p>
     </motion.div>
