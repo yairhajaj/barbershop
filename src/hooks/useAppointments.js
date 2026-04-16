@@ -178,17 +178,35 @@ export function useAllAppointments({ startDate, endDate, staffId, status, branch
   // Realtime subscription — stays alive for the lifetime of the hook instance.
   // Listens to every INSERT / UPDATE / DELETE on the appointments table and
   // triggers a fresh fetch so the admin calendar never shows stale data.
+  //
+  // Key details:
+  //   • Unique channel name per mount prevents "already subscribed" errors
+  //     when React StrictMode double-invokes effects or HMR re-mounts the hook.
+  //   • .on() is called before .subscribe() — Supabase requires this order.
+  //   • try/catch ensures a realtime error never crashes the whole admin page.
   useEffect(() => {
-    const channel = supabase
-      .channel('admin-appointments-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'appointments' },
-        () => { fetchAllRef.current?.() },
-      )
-      .subscribe()
+    // Generate a unique name so re-mounts never collide with a leftover channel.
+    const channelName = `admin-appointments-${Date.now()}`
+    let channel = null
 
-    return () => { supabase.removeChannel(channel) }
+    try {
+      channel = supabase
+        .channel(channelName)                               // create first
+        .on(                                                // register listeners
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'appointments' },
+          () => { fetchAllRef.current?.() },
+        )
+        .subscribe()                                        // subscribe last
+    } catch (err) {
+      console.warn('[useAllAppointments] realtime setup failed:', err)
+    }
+
+    return () => {
+      if (channel) {
+        try { supabase.removeChannel(channel) } catch { /* ignore cleanup errors */ }
+      }
+    }
   }, []) // intentionally empty — subscription lives for the duration of the mount
 
   async function markNoShow(id) {
