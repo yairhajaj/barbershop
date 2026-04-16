@@ -9,6 +9,7 @@ import { useReviews } from '../../hooks/useReviews'
 import { useProducts } from '../../hooks/useProducts'
 import { useStaffPortfolio } from '../../hooks/useStaffPortfolio'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
+import { useBusinessGallery } from '../../hooks/useBusinessGallery'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useToast } from '../../components/ui/Toast'
@@ -41,12 +42,12 @@ function StaffVideoCard({ member, portfolioMode }) {
   }, [member.video_url])
 
   return (
-    <div ref={containerRef} className="relative h-64 bg-gray-100 overflow-hidden">
+    <div ref={containerRef} className="relative h-72 bg-gray-100 overflow-hidden">
       {member.video_url ? (
         <motion.video
           ref={videoRef}
           src={member.video_url}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           muted
           loop
           playsInline
@@ -55,16 +56,17 @@ function StaffVideoCard({ member, portfolioMode }) {
           transition={{ duration: 0.5 }}
         />
       ) : member.photo_url ? (
-        <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+        <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
       ) : (
         <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.05))' }}>
           <span className="text-7xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.4 }}>{member.name[0]}</span>
         </div>
       )}
-      <div className="absolute inset-x-0 bottom-0 h-20" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
-      <div className="absolute bottom-3 right-3 left-3">
-        <h3 className="text-base font-black text-white leading-tight">{member.name}</h3>
-        {member.bio && <p className="text-xs text-white/70 mt-0.5 line-clamp-1">{member.bio}</p>}
+      <div className="absolute inset-x-0 bottom-0 h-28" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }} />
+      <div className="absolute bottom-4 right-4 left-4">
+        <h3 className="text-sm font-black text-white leading-tight">{member.name}</h3>
+        {member.bio && <p className="text-[11px] text-white/60 mt-1 line-clamp-1">{member.bio}</p>}
+        <div className="w-6 h-0.5 rounded-full mt-2" style={{ background: 'var(--color-gold)' }} />
       </div>
       {portfolioMode === 'story' && (
         <div className="absolute top-3 right-3 left-3 flex gap-0.5">
@@ -83,6 +85,7 @@ export function HomePage() {
   const { reviews } = useReviews()
   const { products: featuredProducts } = useProducts({ activeOnly: true, featuredOnly: true })
   const { settings } = useBusinessSettings()
+  const { items: galleryItems } = useBusinessGallery()
   const { user, profile } = useAuth()
   const { theme, layout } = useTheme()
   const showToast = useToast()
@@ -90,6 +93,7 @@ export function HomePage() {
   // Upcoming appointment — direct query so it's always fresh and never blocked by hook re-fetch timing
   const [nextAppointment, setNextAppointment] = useState(undefined) // undefined = loading, null = none
   const [calAdded, setCalAdded] = useState(false)
+  const [cancellingAppt, setCancellingAppt] = useState(false)
 
   useEffect(() => {
     if (!user) { setNextAppointment(null); return }
@@ -149,6 +153,23 @@ export function HomePage() {
     setCalAdded(true)
     showToast({ message: 'תזכורת נוספה ליומן', type: 'success', duration: 3000 })
     setTimeout(() => setCalAdded(false), 3000)
+  }
+
+  async function handleCancelAppointment() {
+    if (!nextAppointment) return
+    if (!window.confirm('האם לבטל את התור?')) return
+    setCancellingAppt(true)
+    try {
+      await supabase
+        .from('appointments')
+        .update({ status: 'cancelled', cancelled_by: 'customer' })
+        .eq('id', nextAppointment.id)
+      setNextAppointment(null)
+      showToast({ message: 'התור בוטל בהצלחה', type: 'success' })
+    } catch {
+      showToast({ message: 'שגיאה בביטול התור', type: 'error' })
+    }
+    setCancellingAppt(false)
   }
 
   const [portfolioMember, setPortfolioMember] = useState(null)
@@ -305,26 +326,45 @@ export function HomePage() {
       {/* ── CONTENT (scrolls over hero when floating) ─────────────── */}
       <div className={`floating-content-wrapper${effectiveFloating ? ' relative z-10' : ''}`}>
 
-      {/* ── WELCOME CARD ──────────────────────────────────────────── */}
-      <section className="py-6 px-4" style={{ background: 'var(--color-surface)' }}>
+      {/* ── WELCOME ──────────────────────────────────────────────── */}
+      <section className="pt-8 pb-2 px-4" style={{ background: 'var(--color-surface)' }}>
         <div className="max-w-xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="rounded-3xl p-6 text-center"
-            style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}
           >
-            <p className="text-lg font-bold mb-4" style={{ color: 'var(--color-text)' }}>
-              {user ? `שלום ${profile?.name ?? ''}! ✂` : 'שלום אורח, ברוך הבא! ✂'}
-            </p>
             {user ? (
-              <div className="flex gap-3 justify-center">
-                <Link to={bookHref} className="btn-primary text-sm px-6 py-2.5">קבע תור</Link>
-                <Link to="/my-appointments" className="btn-outline text-sm px-6 py-2.5">התורים שלי</Link>
-              </div>
+              <>
+                <p className="text-2xl font-black mb-1" style={{ color: 'var(--color-text)' }}>
+                  {`שלום, ${profile?.name ?? ''}`}
+                </p>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>מה נעשה היום?</p>
+                <div className="flex gap-3">
+                  <Link to={bookHref}
+                    className="flex-1 text-center text-sm font-bold py-3 rounded-2xl transition-all"
+                    style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                    קבע תור
+                  </Link>
+                  <Link to="/my-appointments"
+                    className="flex-1 text-center text-sm font-bold py-3 rounded-2xl transition-all"
+                    style={{
+                      background: theme === 'midnight' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                      color: 'var(--color-text)',
+                      border: `1px solid ${theme === 'midnight' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}`
+                    }}>
+                    התורים שלי
+                  </Link>
+                </div>
+              </>
             ) : (
-              <Link to="/login" className="inline-flex items-center gap-2 text-sm font-bold px-6 py-2.5 rounded-full" style={{ background: '#111', color: '#fff' }}>
-                לחץ להתחברות או הרשמה ←
-              </Link>
+              <>
+                <p className="text-2xl font-black mb-1" style={{ color: 'var(--color-text)' }}>ברוכים הבאים</p>
+                <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>הזמינו תור בקלות</p>
+                <Link to="/login"
+                  className="inline-flex items-center gap-2 text-sm font-bold px-6 py-3 rounded-2xl transition-all"
+                  style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                  התחברות או הרשמה
+                </Link>
+              </>
             )}
           </motion.div>
         </div>
@@ -342,15 +382,6 @@ export function HomePage() {
           {/* Show upcoming appointment card when user has one */}
           {user && nextAppointment ? (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-              {/* Header row */}
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-                  <span className="w-1 h-4 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                  התור הקרוב שלך
-                </h2>
-                <Link to="/my-appointments" className="text-xs font-semibold" style={{ color: 'var(--color-gold)' }}>כל התורים ←</Link>
-              </div>
-
               {/* Card — glassmorphism: dark glass for midnight/luxury, light frosted for other themes */}
               <div
                 className="rounded-3xl p-5"
@@ -372,6 +403,14 @@ export function HomePage() {
                       }
                 }
               >
+                {/* Card-internal header */}
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>
+                    התור הקרוב
+                  </span>
+                </div>
+
                 {/* Top row: avatar + service info */}
                 <div className="flex items-center gap-3 mb-4">
                   {/* Staff avatar */}
@@ -459,36 +498,50 @@ export function HomePage() {
                         : { background: 'rgba(0,0,0,0.05)', color: 'var(--color-text)', border: '1px solid rgba(0,0,0,0.07)' }
                     }
                   >
-                    ניהול
+                    לכל התורים
                   </Link>
                 </div>
 
-                {/* Add to calendar */}
-                <button
-                  onClick={handleAddToCalendar}
-                  className="w-full flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-2xl mt-2 transition-all"
-                  style={
-                    calAdded
-                      ? { background: 'rgba(34,197,94,0.13)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.28)' }
-                      : theme === 'midnight' || layout === 'luxury'
-                        ? { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }
-                        : { background: 'rgba(0,0,0,0.04)', color: 'var(--color-muted)', border: '1px solid rgba(0,0,0,0.07)' }
-                  }
-                >
-                  {calAdded ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      נוסף ליומן
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="10" y1="17" x2="14" y2="17"/>
-                      </svg>
-                      הוסף ליומן
-                    </>
-                  )}
-                </button>
+                {/* Calendar + Cancel row */}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleAddToCalendar}
+                    className="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-2xl transition-all"
+                    style={
+                      calAdded
+                        ? { background: 'rgba(34,197,94,0.13)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.28)' }
+                        : theme === 'midnight' || layout === 'luxury'
+                          ? { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }
+                          : { background: 'rgba(0,0,0,0.04)', color: 'var(--color-muted)', border: '1px solid rgba(0,0,0,0.07)' }
+                    }
+                  >
+                    {calAdded ? (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        נוסף ליומן
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="10" y1="17" x2="14" y2="17"/>
+                        </svg>
+                        הוסף ליומן
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleCancelAppointment}
+                    disabled={cancellingAppt}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 rounded-2xl transition-all"
+                    style={{
+                      background: theme === 'midnight' ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)',
+                      color: '#ef4444',
+                      border: `1px solid ${theme === 'midnight' ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}`,
+                    }}
+                  >
+                    {cancellingAppt ? '...' : 'ביטול תור'}
+                  </button>
+                </div>
               </div>
             </motion.div>
           ) : nextAppointment === null && (
@@ -539,7 +592,7 @@ export function HomePage() {
 
       {/* ── TEAM — horizontal carousel ────────────────────────────── */}
       {!staffLoading && staff.length > 0 && (
-        <section id="team" className="py-10" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)' }}>
+        <section id="team" className="py-10" style={{ background: 'var(--color-surface)' }}>
           <div className="px-4 max-w-xl mx-auto mb-4">
             <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
               <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
@@ -547,9 +600,8 @@ export function HomePage() {
             </h2>
           </div>
 
-          {/* Horizontal scroll strip */}
           <div
-            className="flex gap-4 overflow-x-auto pb-4 px-4"
+            className="flex gap-3 overflow-x-auto pb-4 px-4"
             style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
           >
             {staff.map((member, i) => (
@@ -559,38 +611,13 @@ export function HomePage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.07 }}
-                className="flex-shrink-0 w-52 rounded-3xl overflow-hidden cursor-pointer"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                className="flex-shrink-0 w-48 rounded-2xl overflow-hidden cursor-pointer group"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}
                 onClick={() => setPortfolioMember(member)}
               >
-                {/* Photo / Video */}
                 <StaffVideoCard member={member} portfolioMode={portfolioMode} />
-
-                {/* Actions */}
-                <div className="p-3 flex gap-2">
-                  <Link
-                    to={bookingFlow === 'all-in-one'
-                      ? `/book/all?staff=${member.id}`
-                      : `/book/service?staff=${member.id}`}
-                    onClick={e => e.stopPropagation()}
-                    className="btn-primary flex-1 justify-center text-xs py-2 px-2"
-                  >
-                    ✂ קבע תור
-                  </Link>
-                  <button
-                    onClick={e => { e.stopPropagation(); setPortfolioMember(member) }}
-                    className="text-xs font-bold py-2 px-3 rounded-xl border-2 transition-all"
-                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-gold)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
-                  >
-                    עבודות
-                  </button>
-                </div>
               </motion.div>
             ))}
-
-            {/* Spacer at end */}
             <div className="flex-shrink-0 w-2" />
           </div>
         </section>
@@ -598,42 +625,43 @@ export function HomePage() {
 
       {/* ── FEATURED PRODUCTS ────────────────────────────────────── */}
       {featuredProducts.length > 0 && (
-        <section className="py-10 px-4" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)' }}>
-          <div className="max-w-xl mx-auto">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
-                מוצרים מומלצים
-              </h2>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-              {featuredProducts.map((product, i) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
-                  className="flex-shrink-0 w-44 rounded-2xl overflow-hidden"
-                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-                >
-                  <div className="h-36 bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {product.image_url
-                      ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                      : <span className="text-4xl opacity-30">🛍️</span>}
-                  </div>
-                  <div className="p-3">
-                    <div className="font-bold text-sm leading-tight mb-1" style={{ color: 'var(--color-text)' }}>{product.name}</div>
-                    {product.description && <div className="text-xs line-clamp-2 mb-2" style={{ color: 'var(--color-muted)' }}>{product.description}</div>}
-                    <div className="font-black text-sm" style={{ color: 'var(--color-gold)' }}>₪{product.price}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+        <section className="py-10" style={{ background: 'var(--color-surface)' }}>
+          <div className="px-4 max-w-xl mx-auto mb-5">
+            <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
+              מוצרים מומלצים
+            </h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-4 px-4" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {featuredProducts.map((product, i) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                className="flex-shrink-0 w-56 rounded-2xl overflow-hidden relative group"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}
+              >
+                <div className="h-52 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.08), rgba(201,169,110,0.02))' }}>
+                  {product.image_url
+                    ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    : <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-5xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.15 }}>H</span>
+                      </div>
+                  }
+                </div>
+                <div className="absolute inset-x-0 bottom-0 p-4" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }}>
+                  <div className="font-bold text-sm text-white leading-tight">{product.name}</div>
+                  <div className="text-xs font-black mt-1" style={{ color: 'var(--color-gold)' }}>{priceDisplay(product.price)}</div>
+                </div>
+              </motion.div>
+            ))}
+            <div className="flex-shrink-0 w-2" />
           </div>
         </section>
       )}
 
       {/* ── REVIEWS ──────────────────────────────────────────────── */}
       {reviews.length > 0 && (
-        <section className="py-10 px-4" style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
+        <section className="py-10 px-4" style={{ background: 'var(--color-surface)' }}>
           <div className="max-w-xl mx-auto">
             <h2 className="text-[22px] font-black flex items-center gap-2.5 mb-5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
               <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
@@ -665,28 +693,54 @@ export function HomePage() {
       )}
 
       {/* ── CONTACT ───────────────────────────────────────────────── */}
-      <section id="contact" className="py-10 px-4" style={{ background: 'var(--color-surface)' }}>
-        <div className="max-w-xl mx-auto">
-          <h2 className="text-[22px] font-black flex items-center gap-2.5 mb-5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+      <section id="contact" className="py-10" style={{ background: 'var(--color-surface)' }}>
+        <div className="px-4 max-w-xl mx-auto mb-5">
+          <h2 className="text-[22px] font-black flex items-center gap-2.5" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
             <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
             מצאו אותנו
           </h2>
+        </div>
 
-          <div className="rounded-2xl p-5 mb-5 space-y-3" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-            {[
-              { icon: '📍', label: BUSINESS.address },
-              { icon: '📞', label: BUSINESS.phone },
-              { icon: '✉️', label: BUSINESS.email },
-            ].filter(i => i.label).map(({ icon, label }) => (
-              <div key={label} className="flex items-center gap-3 text-sm">
-                <span className="text-lg w-7 text-center">{icon}</span>
-                <span style={{ color: 'var(--color-text)' }}>{label}</span>
-              </div>
+        {/* Gallery carousel */}
+        {galleryItems.filter(g => g.type === 'image').length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-4 px-4" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {galleryItems.filter(g => g.type === 'image').map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="flex-shrink-0 w-64 h-44 rounded-2xl overflow-hidden"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}
+              >
+                <img src={item.url} alt={item.caption || 'המספרה'} className="w-full h-full object-cover" />
+              </motion.div>
             ))}
+            <div className="flex-shrink-0 w-2" />
+          </div>
+        )}
+
+        {/* Address + contact */}
+        <div className="max-w-xl mx-auto px-4 mt-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(201,169,110,0.12)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="2" strokeLinecap="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div>
+              <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{BUSINESS.address}</div>
+              {BUSINESS.phone && (
+                <a href={`tel:${BUSINESS.phone}`} className="text-xs" style={{ color: 'var(--color-muted)' }}>{BUSINESS.phone}</a>
+              )}
+            </div>
           </div>
 
           {/* Quick access buttons */}
-          <div className="flex gap-3 mb-4">
+          <div className="flex gap-3 mt-5 mb-4">
             {BUSINESS.whatsapp && (
               <a href={`https://wa.me/${BUSINESS.whatsapp}`} target="_blank" rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm"
@@ -711,12 +765,12 @@ export function HomePage() {
               <a href={BUSINESS.googleReviewUrl} target="_blank" rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm"
                 style={{ background: '#4285F4', color: '#fff' }}>
-                ⭐ דירוג Google
+                דירוג Google
               </a>
             )}
           </div>
 
-          <Link to={bookHref} className="btn-primary w-full justify-center text-base py-4">✂ קבע תור עכשיו</Link>
+          <Link to={bookHref} className="btn-primary w-full justify-center text-base py-4">קבע תור עכשיו</Link>
         </div>
       </section>
 
