@@ -30,6 +30,7 @@ export function MyAppointments() {
   })
 
   const { submitReview } = useReviews()
+  const [showHistory, setShowHistory] = useState(false)
   const [rescheduleAppt, setRescheduleAppt]     = useState(null)
   const [rescheduleDate, setRescheduleDate]     = useState(startOfDay(new Date()))
   const [rescheduleSlots, setRescheduleSlots]   = useState([])
@@ -381,9 +382,23 @@ export function MyAppointments() {
         {/* Past */}
         {past.length > 0 && (
           <section>
+            {!showHistory ? (
+              <button
+                onClick={() => setShowHistory(true)}
+                className="w-full text-center text-sm font-bold py-3 rounded-2xl transition-all"
+                style={{
+                  background: 'var(--color-card)',
+                  color: 'var(--color-muted)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                לצפייה בהיסטוריית התורים ({past.length})
+              </button>
+            ) : (
+            <>
             <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--color-muted)' }}>היסטוריה</h2>
             <div className="flex flex-col gap-2.5">
-              {past.slice(0, 10).map((appt, i) => (
+              {past.map((appt, i) => (
                 <motion.div
                   key={appt.id}
                   initial={{ opacity: 0 }}
@@ -417,6 +432,8 @@ export function MyAppointments() {
                 </motion.div>
               ))}
             </div>
+            </>
+            )}
           </section>
         )}
       </div>
