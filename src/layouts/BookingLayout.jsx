@@ -6,10 +6,14 @@ import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useLang } from '../contexts/LangContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
+import { supabase } from '../lib/supabase'
+import { Modal } from '../components/ui/Modal'
 
 export function BookingLayout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [announcement, setAnnouncement] = useState(null)
+  const [annOpen, setAnnOpen] = useState(false)
   const { user, profile, isAdmin, signOut } = useAuth()
   const { layout, theme } = useTheme()
   const { settings } = useBusinessSettings()
@@ -21,6 +25,32 @@ export function BookingLayout({ children }) {
   const navigate = useNavigate()
 
   const isHome = location.pathname === '/'
+
+  // Fetch & show announcement once per session
+  useEffect(() => {
+    async function fetchAnnouncement() {
+      try {
+        const { data } = await supabase
+          .from('business_settings')
+          .select('announcement_enabled,announcement_title,announcement_body,announcement_expires_at,announcement_color')
+          .single()
+        if (!data?.announcement_enabled) return
+        const expiresAt = data.announcement_expires_at
+        if (expiresAt && new Date() >= new Date(expiresAt)) return
+        if (sessionStorage.getItem('announcement_seen')) return
+        setAnnouncement(data)
+        setAnnOpen(true)
+      } catch (_) {
+        // silently ignore — non-critical feature
+      }
+    }
+    fetchAnnouncement()
+  }, [])
+
+  function handleAnnouncementClose() {
+    sessionStorage.setItem('announcement_seen', '1')
+    setAnnOpen(false)
+  }
 
   // Scroll to top on every route change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
@@ -337,6 +367,34 @@ export function BookingLayout({ children }) {
           </>
         )}
       </motion.header>
+
+      {/* ── Announcement modal ── */}
+      {announcement && annOpen && (() => {
+        const colorMap = { gold: 'var(--color-gold)', red: '#ef4444', blue: '#3b82f6' }
+        const iconMap  = { gold: '📢', red: '⚠️', blue: 'ℹ️' }
+        const color    = colorMap[announcement.announcement_color] ?? colorMap.gold
+        const icon     = iconMap[announcement.announcement_color]  ?? iconMap.gold
+        return (
+          <Modal open={annOpen} onClose={handleAnnouncementClose}>
+            <div className="text-center">
+              <div className="text-4xl mb-3">{icon}</div>
+              <h2 className="text-lg font-bold mb-3" style={{ color }}>
+                {announcement.announcement_title}
+              </h2>
+              <p className="text-sm mb-6" style={{ color: 'var(--color-muted)', whiteSpace: 'pre-wrap' }}>
+                {announcement.announcement_body}
+              </p>
+              <button
+                onClick={handleAnnouncementClose}
+                className="btn-primary px-8 py-2.5 text-sm"
+                style={{ background: color }}
+              >
+                הבנתי
+              </button>
+            </div>
+          </Modal>
+        )
+      })()}
 
       <main>{children}</main>
 

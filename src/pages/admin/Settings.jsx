@@ -504,6 +504,83 @@ export function Settings() {
           )}
         </section>
 
+        {/* ── Announcement ── */}
+        <section className="card p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">📢</span>
+            <h2 className="font-semibold text-lg">הודעה ללקוחות</h2>
+          </div>
+          <p className="text-sm text-muted mb-5">הצג הודעה חשובה לכל לקוח שפותח את האפליקציה</p>
+
+          <ToggleRow
+            label="הפעל הודעה"
+            desc="הודעה תוצג ללקוחות בכניסה לאפליקציה"
+            checked={!!form.announcement_enabled}
+            onChange={v => setForm(f => ({ ...f, announcement_enabled: v }))}
+          />
+
+          {form.announcement_enabled && (
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">כותרת</label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="למשל: שינוי בשעות פעילות"
+                  value={form.announcement_title}
+                  onChange={e => setForm(f => ({ ...f, announcement_title: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">תוכן ההודעה</label>
+                <textarea
+                  className="input min-h-[100px] resize-y"
+                  placeholder="פרטי ההודעה..."
+                  value={form.announcement_body}
+                  onChange={e => setForm(f => ({ ...f, announcement_body: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">צבע</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'gold', label: 'זהב', color: 'var(--color-gold)' },
+                    { value: 'red',  label: 'אדום', color: '#ef4444' },
+                    { value: 'blue', label: 'כחול', color: '#3b82f6' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, announcement_color: opt.value }))}
+                      className="px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
+                      style={{
+                        borderColor: form.announcement_color === opt.value ? opt.color : 'var(--color-border)',
+                        background: form.announcement_color === opt.value ? `${opt.color}22` : 'transparent',
+                        color: form.announcement_color === opt.value ? opt.color : 'var(--color-muted)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">תפוגה (אופציונלי)</label>
+                <input
+                  className="input"
+                  type="datetime-local"
+                  value={form.announcement_expires_at || ''}
+                  onChange={e => setForm(f => ({ ...f, announcement_expires_at: e.target.value || '' }))}
+                />
+                <p className="text-xs text-muted mt-1">אם לא תמלא — ההודעה תוצג ללא הגבלת זמן</p>
+              </div>
+            </div>
+          )}
+        </section>
+
         <button type="submit" disabled={saving} className="btn-primary text-base px-8 py-3">
           {saving ? 'שומר...' : 'שמור הגדרות'}
         </button>
