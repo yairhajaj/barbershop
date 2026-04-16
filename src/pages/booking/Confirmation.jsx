@@ -76,24 +76,43 @@ export function Confirmation() {
   async function confirmBooking() {
     setStatus('loading')
     try {
-      const apptData = {
+      const groupSize = bookingState.groupSize ?? 1
+      const duration  = bookingState.serviceDuration ?? 30
+
+      const baseData = {
         customer_id:       user.id,
         service_id:        bookingState.serviceId,
         staff_id:          bookingState.staffId ?? null,
         branch_id:         bookingState.branchId ?? null,
-        start_at:          bookingState.slotStart,
-        end_at:            bookingState.slotEnd,
         notes:             '',
         status:            'confirmed',
         reminder_opted_in: wantsReminder,
       }
 
       let appt
-      if (isRecurring && settings.recurring_appointments_enabled) {
-        const results = await createRecurringAppointments(apptData, settings.recurring_weeks_ahead ?? 12)
-        appt = results[0]
+      if (groupSize > 1) {
+        // Create N consecutive appointments
+        const rows = Array.from({ length: groupSize }, (_, i) => {
+          const start = new Date(new Date(bookingState.slotStart).getTime() + i * duration * 60_000)
+          const end   = new Date(start.getTime() + duration * 60_000)
+          return {
+            ...baseData,
+            start_at: start.toISOString(),
+            end_at:   end.toISOString(),
+            notes:    i === 0 ? `קבוצה של ${groupSize}` : `קבוצה של ${groupSize} · אדם ${i + 1}`,
+          }
+        })
+        const { data, error } = await supabase.from('appointments').insert(rows).select()
+        if (error) throw error
+        appt = data[0]
       } else {
-        appt = await createAppointment(apptData)
+        const apptData = { ...baseData, start_at: bookingState.slotStart, end_at: bookingState.slotEnd }
+        if (isRecurring && settings.recurring_appointments_enabled) {
+          const results = await createRecurringAppointments(apptData, settings.recurring_weeks_ahead ?? 12)
+          appt = results[0]
+        } else {
+          appt = await createAppointment(apptData)
+        }
       }
 
       // Save email to profile for customer management
@@ -193,8 +212,19 @@ export function Confirmation() {
           </motion.div>
 
           <h1 className="text-2xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-            התור נקבע בהצלחה!
+            {(bookingState.groupSize ?? 1) > 1
+              ? `${bookingState.groupSize} תורים נקבעו!`
+              : 'התור נקבע בהצלחה!'}
           </h1>
+
+          {(bookingState.groupSize ?? 1) > 1 && (
+            <div
+              className="my-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+              style={{ background: 'rgba(255,122,0,0.1)', color: 'var(--color-gold)' }}
+            >
+              👥 {bookingState.groupSize} תורים צמודים · {bookingState.groupSize * (bookingState.serviceDuration ?? 30)} דקות
+            </div>
+          )}
 
           {isRecurring && (
             <div
@@ -206,7 +236,9 @@ export function Confirmation() {
           )}
 
           <p className="text-sm mb-6" style={{ color: 'var(--color-muted)' }}>
-            נתראה ב{slotStart ? formatDateFull(slotStart) : ''} בשעה {slotStart ? formatTime(slotStart) : ''}
+            {(bookingState.groupSize ?? 1) > 1
+              ? `${formatDateFull(slotStart)} · ${formatTime(slotStart)} – ${formatTime(new Date(bookingState.slotGroupEnd ?? bookingState.slotEnd))}`
+              : `נתראה ב${slotStart ? formatDateFull(slotStart) : ''} בשעה ${slotStart ? formatTime(slotStart) : ''}`}
           </p>
 
           {/* Summary */}
@@ -286,9 +318,17 @@ export function Confirmation() {
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-            אישור התור
+            אישור {(bookingState.groupSize ?? 1) > 1 ? 'הזמנה קבוצתית' : 'התור'}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-muted)' }}>בדוק את הפרטים ואשר</p>
+          {(bookingState.groupSize ?? 1) > 1 && (
+            <div
+              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold"
+              style={{ background: 'rgba(255,122,0,0.10)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.2)' }}
+            >
+              👥 {bookingState.groupSize} תורים צמודים · {bookingState.groupSize * (bookingState.serviceDuration ?? 30)} דקות
+            </div>
+          )}
         </div>
 
         <button onClick={() => navigate('/book/datetime')} className="btn-ghost mb-4 text-sm">
@@ -387,6 +427,8 @@ export function Confirmation() {
         >
           {status === 'loading' ? (
             <><Spinner size="sm" className="border-white border-t-transparent" /> מאשר...</>
+          ) : (bookingState.groupSize ?? 1) > 1 ? (
+            `✓ אשר ${bookingState.groupSize} תורים צמודים`
           ) : isRecurring ? (
             `🔁 אשר ${settings.recurring_weeks_ahead ?? 12} תורים שבועיים`
           ) : (

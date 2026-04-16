@@ -131,19 +131,40 @@ export function SelectDateTime() {
     })
 
     const now = new Date()
-    const future = allSlots.filter(s => isToday(selectedDate) ? !isBefore(s.start, addMinutes(now, 30)) : true)
-    setAvailableSlots(future.sort((a, b) => a.start - b.start))
+    const future = allSlots
+      .filter(s => isToday(selectedDate) ? !isBefore(s.start, addMinutes(now, 30)) : true)
+      .sort((a, b) => a.start - b.start)
+
+    // ── Group booking: keep only slots with N consecutive free slots for the same staff ──
+    const groupSize = bookingState.groupSize ?? 1
+    if (groupSize > 1) {
+      const dur = (bookingState.serviceDuration ?? 30) * 60_000
+      const grouped = future.filter(slot => {
+        for (let n = 1; n < groupSize; n++) {
+          const nextTime = slot.start.getTime() + n * dur
+          if (!future.some(s => s.start.getTime() === nextTime && s.staffId === slot.staffId)) return false
+        }
+        return true
+      })
+      setAvailableSlots(grouped)
+    } else {
+      setAvailableSlots(future)
+    }
     setSlotsLoading(false)
   }
 
   function selectSlot(slot) {
+    const groupSize = bookingState.groupSize ?? 1
+    const dur       = (bookingState.serviceDuration ?? 30) * 60_000
+    const groupEnd  = new Date(slot.start.getTime() + groupSize * dur)
     const updated = {
       ...bookingState,
-      selectedDate: selectedDate.toISOString(),
-      slotStart: slot.start.toISOString(),
-      slotEnd:   slot.end.toISOString(),
-      staffId:   slot.staffId   ?? bookingState.staffId,
-      staffName: slot.staffName ?? bookingState.staffName,
+      selectedDate:  selectedDate.toISOString(),
+      slotStart:     slot.start.toISOString(),
+      slotEnd:       slot.end.toISOString(),
+      slotGroupEnd:  groupSize > 1 ? groupEnd.toISOString() : undefined,
+      staffId:       slot.staffId   ?? bookingState.staffId,
+      staffName:     slot.staffName ?? bookingState.staffName,
     }
     sessionStorage.setItem('booking_state', JSON.stringify(updated))
     navigate('/book/confirm')
@@ -326,6 +347,14 @@ export function SelectDateTime() {
           <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
             {bookingState.serviceName} · {bookingState.staffName ?? 'כל ספר פנוי'}
           </p>
+          {(bookingState.groupSize ?? 1) > 1 && (
+            <div
+              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold"
+              style={{ background: 'rgba(255,122,0,0.10)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.2)' }}
+            >
+              👥 קבוצה של {bookingState.groupSize} · {bookingState.groupSize * bookingState.serviceDuration} דקות סה״כ
+            </div>
+          )}
         </div>
 
         <button onClick={() => navigate('/book/staff')} className="btn-ghost mb-5 text-sm">
@@ -442,6 +471,11 @@ export function SelectDateTime() {
                   }}
                 >
                   {formatTime(slot.start)}
+                  {(bookingState.groupSize ?? 1) > 1 && (
+                    <div className="text-[9px] font-semibold mt-0.5 leading-none opacity-60">
+                      עד {formatTime(new Date(slot.start.getTime() + (bookingState.groupSize ?? 1) * (bookingState.serviceDuration ?? 30) * 60_000))}
+                    </div>
+                  )}
                   {!bookingState.staffId && (
                     <div className="text-[10px] font-medium mt-0.5 truncate" style={{ color: 'var(--color-muted)' }}>
                       {slot.staffName}
