@@ -190,12 +190,16 @@ export function generateSlots({
 }
 
 /**
- * Smart Scheduling: Filter slots based on 3 configurable options:
- * - adjacent: slots right before/after existing appointments
- * - startOfDay: first available slot of the day
- * - endOfDay: last available slot of the day
+ * Smart Scheduling: Filter slots to minimise gaps in the calendar.
+ *
+ * @param {Array}  availableSlots        - slots to filter
+ * @param {Array}  existingAppointments  - existing booked appointments
+ * @param {Date}   date                  - the day being evaluated
+ * @param {Object} smartScheduling       - { adjacent, startOfDay, endOfDay }
+ * @param {number} blockDurationMinutes  - total block length (for groups: serviceDuration × groupSize).
+ *                                         0 = use individual slot.end (single booking default).
  */
-function filterSlotsSmartScheduling(availableSlots, existingAppointments, date, smartScheduling = {}) {
+export function filterSlotsSmartScheduling(availableSlots, existingAppointments, date, smartScheduling = {}, blockDurationMinutes = 0) {
   if (availableSlots.length === 0) return []
 
   const {
@@ -220,15 +224,31 @@ function filterSlotsSmartScheduling(availableSlots, existingAppointments, date, 
     allowed.add(availableSlots[availableSlots.length - 1].start.getTime())
   }
 
-  // Adjacent to existing appointments
+  // Adjacent to ANY existing appointment (not just first/last).
+  // For groups: check whether the full block (slot.start → slot.start + blockDuration)
+  // is adjacent, so a group of 2×15 min fills a 30-min gap perfectly.
   if (adjacent && dayAppts.length > 0) {
-    const firstStart = new Date(dayAppts[0].start_at)
-    const lastEnd    = new Date(dayAppts[dayAppts.length - 1].end_at)
-
+    const TOLERANCE = 60_000 // 1 minute
     availableSlots.forEach(slot => {
-      const endsBeforeFirst = Math.abs(slot.end.getTime() - firstStart.getTime()) < 60000
-      const startsAfterLast = Math.abs(slot.start.getTime() - lastEnd.getTime()) < 60000
-      if (endsBeforeFirst || startsAfterLast) allowed.add(slot.start.getTime())
+      const blockEnd = blockDurationMinutes > 0
+        ? slot.start.getTime() + blockDurationMinutes * 60_000
+        : slot.end.getTime()
+
+      for (const appt of dayAppts) {
+        const apptStart = new Date(appt.start_at).getTime()
+        const apptEnd   = new Date(appt.end_at).getTime()
+
+        // Block ends right before this appointment starts (fills gap before)
+        if (Math.abs(blockEnd - apptStart) < TOLERANCE) {
+          allowed.add(slot.start.getTime())
+          break
+        }
+        // Block starts right after this appointment ends (fills gap after)
+        if (Math.abs(slot.start.getTime() - apptEnd) < TOLERANCE) {
+          allowed.add(slot.start.getTime())
+          break
+        }
+      }
     })
   }
 

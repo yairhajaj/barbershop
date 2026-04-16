@@ -11,7 +11,7 @@ import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useStaff } from '../../hooks/useStaff'
 import { joinWaitlist } from '../../hooks/useWaitlist'
-import { generateSlots, formatTime, dayName, isShabbatDay } from '../../lib/utils'
+import { generateSlots, filterSlotsSmartScheduling, formatTime, dayName, isShabbatDay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 
@@ -92,14 +92,13 @@ export function SelectDateTime() {
     const dayOfWeek = selectedDate.getDay()
     const businessDay = hours.find(h => h.day_of_week === dayOfWeek)
     const groupSize = bookingState.groupSize ?? 1
+    const serviceDuration = bookingState.serviceDuration ?? 30
 
     const staffToCheck = bookingState.staffId
       ? staff.filter(s => s.id === bookingState.staffId)
       : staff
 
     const allSlots = []
-    // Collect smart-approved timestamps across all staff (for group booking smart filter)
-    const allSmartTimestamps = new Set()
 
     staffToCheck.forEach(member => {
       const staffDay    = member.staff_hours?.find(h => h.day_of_week === dayOfWeek)
@@ -119,12 +118,12 @@ export function SelectDateTime() {
         endOfDay: settings.smart_end_of_day ?? true,
       }
 
-      // For group bookings, generate raw slots (smart scheduling OFF) so the
-      // elimination filter doesn't remove consecutive-group candidates before we check them.
-      // For single bookings, respect smart scheduling normally.
+      // For group bookings, generate raw slots (smart scheduling OFF) —
+      // smart scheduling will be applied later with group-block awareness.
+      // For single bookings, smart scheduling runs inside generateSlots normally.
       const rawSlots = generateSlots({
         date: selectedDate,
-        durationMinutes: bookingState.serviceDuration ?? 30,
+        durationMinutes: serviceDuration,
         staffHours: staffDay,
         businessHours: businessDay,
         existingAppointments: memberAppts,
@@ -134,25 +133,8 @@ export function SelectDateTime() {
         shabbatConfig,
       })
 
-      // For group bookings with smart scheduling ON, collect the timestamps that
-      // smart scheduling would have kept — used as a second filter after consecutive check.
-      if (groupSize > 1 && settings.smart_scheduling_enabled) {
-        const smartSlots = generateSlots({
-          date: selectedDate,
-          durationMinutes: bookingState.serviceDuration ?? 30,
-          staffHours: staffDay,
-          businessHours: businessDay,
-          existingAppointments: memberAppts,
-          blockedTimes,
-          recurringBreaks,
-          smartScheduling: smartBase,
-          shabbatConfig,
-        })
-        smartSlots.forEach(s => allSmartTimestamps.add(s.start.getTime()))
-      }
-
       rawSlots.forEach(slot => {
-        if (!allSlots.find(s => s.start.getTime() === slot.start.getTime())) {
+        if (!allSlots.find(s => s.start.getTime() === slot.start.getTime() && s.staffId === member.id)) {
           allSlots.push({ ...slot, staffId: member.id, staffName: member.name })
         }
       })
@@ -165,7 +147,8 @@ export function SelectDateTime() {
 
     // ── Group booking ──────────────────────────────────────────────────────────
     if (groupSize > 1) {
-      const dur = (bookingState.serviceDuration ?? 30) * 60_000
+      const dur = serviceDuration * 60_000
+      const totalBlockMins = serviceDuration * groupSize
 
       // Step 1: keep only slots that have N consecutive free slots for the same staff
       const grouped = future.filter(slot => {
@@ -176,10 +159,33 @@ export function SelectDateTime() {
         return true
       })
 
-      // Step 2: further filter by smart scheduling (gap-minimising slots only).
-      // If that would leave nothing, fall back to the full consecutive set.
-      if (settings.smart_scheduling_enabled && allSmartTimestamps.size > 0) {
-        const smartGrouped = grouped.filter(slot => allSmartTimestamps.has(slot.start.getTime()))
+      // Step 2: apply smart scheduling with full group-block awareness.
+      // Filter per-staff so gap detection is accurate for each barber's calendar.
+      if (settings.smart_scheduling_enabled) {
+        const byStaff = new Map()
+        grouped.forEach(slot => {
+          if (!byStaff.has(slot.staffId)) byStaff.set(slot.staffId, [])
+          byStaff.get(slot.staffId).push(slot)
+        })
+
+        const smartGrouped = []
+        for (const [staffId, staffSlots] of byStaff) {
+          const staffAppts = appointments.filter(a => a.staff_id === staffId)
+          const result = filterSlotsSmartScheduling(
+            staffSlots,
+            staffAppts,
+            selectedDate,
+            {
+              adjacent:   settings.smart_adjacent    ?? true,
+              startOfDay: settings.smart_start_of_day ?? true,
+              endOfDay:   settings.smart_end_of_day   ?? true,
+            },
+            totalBlockMins,
+          )
+          smartGrouped.push(...result)
+        }
+        smartGrouped.sort((a, b) => a.start - b.start)
+        // Fall back to full consecutive set if smart filter would leave nothing
         setAvailableSlots(smartGrouped.length > 0 ? smartGrouped : grouped)
       } else {
         setAvailableSlots(grouped)
