@@ -29,7 +29,7 @@ export function getShabbatTimes(date, config = {}) {
   const d = new Date(date)
   const dow = d.getDay()
   const friday = new Date(d)
-  friday.setDate(d.getDate() - ((dow + 1) % 7))  // go back to Friday
+  friday.setDate(d.getDate() - ((dow + 2) % 7))  // go back to Friday (5→0, 6→1, 0→2, ...)
   friday.setHours(0, 0, 0, 0)
 
   const saturday = new Date(friday)
@@ -119,8 +119,8 @@ export function generateSlots({
 }) {
   if (!staffHours?.is_working || businessHours?.is_closed) return []
 
-  // If shabbat mode is on and this entire day is within Shabbat, block everything
-  if (shabbatConfig?.enabled && isShabbatDay(date, shabbatConfig)) return []
+  // Don't early-return for Shabbat days — the per-slot check (below) correctly
+  // handles partial overlap (e.g. Friday before sunset is still available).
 
   // Use the intersection of staff hours and business hours so neither can exceed the other.
   // String comparison of "HH:MM" works correctly for ordering.

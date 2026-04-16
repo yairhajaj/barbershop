@@ -158,7 +158,8 @@ export function useAllAppointments({ startDate, endDate, staffId, status, branch
     if (endDate)   query = query.lte('start_at', endDate.toISOString())
     if (staffId)   query = query.eq('staff_id', staffId)
     if (status)    query = query.eq('status', status)
-    if (branchId)  query = query.eq('branch_id', branchId)
+    // Include appointments that match the selected branch OR have no branch set
+    if (branchId)  query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
 
     const { data, error } = await query
     if (error) setError(error.message)

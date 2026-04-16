@@ -88,7 +88,7 @@ export function MyAppointments() {
       supabase.from('appointments')
         .select('*')
         .eq('staff_id', rescheduleAppt.staff_id)
-        .in('status', ['confirmed'])
+        .in('status', ['confirmed', 'pending_reschedule'])
         .neq('id', rescheduleAppt.id)
         .gte('start_at', start.toISOString())
         .lte('start_at', end.toISOString()),

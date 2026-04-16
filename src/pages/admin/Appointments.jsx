@@ -262,7 +262,7 @@ export function Appointments() {
         supabase.from('appointments')
           .select('start_at, end_at, status')
           .eq('staff_id', staffId)
-          .in('status', ['confirmed'])
+          .in('status', ['confirmed', 'pending_reschedule'])
           .gte('start_at', dayStart.toISOString())
           .lte('start_at', dayEnd.toISOString()),
         supabase.from('blocked_times')
@@ -643,7 +643,7 @@ export function Appointments() {
           supabase.from('appointments')
             .select('start_at, end_at, status, id')
             .eq('staff_id', rescheduleStaff)
-            .in('status', ['confirmed'])
+            .in('status', ['confirmed', 'pending_reschedule'])
             .gte('start_at', dayStart.toISOString())
             .lte('start_at', dayEnd.toISOString()),
           supabase.from('blocked_times')
@@ -698,6 +698,7 @@ export function Appointments() {
         })
         .eq('id', rescheduleAppt.id)
       if (error) throw error
+      await refetch()
       toast({ message: 'מועד התור עודכן בהצלחה', type: 'success' })
       setRescheduleOpen(false)
       setRescheduleAppt(null)
@@ -1376,7 +1377,7 @@ export function Appointments() {
                             border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
                             minWidth:   '52px',
                           }}>
-                          <span className="text-[10px] font-bold opacity-80">{dayName(d)}</span>
+                          <span className="text-[10px] font-bold opacity-80">{dayName(d.getDay())}</span>
                           <span className="text-sm font-black">{format(d, 'd')}</span>
                           <span className="text-[10px] opacity-70">{format(d, 'M/yy')}</span>
                         </button>
@@ -1606,7 +1607,7 @@ export function Appointments() {
                           {active && (
                             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-[9px] font-black flex items-center justify-center" style={{ color: 'var(--color-gold)', border: '1.5px solid var(--color-gold)' }}>✓</span>
                           )}
-                          <span className="text-[10px] font-bold opacity-80">{dayName(d)}</span>
+                          <span className="text-[10px] font-bold opacity-80">{dayName(d.getDay())}</span>
                           <span className="text-sm font-black">{format(d, 'd')}</span>
                           <span className="text-[10px] opacity-70">{format(d, 'M/yy')}</span>
                         </button>
