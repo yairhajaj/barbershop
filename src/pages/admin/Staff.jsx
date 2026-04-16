@@ -120,7 +120,7 @@ export function Staff() {
       ? [branchId]
       : (currentBranch?.id ? [currentBranch.id] : [])
     setEditMember({
-      name: '', bio: '', photo_url: '', is_active: true,
+      name: '', bio: '', photo_url: '', video_url: '', is_active: true,
       staff_branches: defaultBranches,
       staff_hours: DEFAULT_STAFF_HOURS,
       staff_services: services.map(s => s.id),
@@ -616,6 +616,26 @@ export function Staff() {
                   folder="staff"
                   label="העלאת תמונה"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">וידאו פרופיל</label>
+                <ImageUpload
+                  value={editMember.video_url}
+                  onUrl={url => setEditMember(m => ({ ...m, video_url: url }))}
+                  folder="staff-videos"
+                  label="העלאת וידאו"
+                  accept="video/*"
+                />
+                {editMember.video_url && (
+                  <button
+                    type="button"
+                    className="text-xs mt-1 underline"
+                    style={{ color: 'var(--color-muted)' }}
+                    onClick={() => setEditMember(m => ({ ...m, video_url: '' }))}
+                  >
+                    הסר וידאו
+                  </button>
+                )}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">ביוגרפיה</label>
