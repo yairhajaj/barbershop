@@ -122,8 +122,17 @@ export function generateSlots({
   // If shabbat mode is on and this entire day is within Shabbat, block everything
   if (shabbatConfig?.enabled && isShabbatDay(date, shabbatConfig)) return []
 
-  const dayStart = parseDateWithTime(date, staffHours.start_time || businessHours.open_time)
-  const dayEnd   = parseDateWithTime(date, staffHours.end_time   || businessHours.close_time)
+  // Use the intersection of staff hours and business hours so neither can exceed the other.
+  // String comparison of "HH:MM" works correctly for ordering.
+  const effectiveStart = staffHours.start_time && businessHours?.open_time
+    ? (staffHours.start_time > businessHours.open_time ? staffHours.start_time : businessHours.open_time)
+    : staffHours.start_time || businessHours?.open_time
+  const effectiveEnd = staffHours.end_time && businessHours?.close_time
+    ? (staffHours.end_time < businessHours.close_time ? staffHours.end_time : businessHours.close_time)
+    : staffHours.end_time || businessHours?.close_time
+
+  const dayStart = parseDateWithTime(date, effectiveStart)
+  const dayEnd   = parseDateWithTime(date, effectiveEnd)
 
   if (!dayStart || !dayEnd) return []
 
