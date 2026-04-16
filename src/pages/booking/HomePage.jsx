@@ -16,6 +16,66 @@ import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale'
 
+function StaffVideoCard({ member, portfolioMode }) {
+  const videoRef = useRef(null)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    if (!member.video_url || !videoRef.current || !containerRef.current) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          videoRef.current?.play().catch(() => {})
+        } else {
+          if (videoRef.current) {
+            videoRef.current.pause()
+            videoRef.current.currentTime = 0
+          }
+        }
+      },
+      { threshold: 0.5 }
+    )
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [member.video_url])
+
+  return (
+    <div ref={containerRef} className="relative h-64 bg-gray-100 overflow-hidden">
+      {member.video_url ? (
+        <motion.video
+          ref={videoRef}
+          src={member.video_url}
+          className="w-full h-full object-cover"
+          muted
+          loop
+          playsInline
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+      ) : member.photo_url ? (
+        <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.05))' }}>
+          <span className="text-7xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.4 }}>{member.name[0]}</span>
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 h-20" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
+      <div className="absolute bottom-3 right-3 left-3">
+        <h3 className="text-base font-black text-white leading-tight">{member.name}</h3>
+        {member.bio && <p className="text-xs text-white/70 mt-0.5 line-clamp-1">{member.bio}</p>}
+      </div>
+      {portfolioMode === 'story' && (
+        <div className="absolute top-3 right-3 left-3 flex gap-0.5">
+          {[...Array(Math.min(5, 3))].map((_, i) => (
+            <div key={i} className="flex-1 h-0.5 rounded-full bg-white/50" />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function HomePage() {
   const { services, loading: servicesLoading } = useServices({ activeOnly: true })
   const { staff, loading: staffLoading } = useStaff({ activeOnly: true })
@@ -220,14 +280,26 @@ export function HomePage() {
                 <Link to="/my-appointments" className="text-xs font-semibold" style={{ color: 'var(--color-gold)' }}>כל התורים ←</Link>
               </div>
 
-              {/* Card — uses theme variables so it adapts to the chosen layout */}
+              {/* Card — glassmorphism: dark glass for midnight/luxury, light frosted for other themes */}
               <div
                 className="rounded-3xl p-5"
-                style={{
-                  background: 'var(--color-card)',
-                  border: '1px solid var(--color-border)',
-                  boxShadow: 'var(--shadow-card)',
-                }}
+                style={
+                  theme === 'midnight' || layout === 'luxury'
+                    ? {
+                        background: 'rgba(255,255,255,0.07)',
+                        backdropFilter: 'blur(28px) saturate(1.5)',
+                        WebkitBackdropFilter: 'blur(28px) saturate(1.5)',
+                        border: '1px solid rgba(255,255,255,0.11)',
+                        boxShadow: '0 8px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+                      }
+                    : {
+                        background: 'rgba(255,255,255,0.78)',
+                        backdropFilter: 'blur(24px) saturate(1.6)',
+                        WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                        border: '1px solid rgba(255,255,255,0.92)',
+                        boxShadow: '0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,1)',
+                      }
+                }
               >
                 {/* Top row: avatar + service info */}
                 <div className="flex items-center gap-3 mb-4">
@@ -265,7 +337,11 @@ export function HomePage() {
                 {/* Date + time row — separated by subtle divider */}
                 <div
                   className="rounded-2xl p-3 mb-4 flex items-center gap-3"
-                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+                  style={
+                    theme === 'midnight' || layout === 'luxury'
+                      ? { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
+                      : { background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }
+                  }
                 >
                   {/* Date block */}
                   <div className="flex-1">
@@ -306,7 +382,11 @@ export function HomePage() {
                   <Link
                     to="/my-appointments"
                     className="flex-1 text-center text-sm font-bold py-3 rounded-2xl transition-all"
-                    style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
+                    style={
+                      theme === 'midnight' || layout === 'luxury'
+                        ? { background: 'rgba(255,255,255,0.07)', color: 'var(--color-text)', border: '1px solid rgba(255,255,255,0.1)' }
+                        : { background: 'rgba(0,0,0,0.05)', color: 'var(--color-text)', border: '1px solid rgba(0,0,0,0.07)' }
+                    }
                   >
                     ניהול
                   </Link>
@@ -385,31 +465,8 @@ export function HomePage() {
                 style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
                 onClick={() => setPortfolioMember(member)}
               >
-                {/* Photo */}
-                <div className="relative h-64 bg-gray-100 overflow-hidden">
-                  {member.photo_url ? (
-                    <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.15), rgba(201,169,110,0.05))' }}>
-                      <span className="text-7xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.4 }}>{member.name[0]}</span>
-                    </div>
-                  )}
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-x-0 bottom-0 h-20" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
-                  <div className="absolute bottom-3 right-3 left-3">
-                    <h3 className="text-base font-black text-white leading-tight">{member.name}</h3>
-                    {member.bio && <p className="text-xs text-white/70 mt-0.5 line-clamp-1">{member.bio}</p>}
-                  </div>
-
-                  {/* Story indicator dots (if story mode) */}
-                  {portfolioMode === 'story' && (
-                    <div className="absolute top-3 right-3 left-3 flex gap-0.5">
-                      {[...Array(Math.min(5, 3))].map((_, i) => (
-                        <div key={i} className="flex-1 h-0.5 rounded-full bg-white/50" />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* Photo / Video */}
+                <StaffVideoCard member={member} portfolioMode={portfolioMode} />
 
                 {/* Actions */}
                 <div className="p-3 flex gap-2">
