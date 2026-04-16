@@ -15,13 +15,13 @@ const BASE_NAV_LINKS = [
   { to: '/admin/staff',        label: 'ספרים',       icon: '✂' },
   { to: '/admin/services',     label: 'שירותים',     icon: '📋' },
   { to: '/admin/products',     label: 'מוצרים',      icon: '🛍️' },
-  { to: '/admin/invoices',     label: 'חשבוניות',    icon: '🧾' },
+  { to: '/admin/finance',      label: 'פיננסים',     icon: '💰' },
   { to: '/admin/messages',     label: 'הודעות',      icon: '📨' },
   { to: '/admin/appearance',   label: 'עיצוב',       icon: '🎨' },
   { to: '/admin/settings',     label: 'הגדרות',      icon: '⚙' },
 ]
 
-const PAYMENT_LINK = { to: '/admin/payments', label: 'תשלומים', icon: '💳' }
+// Payment link removed — merged into /admin/finance
 
 // Bottom toolbar: 2 left + center (elevated) + 2 right + more
 const BOTTOM_LEFT  = [
@@ -38,8 +38,7 @@ const BOTTOM_MORE = [
   { to: '/admin/staff',        label: 'ספרים',   icon: '✂️' },
   { to: '/admin/services',     label: 'שירותים', icon: '📋' },
   { to: '/admin/products',     label: 'מוצרים',  icon: '🛍️' },
-  { to: '/admin/payments',     label: 'תשלומים', icon: '💳' },
-  { to: '/admin/invoices',     label: 'חשבוניות',icon: '🧾' },
+  { to: '/admin/finance',      label: 'פיננסים', icon: '💰' },
   { to: '/admin/waitlist',     label: 'המתנה',   icon: '⏳' },
   { to: '/admin/appearance',   label: 'עיצוב',   icon: '🎨' },
   { to: '/admin/settings',     label: 'הגדרות',  icon: '⚙️' },
@@ -161,8 +160,7 @@ export function AdminLayout({ children }) {
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  // Build nav links — TEMP: always show Payments for preview
-  const NAV_LINKS = [...BASE_NAV_LINKS.slice(0, 7), PAYMENT_LINK, ...BASE_NAV_LINKS.slice(7)]
+  const NAV_LINKS = BASE_NAV_LINKS
 
   // Scroll to top on every route change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])

@@ -26,13 +26,14 @@ import { Staff }        from './pages/admin/Staff'
 import { Services }     from './pages/admin/Services'
 import { Products }     from './pages/admin/Products'
 import { Settings }     from './pages/admin/Settings'
-import { Invoices }     from './pages/admin/Invoices'
+// import { Invoices }     from './pages/admin/Invoices' // redirected to /admin/finance
 import { Appearance }   from './pages/admin/Appearance'
 import { Messages }     from './pages/admin/Messages'
 import { Branches }        from './pages/admin/Branches'
 import { Customers }       from './pages/admin/Customers'
 import { Waitlist }        from './pages/admin/Waitlist'
-import { Payments }        from './pages/admin/Payments'
+// import { Payments }        from './pages/admin/Payments' // redirected to /admin/finance
+import { Finance }         from './pages/admin/Finance'
 import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
 import { SelectBranch }    from './pages/booking/SelectBranch'
 import { PrivacyPolicy }   from './pages/PrivacyPolicy'
@@ -117,7 +118,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/admin/invoices',
-    element: <AdminLayout><Invoices /></AdminLayout>,
+    element: <Navigate to="/admin/finance" replace />,
   },
   {
     path: '/admin/appearance',
@@ -141,7 +142,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/admin/payments',
-    element: <AdminLayout><Payments /></AdminLayout>,
+    element: <Navigate to="/admin/finance" replace />,
+  },
+  {
+    path: '/admin/finance',
+    element: <AdminLayout><Finance /></AdminLayout>,
   },
   {
     path: '/waitlist/confirm',

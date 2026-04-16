@@ -4,11 +4,14 @@ import { formatDate, formatTime } from './utils'
  * Opens a new browser window with a styled Hebrew invoice
  * and triggers the print dialog (user can Print → Save as PDF).
  */
-export function printInvoice({ appointment, business, footerText }) {
-  const invoiceNum = `INV-${appointment.id.slice(0, 8).toUpperCase()}`
+export function printInvoice({ appointment, business, footerText, vatRate = 18, businessType = 'osek_morsheh', invoiceNumber }) {
+  const invoiceNum = invoiceNumber || `INV-${appointment.id.slice(0, 8).toUpperCase()}`
   const price      = Number(appointment.services?.price) || 0
-  const priceBeforeVat = Math.round(price / 1.17)
-  const vat        = price - priceBeforeVat
+  const isPatur    = businessType === 'osek_patur'
+  const rate       = vatRate / 100
+  const priceBeforeVat = isPatur ? price : Math.round(price / (1 + rate))
+  const vat        = isPatur ? 0 : price - priceBeforeVat
+  const docTitle   = isPatur ? 'חשבונית עסקה' : 'חשבונית מס'
   const dateStr    = formatDate(appointment.start_at)
   const timeStr    = formatTime(appointment.start_at)
   const footer     = footerText || `תודה על בחירתך ב-${business.name}!`
@@ -18,7 +21,7 @@ export function printInvoice({ appointment, business, footerText }) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>חשבונית ${invoiceNum}</title>
+  <title>${docTitle} ${invoiceNum}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap');
 
@@ -164,7 +167,7 @@ export function printInvoice({ appointment, business, footerText }) {
         </div>
       </div>
       <div>
-        <div class="invoice-title">חשבונית</div>
+        <div class="invoice-title">${docTitle}</div>
         <div class="invoice-meta">
           מס׳: ${invoiceNum}<br>
           תאריך: ${dateStr}
@@ -207,14 +210,14 @@ export function printInvoice({ appointment, business, footerText }) {
 
       <div class="section">
         <div class="section-title">תשלום</div>
-        <div class="row">
+        ${isPatur ? '' : `<div class="row">
           <span class="row-label">מחיר לפני מע"מ</span>
           <span class="row-value">₪${priceBeforeVat}</span>
         </div>
         <div class="row">
-          <span class="row-label">מע"מ 17%</span>
+          <span class="row-label">מע"מ ${vatRate}%</span>
           <span class="row-value">₪${vat}</span>
-        </div>
+        </div>`}
         <div class="total-box">
           <span class="total-label">סה"כ לתשלום</span>
           <span class="total-value">₪${price}</span>

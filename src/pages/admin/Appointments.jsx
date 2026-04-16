@@ -1252,6 +1252,43 @@ export function Appointments() {
               </button>
             )}
 
+            {/* Cash payment button / badge */}
+            {selectedAppt.cash_paid ? (
+              <div className="text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
+                💵 מזומן
+              </div>
+            ) : selectedAppt.payment_status !== 'paid' && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={async () => {
+                  try {
+                    const { error: updErr } = await supabase.from('appointments').update({ cash_paid: true, payment_status: 'paid' }).eq('id', selectedAppt.id)
+                    if (updErr) throw updErr
+                    const { error: incErr } = await supabase.from('manual_income').insert({
+                      amount: selectedAppt.services?.price || 0,
+                      description: selectedAppt.services?.name || 'תור',
+                      customer_name: selectedAppt.profiles?.name || '',
+                      staff_id: selectedAppt.staff_id,
+                      service_id: selectedAppt.service_id,
+                      appointment_id: selectedAppt.id,
+                      payment_method: 'cash',
+                      date: selectedAppt.start_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+                    })
+                    if (incErr) throw incErr
+                    toast({ message: 'סומן כשולם במזומן ✓', type: 'success' })
+                    setSelectedAppt(null)
+                    await refetch()
+                  } catch (e) {
+                    toast({ message: e.message || 'שגיאה', type: 'error' })
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+                style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.3)' }}
+              >
+                💵 שולם במזומן
+              </motion.button>
+            )}
+
             {selectedAppt.status === 'confirmed' && (
               <div className="flex gap-2 pt-1 flex-wrap">
                 <button

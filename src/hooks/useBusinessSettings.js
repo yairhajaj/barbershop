@@ -34,6 +34,19 @@ const DEFAULT_SETTINGS = {
   grow_api_key:     '',
   grow_user_id:     '',
   grow_page_code:   '',
+  // Finance
+  vat_rate:                 18,
+  business_tax_id:          '',
+  business_type:            'osek_morsheh', // 'osek_morsheh' | 'osek_patur' | 'company'
+  invoice_prefix:           'INV',
+  invoice_next_number:      1,
+  accountant_name:          '',
+  accountant_email:         '',
+  accountant_phone:         '',
+  cash_tracking_enabled:    true,
+  commission_type:          'percentage', // 'percentage' | 'fixed' | 'salary'
+  commission_default_rate:  50,
+  openai_api_key:           '',
 }
 
 export function useBusinessSettings() {
