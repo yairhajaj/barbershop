@@ -32,6 +32,26 @@ export function Customers() {
 
   const { customers, loading, toggleBlock, fetchHistory, refetch } = useCustomers({ search: debouncedSearch })
   const showToast = useToast()
+  const [debtMap, setDebtMap] = useState({})
+
+  // Fetch pending debts for all customers whenever customer list changes
+  useEffect(() => {
+    if (!customers?.length) return
+    const ids = customers.map(c => c.id)
+    supabase
+      .from('customer_debts')
+      .select('customer_id, amount')
+      .eq('status', 'pending')
+      .in('customer_id', ids)
+      .then(({ data }) => {
+        if (!data) return
+        const map = {}
+        data.forEach(row => {
+          map[row.customer_id] = (map[row.customer_id] ?? 0) + Number(row.amount)
+        })
+        setDebtMap(map)
+      })
+  }, [customers])
 
   const supportsContacts = typeof navigator !== 'undefined' && 'contacts' in navigator
 
@@ -175,6 +195,7 @@ export function Customers() {
               onOpen={() => openCustomer(customer)}
               onBlock={e => handleBlock(e, customer)}
               waLink={waLink(customer.phone)}
+              pendingDebt={debtMap[customer.id] ?? 0}
             />
           ))}
         </div>
@@ -208,7 +229,7 @@ export function Customers() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Customer Row
 // ─────────────────────────────────────────────────────────────────────────────
-function CustomerRow({ customer, index, onOpen, onBlock, waLink }) {
+function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0 }) {
   const joinDate = customer.created_at ? formatDateShort(new Date(customer.created_at)) : '—'
 
   return (
@@ -246,6 +267,11 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink }) {
             {customer.is_blocked && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
                 חסום
+              </span>
+            )}
+            {pendingDebt > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+                חוב ₪{pendingDebt}
               </span>
             )}
           </div>

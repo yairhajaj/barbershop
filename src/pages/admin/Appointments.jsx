@@ -10,6 +10,7 @@ import {
   PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
 import { useAllAppointments } from '../../hooks/useAppointments'
+import { useCustomerDebts } from '../../hooks/useCustomerDebts'
 import { useStaff } from '../../hooks/useStaff'
 import { useServices } from '../../hooks/useServices'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
@@ -128,6 +129,10 @@ export function Appointments() {
   const [bookWlLockStaff,    setBookWlLockStaff]    = useState(false)
   const [bookChangeConfirm,  setBookChangeConfirm]  = useState(null) // { type, newId, newName, origName }
 
+  // Debt modal
+  const [debtModal, setDebtModal] = useState(false)
+  const [debtForm, setDebtForm] = useState({ amount: '', description: '' })
+
   // Reschedule appointment sheet
   const [rescheduleOpen,   setRescheduleOpen]   = useState(false)
   const [rescheduleAppt,   setRescheduleAppt]   = useState(null)
@@ -144,6 +149,7 @@ export function Appointments() {
 
   const toast = useToast()
   const { currentBranch } = useBranch()
+  const { debts: apptDebts, totalPending: apptDebtTotal, createDebt } = useCustomerDebts({ customerId: selectedAppt?.customer_id })
   const { breaks: recurringBreaks } = useRecurringBreaks()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { services } = useServices({ activeOnly: false })
@@ -1180,6 +1186,11 @@ export function Appointments() {
       <Modal open={!!selectedAppt} onClose={() => setSelectedAppt(null)} title="פרטי תור">
         {selectedAppt && (
           <div className="space-y-4">
+            {apptDebtTotal > 0 && (
+              <div className="text-center text-sm py-1.5 rounded-xl font-bold" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.25)' }}>
+                ⚠️ חוב: ₪{apptDebtTotal}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3 text-sm">
               {[
                 { label: 'לקוח', value: selectedAppt.profiles?.name },
@@ -1289,6 +1300,15 @@ export function Appointments() {
               </motion.button>
             )}
 
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setDebtForm({ amount: '', description: '' }); setDebtModal(true) }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+              style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.3)' }}
+            >
+              💳 הוסף חוב
+            </motion.button>
+
             {selectedAppt.status === 'confirmed' && (
               <div className="flex gap-2 pt-1 flex-wrap">
                 <button
@@ -1319,6 +1339,57 @@ export function Appointments() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* ── Debt Modal ── */}
+      <Modal open={debtModal} onClose={() => setDebtModal(false)} title="💳 הוספת חוב">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-text)' }}>סכום (₪)</label>
+            <input
+              type="number"
+              min="0"
+              value={debtForm.amount}
+              onChange={e => setDebtForm(f => ({ ...f, amount: e.target.value }))}
+              className="w-full rounded-xl px-3 py-2.5 text-sm"
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1" style={{ color: 'var(--color-text)' }}>תיאור</label>
+            <input
+              type="text"
+              value={debtForm.description}
+              onChange={e => setDebtForm(f => ({ ...f, description: e.target.value }))}
+              className="w-full rounded-xl px-3 py-2.5 text-sm"
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}
+              placeholder="תספורת לא שולמה"
+            />
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={async () => {
+              if (!debtForm.amount || Number(debtForm.amount) <= 0) return
+              try {
+                await createDebt({
+                  customer_id: selectedAppt.customer_id,
+                  appointment_id: selectedAppt.id,
+                  amount: Number(debtForm.amount),
+                  description: debtForm.description,
+                })
+                toast({ message: 'חוב נשמר ✓', type: 'success' })
+                setDebtModal(false)
+              } catch (e) {
+                toast({ message: e.message || 'שגיאה', type: 'error' })
+              }
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm"
+            style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.35)' }}
+          >
+            שמור חוב
+          </motion.button>
+        </div>
       </Modal>
 
       {/* ── Reschedule Bottom Sheet ── */}
