@@ -91,6 +91,7 @@ export function SelectDateTime() {
     setSlotsLoading(true)
     const dayOfWeek = selectedDate.getDay()
     const businessDay = hours.find(h => h.day_of_week === dayOfWeek)
+    const groupSize = bookingState.groupSize ?? 1
 
     const staffToCheck = bookingState.staffId
       ? staff.filter(s => s.id === bookingState.staffId)
@@ -99,33 +100,66 @@ export function SelectDateTime() {
     const allSlots = []
 
     staffToCheck.forEach(member => {
-      const staffDay = member.staff_hours?.find(h => h.day_of_week === dayOfWeek)
-      const slots = generateSlots({
+      const staffDay   = member.staff_hours?.find(h => h.day_of_week === dayOfWeek)
+      const memberAppts = appointments.filter(a => !bookingState.staffId || a.staff_id === member.id)
+      const shabbatConfig = {
+        enabled: settings.shabbat_mode,
+        lat: settings.shabbat_lat,
+        lng: settings.shabbat_lng,
+        offsetMinutes: settings.shabbat_offset_minutes,
+      }
+      const smartBase = {
+        enabled: settings.smart_scheduling_enabled,
+        freeCount: settings.free_slots_count,
+        appointmentCount: memberAppts.length,
+        adjacent: settings.smart_adjacent ?? true,
+        startOfDay: settings.smart_start_of_day ?? true,
+        endOfDay: settings.smart_end_of_day ?? true,
+      }
+
+      // For group bookings, generate raw slots (smart scheduling OFF) so the
+      // elimination filter doesn't remove consecutive-group candidates before we check them.
+      // For single bookings, respect smart scheduling normally.
+      const rawSlots = generateSlots({
         date: selectedDate,
         durationMinutes: bookingState.serviceDuration ?? 30,
         staffHours: staffDay,
         businessHours: businessDay,
-        existingAppointments: appointments.filter(a => !bookingState.staffId || a.staff_id === member.id),
+        existingAppointments: memberAppts,
         blockedTimes,
         recurringBreaks,
-        smartScheduling: {
-          enabled: settings.smart_scheduling_enabled,
-          freeCount: settings.free_slots_count,
-          appointmentCount: appointments.filter(a => !bookingState.staffId || a.staff_id === member.id).length,
-          adjacent: settings.smart_adjacent ?? true,
-          startOfDay: settings.smart_start_of_day ?? true,
-          endOfDay: settings.smart_end_of_day ?? true,
-        },
-        shabbatConfig: {
-          enabled: settings.shabbat_mode,
-          lat: settings.shabbat_lat,
-          lng: settings.shabbat_lng,
-          offsetMinutes: settings.shabbat_offset_minutes,
-        },
+        smartScheduling: groupSize > 1 ? { enabled: false } : smartBase,
+        shabbatConfig,
       })
-      slots.forEach(slot => {
+
+      // For group bookings, separately compute which slots smart scheduling would
+      // have kept — these become "recommended" (demoted, not eliminated).
+      const smartTimestamps = new Set()
+      if (groupSize > 1 && settings.smart_scheduling_enabled) {
+        const smartSlots = generateSlots({
+          date: selectedDate,
+          durationMinutes: bookingState.serviceDuration ?? 30,
+          staffHours: staffDay,
+          businessHours: businessDay,
+          existingAppointments: memberAppts,
+          blockedTimes,
+          recurringBreaks,
+          smartScheduling: smartBase,
+          shabbatConfig,
+        })
+        smartSlots.forEach(s => smartTimestamps.add(s.start.getTime()))
+      }
+
+      rawSlots.forEach(slot => {
         if (!allSlots.find(s => s.start.getTime() === slot.start.getTime())) {
-          allSlots.push({ ...slot, staffId: member.id, staffName: member.name })
+          allSlots.push({
+            ...slot,
+            staffId:     member.id,
+            staffName:   member.name,
+            recommended: groupSize > 1 && smartTimestamps.size > 0
+              ? smartTimestamps.has(slot.start.getTime())
+              : false,
+          })
         }
       })
     })
@@ -135,8 +169,7 @@ export function SelectDateTime() {
       .filter(s => isToday(selectedDate) ? !isBefore(s.start, addMinutes(now, 30)) : true)
       .sort((a, b) => a.start - b.start)
 
-    // ── Group booking: keep only slots with N consecutive free slots for the same staff ──
-    const groupSize = bookingState.groupSize ?? 1
+    // ── Group booking: keep only slots that have N consecutive free slots for the same staff ──
     if (groupSize > 1) {
       const dur = (bookingState.serviceDuration ?? 30) * 60_000
       const grouped = future.filter(slot => {
@@ -145,6 +178,11 @@ export function SelectDateTime() {
           if (!future.some(s => s.start.getTime() === nextTime && s.staffId === slot.staffId)) return false
         }
         return true
+      })
+      // Surface smart-recommended slots first, then chronological
+      grouped.sort((a, b) => {
+        if (a.recommended !== b.recommended) return a.recommended ? -1 : 1
+        return a.start - b.start
       })
       setAvailableSlots(grouped)
     } else {
@@ -449,27 +487,31 @@ export function SelectDateTime() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.02 }}
                   onClick={() => selectSlot(slot)}
-                  className="py-3 px-2 border-2 transition-all text-sm font-bold text-center"
+                  className="py-3 px-2 border-2 transition-all text-sm font-bold text-center relative"
                   style={{
-                    background: 'var(--color-card)',
-                    borderColor: 'var(--color-border)',
-                    color: 'var(--color-text)',
+                    background:   slot.recommended ? 'rgba(255,122,0,0.08)' : 'var(--color-card)',
+                    borderColor:  slot.recommended ? 'var(--color-gold)'    : 'var(--color-border)',
+                    color:        'var(--color-text)',
                     borderRadius: 'var(--radius-btn)',
-                    transition: 'all var(--ui-transition, 200ms ease)',
+                    transition:   'all var(--ui-transition, 200ms ease)',
+                    boxShadow:    slot.recommended ? '0 2px 10px rgba(255,122,0,0.15)' : 'none',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'var(--color-gold)'
+                    e.currentTarget.style.background  = 'var(--color-gold)'
                     e.currentTarget.style.borderColor = 'var(--color-gold)'
-                    e.currentTarget.style.color = '#fff'
-                    e.currentTarget.style.boxShadow = '0 2px 12px rgba(255,122,0,0.25)'
+                    e.currentTarget.style.color       = '#fff'
+                    e.currentTarget.style.boxShadow   = '0 2px 12px rgba(255,122,0,0.25)'
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = 'var(--color-card)'
-                    e.currentTarget.style.borderColor = 'var(--color-border)'
-                    e.currentTarget.style.color = 'var(--color-text)'
-                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.background  = slot.recommended ? 'rgba(255,122,0,0.08)' : 'var(--color-card)'
+                    e.currentTarget.style.borderColor = slot.recommended ? 'var(--color-gold)'    : 'var(--color-border)'
+                    e.currentTarget.style.color       = 'var(--color-text)'
+                    e.currentTarget.style.boxShadow   = slot.recommended ? '0 2px 10px rgba(255,122,0,0.15)' : 'none'
                   }}
                 >
+                  {slot.recommended && (
+                    <span className="absolute top-0.5 left-1 text-[8px] leading-none" style={{ color: 'var(--color-gold)' }}>⭐</span>
+                  )}
                   {formatTime(slot.start)}
                   {(bookingState.groupSize ?? 1) > 1 && (
                     <div className="text-[9px] font-semibold mt-0.5 leading-none opacity-60">
