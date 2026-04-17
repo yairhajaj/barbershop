@@ -1708,7 +1708,7 @@ export function Appointments() {
               </motion.button>
             )}
 
-            {selectedAppt.status === 'confirmed' && (
+            {selectedAppt.status === 'confirmed' && !(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
               <div className="flex gap-2 pt-1 flex-wrap">
                 <button
                   onClick={() => handleNoShow(selectedAppt.id)}
