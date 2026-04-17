@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { supabase } from '../lib/supabase'
+import { useBusinessSettings } from './useBusinessSettings'
 
 /**
  * Aggregation hook for the finance dashboard.
@@ -11,8 +12,9 @@ export function useFinanceDashboard() {
   const [monthly, setMonthly]   = useState([]) // last 6 months
   const [recent, setRecent]     = useState([]) // recent feed
   const [loading, setLoading]   = useState(true)
+  const { settings } = useBusinessSettings()
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => { if (settings !== undefined) fetchAll() }, [settings])
 
   async function fetchAll() {
     setLoading(true)
@@ -37,10 +39,16 @@ export function useFinanceDashboard() {
         .lte('date', monthEnd),
     ])
 
+    const vatRate    = Number(settings?.vat_rate ?? 18)
+    const isPatur    = settings?.business_type === 'osek_patur'
+    const rate       = vatRate / 100
+    const calcVatFromAmount = amt => isPatur ? 0 : Math.round(amt - amt / (1 + rate))
+
     const paymentIncome = (paymentsRes.data ?? []).reduce((s, p) => s + Number(p.amount), 0)
     const manualIncome  = (manualRes.data ?? []).reduce((s, p) => s + Number(p.amount), 0)
     const totalIncome   = paymentIncome + manualIncome
-    const incomeVat     = (manualRes.data ?? []).reduce((s, p) => s + Number(p.vat_amount || 0), 0)
+    const incomeVat     = (paymentsRes.data ?? []).reduce((s, p) => s + calcVatFromAmount(Number(p.amount)), 0)
+                        + (manualRes.data ?? []).reduce((s, p) => s + calcVatFromAmount(Number(p.amount)), 0)
 
     const totalExpenses = (expensesRes.data ?? []).reduce((s, e) => s + Number(e.amount), 0)
     const expenseVat    = (expensesRes.data ?? []).reduce((s, e) => s + Number(e.vat_amount || 0), 0)
