@@ -70,8 +70,8 @@ export function SelectService() {
                 aria-pressed={groupSize === n}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border-2"
                 style={{
-                  background:  groupSize === n ? 'var(--color-gold)'   : 'var(--color-surface)',
-                  borderColor: groupSize === n ? 'var(--color-gold)'   : 'var(--color-border)',
+                  background:  groupSize === n ? 'var(--color-gold-btn, var(--color-gold))' : 'var(--color-surface)',
+                  borderColor: groupSize === n ? 'var(--color-gold-btn, var(--color-gold))' : 'var(--color-border)',
                   color:       groupSize === n ? '#fff'                 : 'var(--color-text)',
                   boxShadow:   groupSize === n ? '0 2px 12px rgba(255,122,0,0.22)' : 'none',
                 }}

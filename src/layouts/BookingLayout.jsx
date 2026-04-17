@@ -467,7 +467,7 @@ export function BookingLayout({ children }) {
             to={bookHref}
             className="flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl"
             style={{
-              background: 'var(--color-gold)',
+              background: 'var(--color-gold-btn, var(--color-gold))',
               color: '#fff',
               boxShadow: '0 10px 36px var(--color-accent-glow), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.22)',
               transform: 'translateY(-8px)',
