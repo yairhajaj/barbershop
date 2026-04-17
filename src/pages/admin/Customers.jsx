@@ -21,6 +21,7 @@ export function Customers() {
   const [selectedCustomer, setSelected] = useState(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [history, setHistory]         = useState([])
+  const [customerDebts, setCustomerDebts] = useState([])
   const debounceRef = useRef(null)
 
   // Debounce search
@@ -59,10 +60,19 @@ export function Customers() {
   async function openCustomer(customer) {
     setSelected(customer)
     setHistory([])
+    setCustomerDebts([])
     setHistoryLoading(true)
     try {
-      const data = await fetchHistory(customer.id)
+      const [data, { data: debts }] = await Promise.all([
+        fetchHistory(customer.id),
+        supabase
+          .from('customer_debts')
+          .select('*')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false }),
+      ])
       setHistory(data)
+      setCustomerDebts(debts || [])
     } finally {
       setHistoryLoading(false)
     }
@@ -208,6 +218,7 @@ export function Customers() {
             customer={selectedCustomer}
             history={history}
             historyLoading={historyLoading}
+            customerDebts={customerDebts}
             onClose={() => setSelected(null)}
             onToggleBlock={async () => {
               await toggleBlock(selectedCustomer.id, !selectedCustomer.is_blocked)
@@ -339,7 +350,7 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
 // ─────────────────────────────────────────────────────────────────────────────
 // Customer Modal
 // ─────────────────────────────────────────────────────────────────────────────
-function CustomerModal({ customer, history, historyLoading, onClose, onToggleBlock, onSaveToContacts, waLink }) {
+function CustomerModal({ customer, history, historyLoading, customerDebts = [], onClose, onToggleBlock, onSaveToContacts, waLink }) {
   const joinDate = customer.created_at ? formatDateFull(new Date(customer.created_at)) : '—'
   const lastDate = customer.lastDate   ? formatDateFull(new Date(customer.lastDate))   : '—'
 
@@ -483,6 +494,38 @@ function CustomerModal({ customer, history, historyLoading, onClose, onToggleBlo
             </div>
           )}
         </div>
+
+        {/* Debt History */}
+        {customerDebts.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-muted)' }}>
+              היסטוריית חובות
+            </h3>
+            <div className="flex flex-col gap-2">
+              {customerDebts.map(d => (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between px-3 py-2 rounded-xl text-sm"
+                  style={{
+                    background: d.status === 'paid' ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                    border: `1px solid ${d.status === 'paid' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                  }}
+                >
+                  <div>
+                    <div className="font-medium" style={{ color: 'var(--color-text)' }}>{d.description}</div>
+                    <div className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                      {formatDateShort(new Date(d.created_at))}
+                      {d.status === 'paid' && d.paid_at && ` · שולם ${formatDateShort(new Date(d.paid_at))}`}
+                    </div>
+                  </div>
+                  <div className="font-bold text-sm" style={{ color: d.status === 'paid' ? '#16a34a' : '#dc2626' }}>
+                    ₪{Number(d.amount).toLocaleString('he-IL')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   )
