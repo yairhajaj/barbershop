@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { BookingLayout } from './layouts/BookingLayout'
 import { AdminLayout } from './layouts/AdminLayout'
 import { PageSpinner } from './components/ui/Spinner'
+import { AdminSkeleton } from './components/feedback/AdminSkeleton'
 
 // Booking pages — HomePage is NOT lazy so landing page loads fast
 import { HomePage } from './pages/booking/HomePage'
@@ -50,7 +51,7 @@ const Finance      = lazy(() => import('./pages/admin/Finance').then(m => ({ def
 function AdminRoute({ children }) {
   return (
     <AdminLayout>
-      <Suspense fallback={<PageSpinner />}>
+      <Suspense fallback={<AdminSkeleton />}>
         {children}
       </Suspense>
     </AdminLayout>
