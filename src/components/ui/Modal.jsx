@@ -1,7 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAndroidBack } from '../../hooks/useAndroidBack'
 
 export function Modal({ open, onClose, title, children, size = 'md' }) {
+  // Android hardware back button closes the modal
+  const handleBack = useCallback(() => { if (open) onClose() }, [open, onClose])
+  useAndroidBack(handleBack, open)
+
   // iOS-safe body scroll lock using position:fixed
   // overflow:hidden alone does NOT prevent touch scrolling on mobile Safari
   useEffect(() => {

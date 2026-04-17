@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { useBranch } from '../contexts/BranchContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
+import { useAndroidBack } from '../hooks/useAndroidBack'
 import { BUSINESS } from '../config/business'
 import { PageSpinner } from '../components/ui/Spinner'
 
@@ -167,6 +168,10 @@ export function AdminLayout({ children }) {
 
   // Close sheet on route change
   useEffect(() => { setSheetOpen(false) }, [location.pathname])
+
+  // Android back button: close the "More" sheet instead of leaving the screen
+  const handleAndroidBack = useCallback(() => { setSheetOpen(false) }, [])
+  useAndroidBack(handleAndroidBack, sheetOpen)
 
   if (loading) return <PageSpinner />
   if (!user || profile?.role !== 'admin') return <Navigate to="/login" replace />
