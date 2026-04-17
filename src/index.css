@@ -85,6 +85,30 @@
   --shadow-elevated:     0 8px 24px rgba(0,0,0,0.1);
 }
 
+/* ── Status tokens — theme-agnostic, added once on :root ─────────
+   Intentionally NOT inside any theme block so they never get
+   overridden and remain consistent across all 7 themes.
+   -bg   = subtle tinted background (for banners / badges)
+   -border = matching border / ring color
+───────────────────────────────────────────────────────────────── */
+:root {
+  --color-success:        #16a34a;
+  --color-success-bg:     #f0fdf4;
+  --color-success-border: #86efac;
+
+  --color-danger:         #dc2626;
+  --color-danger-bg:      #fef2f2;
+  --color-danger-border:  #fca5a5;
+
+  --color-warning:        #d97706;
+  --color-warning-bg:     #fffbeb;
+  --color-warning-border: #fcd34d;
+
+  --color-info:           #2563eb;
+  --color-info-bg:        #eff6ff;
+  --color-info-border:    #93c5fd;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    THEME: rose — ורוד (feminine pink)
 ══════════════════════════════════════════════════════════════════ */
