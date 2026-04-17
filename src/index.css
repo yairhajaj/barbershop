@@ -1048,6 +1048,14 @@
   50%      { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 28px rgba(var(--glow-rgb, 245,158,11), 0.06); }
 }
 
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none !important; }
+}
+
 /* ── Cards — glass with warm inner light ── */
 [data-layout="noir"] .booking-root .card {
   border-radius: 1.125rem !important;
