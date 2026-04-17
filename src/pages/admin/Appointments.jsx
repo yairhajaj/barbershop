@@ -596,9 +596,18 @@ export function Appointments() {
         .update({ payment_status: 'paid', cash_paid: method === 'cash' })
         .eq('id', appt.id)
 
-      // 2. Record income
+      // 2. Calculate VAT
+      const vatRate = settings?.vat_rate || 18
+      const businessType = settings?.business_type || 'osek_morsheh'
+      const price = Number(appt.services?.price) || 0
+      const isPatur = businessType === 'osek_patur'
+      const priceBeforeVat = isPatur ? price : Math.round(price / (1 + vatRate / 100))
+      const vatAmount = isPatur ? 0 : price - priceBeforeVat
+
+      // 3. Record income
       await supabase.from('manual_income').insert({
-        amount: appt.services?.price || 0,
+        amount: price,
+        vat_amount: vatAmount,
         description: appt.services?.name || 'תור',
         customer_name: appt.profiles?.name || '',
         staff_id: appt.staff_id,
@@ -608,17 +617,9 @@ export function Appointments() {
         date: appt.start_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
       })
 
-      // 3. Get sequential invoice number
+      // 4. Get sequential invoice number
       const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
       if (numErr) throw numErr
-
-      // 4. Calculate VAT
-      const vatRate = settings?.vat_rate || 18
-      const businessType = settings?.business_type || 'osek_morsheh'
-      const price = Number(appt.services?.price) || 0
-      const isPatur = businessType === 'osek_patur'
-      const priceBeforeVat = isPatur ? price : Math.round(price / (1 + vatRate / 100))
-      const vatAmount = isPatur ? 0 : price - priceBeforeVat
 
       // 5. Save invoice to DB
       const { data: inv, error: invErr } = await supabase.from('invoices').insert({

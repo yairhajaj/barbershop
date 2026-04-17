@@ -121,11 +121,8 @@ export function TaxReportTab() {
     })
     ;(manualIncome ?? []).forEach(m => {
       const amt = Number(m.amount || 0)
-      const storedVat = m.vat_amount != null ? Number(m.vat_amount) : null
       const rate = vatRate / 100
-      const vat = showVat
-        ? (storedVat !== null ? storedVat : Math.round(amt - amt / (1 + rate)))
-        : 0
+      const vat  = showVat ? Math.round(amt - amt / (1 + rate)) : 0
       addInc(m.payment_method || 'cash', amt, vat)
     })
 
