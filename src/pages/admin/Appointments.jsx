@@ -22,7 +22,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
 import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
-import { printInvoice } from '../../lib/invoice'
+import { printInvoice, generateInvoiceHTML } from '../../lib/invoice'
 import { BUSINESS } from '../../config/business'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -666,6 +666,39 @@ export function Appointments() {
   async function handlePrintExistingInvoice(appt) {
     const { data: inv } = await supabase.from('invoices').select('*').eq('appointment_id', appt.id).maybeSingle()
     doPrintInvoice(appt, inv)
+  }
+
+  async function shareInvoiceWhatsApp(appt, inv, phone) {
+    const html = generateInvoiceHTML({
+      appointment: appt,
+      business: BUSINESS,
+      footerText: settings?.invoice_footer_text,
+      vatRate: settings?.vat_rate || 18,
+      businessType: settings?.business_type || 'osek_morsheh',
+      invoiceNumber: inv?.invoice_number,
+      businessTaxId: settings?.business_tax_id,
+      paymentMethod: inv?.notes || inv?.paymentMethod,
+      invoiceDate: inv?.created_at,
+    })
+    const fileName = `חשבונית-${inv?.invoice_number || 'invoice'}.html`
+    const blob = new Blob([html], { type: 'text/html' })
+    const file = new File([blob], fileName, { type: 'text/html' })
+    const rawPhone = (phone || '').replace(/\D/g, '')
+    const waPhone = rawPhone.startsWith('0') ? '972' + rawPhone.slice(1) : rawPhone
+
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `חשבונית ${inv?.invoice_number || ''}` })
+        return
+      } catch { /* user cancelled or not supported */ }
+    }
+    // Fallback: download file + open WhatsApp
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = fileName; a.click()
+    URL.revokeObjectURL(url)
+    if (waPhone) window.open(`https://wa.me/${waPhone}`, '_blank')
+    toast({ message: 'החשבונית הורדה — צרף אותה בווצאפ', type: 'success' })
   }
 
   async function handleComplete(id) {
@@ -1583,14 +1616,6 @@ export function Appointments() {
 
               // Invoice just created — show success + actions
               if (invoiceStep === 'done' && invoiceData) {
-                const rawPhone = selectedAppt.profiles?.phone?.replace(/\D/g, '') || ''
-                const waPhone = rawPhone.startsWith('0') ? '972' + rawPhone.slice(1) : rawPhone
-                const waMsg = encodeURIComponent(
-                  `שלום ${selectedAppt.profiles?.name || ''}! 🧾\n` +
-                  `מצורפת חשבונית מס׳ ${invoiceData.invoice_number} עבור ${selectedAppt.services?.name}.\n` +
-                  `סה"כ שולם: ₪${selectedAppt.services?.price} (${PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod})\n` +
-                  `תודה על הביקור! 💈`
-                )
                 return (
                   <div className="space-y-2">
                     <div className="text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
@@ -1604,15 +1629,15 @@ export function Appointments() {
                       >
                         🖨 הדפס חשבונית
                       </button>
-                      <a
-                        href={`https://wa.me/${waPhone}?text=${waMsg}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center"
-                        style={{ background: '#25D366', color: '#fff' }}
-                      >
-                        📱 שלח ללקוח
-                      </a>
+                      {selectedAppt.profiles?.phone && (
+                        <button
+                          onClick={() => shareInvoiceWhatsApp(invoiceData.appointment, invoiceData, selectedAppt.profiles.phone)}
+                          className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center"
+                          style={{ background: '#25D366', color: '#fff' }}
+                        >
+                          📱 שלח ללקוח
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
@@ -1671,23 +1696,19 @@ export function Appointments() {
               )
             })()}
 
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => { setDebtForm({ amount: '', description: '' }); setDebtModal(true) }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-              style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.3)' }}
-            >
-              💳 הוסף חוב
-            </motion.button>
+            {!(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { setDebtForm({ amount: '', description: '' }); setDebtModal(true) }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+                style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.3)' }}
+              >
+                💳 הוסף חוב
+              </motion.button>
+            )}
 
             {selectedAppt.status === 'confirmed' && (
               <div className="flex gap-2 pt-1 flex-wrap">
-                <button
-                  onClick={() => handleComplete(selectedAppt.id)}
-                  className="btn-primary flex-1 justify-center text-sm py-2"
-                >
-                  ✓ הושלם
-                </button>
                 <button
                   onClick={() => handleNoShow(selectedAppt.id)}
                   className="flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-colors"

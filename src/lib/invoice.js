@@ -9,11 +9,9 @@ const PAYMENT_METHOD_LABELS = {
 }
 
 /**
- * Opens a new browser window with a styled Hebrew invoice
- * compliant with Israeli Tax Authority requirements.
- * User can Print → Save as PDF.
+ * Returns the raw HTML string for a Hebrew invoice.
  */
-export function printInvoice({
+export function generateInvoiceHTML({
   appointment,
   business,
   footerText,
@@ -259,6 +257,15 @@ export function printInvoice({
 </body>
 </html>`
 
+  return html
+}
+
+/**
+ * Opens a new browser window with a styled Hebrew invoice.
+ * User can Print → Save as PDF.
+ */
+export function printInvoice(params) {
+  const html = generateInvoiceHTML(params)
   const win = window.open('', '_blank')
   if (!win) { alert('יש לאפשר חלונות קופצים בדפדפן'); return }
   win.document.write(html)
