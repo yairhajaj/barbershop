@@ -22,6 +22,8 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
 import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
+import { printInvoice } from '../../lib/invoice'
+import { BUSINESS } from '../../config/business'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VIEWS = ['day', 'week', 'list']
@@ -88,6 +90,8 @@ export function Appointments() {
   const [view, setView] = useState('week')
   const [filterStaff, setFilterStaff] = useState('')
   const [selectedAppt, setSelectedAppt] = useState(null)
+  const [invoiceStep, setInvoiceStep] = useState(null)   // null | 'paying' | 'done'
+  const [invoiceData, setInvoiceData] = useState(null)   // saved invoice record
   const [gapAlert, setGapAlert] = useState(null)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
@@ -575,6 +579,93 @@ export function Appointments() {
         offers: { ...prev.step2_reschedule.offers, [appointment.id]: 'sent' }
       }
     }) : prev)
+  }
+
+  // Reset invoice state when modal closes
+  useEffect(() => {
+    if (!selectedAppt) { setInvoiceStep(null); setInvoiceData(null) }
+  }, [selectedAppt])
+
+  // Pay + auto-generate invoice in one click
+  const PAYMENT_LABELS = { cash: 'מזומן', credit: 'כרטיס אשראי', bit: 'ביט', transfer: 'העברה בנקאית' }
+  async function handlePayAndInvoice(appt, method) {
+    setInvoiceStep('paying')
+    try {
+      // 1. Mark appointment paid
+      await supabase.from('appointments')
+        .update({ payment_status: 'paid', cash_paid: method === 'cash' })
+        .eq('id', appt.id)
+
+      // 2. Record income
+      await supabase.from('manual_income').insert({
+        amount: appt.services?.price || 0,
+        description: appt.services?.name || 'תור',
+        customer_name: appt.profiles?.name || '',
+        staff_id: appt.staff_id,
+        service_id: appt.service_id,
+        appointment_id: appt.id,
+        payment_method: method,
+        date: appt.start_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+      })
+
+      // 3. Get sequential invoice number
+      const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+
+      // 4. Calculate VAT
+      const vatRate = settings?.vat_rate || 18
+      const businessType = settings?.business_type || 'osek_morsheh'
+      const price = Number(appt.services?.price) || 0
+      const isPatur = businessType === 'osek_patur'
+      const priceBeforeVat = isPatur ? price : Math.round(price / (1 + vatRate / 100))
+      const vatAmount = isPatur ? 0 : price - priceBeforeVat
+
+      // 5. Save invoice to DB
+      const { data: inv, error: invErr } = await supabase.from('invoices').insert({
+        invoice_number: invoiceNum,
+        appointment_id: appt.id,
+        customer_name: appt.profiles?.name || '',
+        customer_phone: appt.profiles?.phone || '',
+        service_name: appt.services?.name || '',
+        staff_name: appt.staff?.name || '',
+        service_date: appt.start_at,
+        amount_before_vat: priceBeforeVat,
+        vat_rate: vatRate,
+        vat_amount: vatAmount,
+        total_amount: price,
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        notes: method,
+      }).select().single()
+      if (invErr) throw invErr
+
+      setInvoiceData({ ...inv, paymentMethod: method, appointment: appt })
+      setInvoiceStep('done')
+      await refetch()
+      toast({ message: 'תשלום נרשם וחשבונית נוצרה ✓', type: 'success' })
+    } catch (e) {
+      toast({ message: e.message || 'שגיאה', type: 'error' })
+      setInvoiceStep(null)
+    }
+  }
+
+  function doPrintInvoice(appt, inv) {
+    printInvoice({
+      appointment: appt,
+      business: BUSINESS,
+      footerText: settings?.invoice_footer_text,
+      vatRate: settings?.vat_rate || 18,
+      businessType: settings?.business_type || 'osek_morsheh',
+      invoiceNumber: inv?.invoice_number,
+      businessTaxId: settings?.business_tax_id,
+      paymentMethod: inv?.notes,
+      invoiceDate: inv?.created_at,
+    })
+  }
+
+  async function handlePrintExistingInvoice(appt) {
+    const { data: inv } = await supabase.from('invoices').select('*').eq('appointment_id', appt.id).maybeSingle()
+    doPrintInvoice(appt, inv)
   }
 
   async function handleComplete(id) {
@@ -1486,42 +1577,99 @@ export function Appointments() {
               </button>
             )}
 
-            {/* Cash payment button / badge */}
-            {selectedAppt.cash_paid ? (
-              <div className="text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
-                💵 מזומן
-              </div>
-            ) : selectedAppt.payment_status !== 'paid' && (
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={async () => {
-                  try {
-                    const { error: updErr } = await supabase.from('appointments').update({ cash_paid: true, payment_status: 'paid' }).eq('id', selectedAppt.id)
-                    if (updErr) throw updErr
-                    const { error: incErr } = await supabase.from('manual_income').insert({
-                      amount: selectedAppt.services?.price || 0,
-                      description: selectedAppt.services?.name || 'תור',
-                      customer_name: selectedAppt.profiles?.name || '',
-                      staff_id: selectedAppt.staff_id,
-                      service_id: selectedAppt.service_id,
-                      appointment_id: selectedAppt.id,
-                      payment_method: 'cash',
-                      date: selectedAppt.start_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
-                    })
-                    if (incErr) throw incErr
-                    toast({ message: 'סומן כשולם במזומן ✓', type: 'success' })
-                    setSelectedAppt(null)
-                    await refetch()
-                  } catch (e) {
-                    toast({ message: e.message || 'שגיאה', type: 'error' })
-                  }
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.3)' }}
-              >
-                💵 שולם במזומן
-              </motion.button>
-            )}
+            {/* ── Payment + Invoice Panel ── */}
+            {(() => {
+              const isPaid = selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid
+
+              // Invoice just created — show success + actions
+              if (invoiceStep === 'done' && invoiceData) {
+                const rawPhone = selectedAppt.profiles?.phone?.replace(/\D/g, '') || ''
+                const waPhone = rawPhone.startsWith('0') ? '972' + rawPhone.slice(1) : rawPhone
+                const waMsg = encodeURIComponent(
+                  `שלום ${selectedAppt.profiles?.name || ''}! 🧾\n` +
+                  `מצורפת חשבונית מס׳ ${invoiceData.invoice_number} עבור ${selectedAppt.services?.name}.\n` +
+                  `סה"כ שולם: ₪${selectedAppt.services?.price} (${PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod})\n` +
+                  `תודה על הביקור! 💈`
+                )
+                return (
+                  <div className="space-y-2">
+                    <div className="text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
+                      ✅ שולם ב{PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod} · חשבונית {invoiceData.invoice_number}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => doPrintInvoice(invoiceData.appointment, invoiceData)}
+                        className="flex-1 py-2.5 rounded-xl font-bold text-sm"
+                        style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}
+                      >
+                        🖨 הדפס חשבונית
+                      </button>
+                      <a
+                        href={`https://wa.me/${waPhone}?text=${waMsg}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center"
+                        style={{ background: '#25D366', color: '#fff' }}
+                      >
+                        📱 שלח ללקוח
+                      </a>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Processing payment
+              if (invoiceStep === 'paying') {
+                return (
+                  <div className="flex items-center justify-center gap-2 py-3 text-sm" style={{ color: 'var(--color-muted)' }}>
+                    <Spinner size="sm" /> רושם תשלום ומפיק חשבונית...
+                  </div>
+                )
+              }
+
+              // Already paid — show badge + print button
+              if (isPaid) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
+                      ✅ שולם
+                    </div>
+                    <button
+                      onClick={() => handlePrintExistingInvoice(selectedAppt)}
+                      className="py-2 px-3 rounded-xl font-bold text-sm"
+                      style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}
+                    >
+                      🖨 חשבונית
+                    </button>
+                  </div>
+                )
+              }
+
+              // Not paid — show payment methods
+              return (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>בחר אמצעי תשלום להפקת חשבונית:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'cash',     icon: '💵', label: 'מזומן' },
+                      { key: 'credit',   icon: '💳', label: 'אשראי' },
+                      { key: 'bit',      icon: '📱', label: 'ביט' },
+                      { key: 'transfer', icon: '🏦', label: 'העברה' },
+                    ].map(({ key, icon, label }) => (
+                      <motion.button
+                        key={key}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => handlePayAndInvoice(selectedAppt, key)}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+                        style={{ background: 'rgba(34,197,94,0.08)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}
+                      >
+                        {icon} {label}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             <motion.button
               whileTap={{ scale: 0.97 }}
