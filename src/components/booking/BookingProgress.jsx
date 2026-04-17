@@ -1,42 +1,35 @@
-// BookingProgress auto-detects whether the booking is in multi-branch mode
-// by checking sessionStorage (branchName is set only when >1 branch chosen).
-// Each page passes its own step KEY so the component figures out the number.
+// BookingProgress shows 4 logical steps matching the actual booking flow:
+// בחירה (branch/service/staff/datetime) → פרטים → תשלום → אישור
+// Each page passes its own step KEY so the component highlights the right group.
 
-function buildSteps(hasBranch, hasPayment) {
-  const steps = []
-  if (hasBranch)  steps.push({ key: 'branch',  label: 'סניף'   })
-  steps.push({ key: 'service', label: 'שירות' })
-  steps.push({ key: 'staff',   label: 'ספר'   })
-  steps.push({ key: 'time',    label: 'שעה'   })
-  if (hasPayment) steps.push({ key: 'payment', label: 'תשלום'  })
-  steps.push({ key: 'confirm', label: 'אישור'  })
-  return steps
+const STEPS = [
+  { key: 'selection', label: 'בחירה'  },
+  { key: 'details',   label: 'פרטים'  },
+  { key: 'payment',   label: 'תשלום'  },
+  { key: 'confirm',   label: 'אישור'  },
+]
+
+// Map each page key to the logical step index (0-based)
+const KEY_TO_INDEX = {
+  branch:  0,
+  service: 0,
+  staff:   0,
+  time:    0,
+  details: 1,
+  payment: 2,
+  confirm: 3,
 }
 
 // Accept either a numeric step (legacy) or a string key
 // Pages can pass currentStep="service" or currentStep={2} (old style)
 export function BookingProgress({ currentStep }) {
-  // Detect multi-branch + payment from booking state
-  let hasBranch = false
-  let hasPayment = false
-  try {
-    const bs = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
-    hasBranch  = !!bs.branchName
-    hasPayment = !!bs.paymentEnabled
-  } catch { /* noop */ }
-  // If we're on the payment step itself, always show payment step
-  if (currentStep === 'payment') hasPayment = true
-
-  const STEPS = buildSteps(hasBranch, hasPayment)
-
   // Map step to index
   let activeIndex
   if (typeof currentStep === 'string') {
-    activeIndex = STEPS.findIndex(s => s.key === currentStep)
-    if (activeIndex === -1) activeIndex = 0
+    activeIndex = KEY_TO_INDEX[currentStep] ?? 0
   } else {
-    // Legacy numeric: 1-based index into the STEPS array
-    activeIndex = (currentStep ?? 1) - 1
+    // Legacy numeric: map old 1-based to new 4-step (best effort)
+    activeIndex = Math.min((currentStep ?? 1) - 1, STEPS.length - 1)
   }
 
   return (

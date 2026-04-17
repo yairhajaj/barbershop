@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase'
 
 export function Payment() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const { settings } = useBusinessSettings()
   const { createAppointment, createRecurringAppointments } = useAppointments()
 
@@ -28,13 +28,14 @@ export function Payment() {
   const effectiveMode = bookingState.effectivePaymentMode ?? (settings?.payment_enabled ? 'required' : 'disabled')
 
   useEffect(() => {
+    if (authLoading) return
     if (!bookingState.slotStart) { navigate('/book/service', { replace: true }); return }
     if (!user) { navigate('/login?redirect=/book/payment', { replace: true }); return }
     // If payment disabled for this booking, skip to confirm
     if (settings && effectiveMode === 'disabled') {
       navigate('/book/confirm', { replace: true })
     }
-  }, [user, settings])
+  }, [user, authLoading, settings])
 
   async function handlePay() {
     setStatus('creating')

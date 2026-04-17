@@ -369,7 +369,7 @@ export function minutesToDisplay(minutes) {
 }
 
 export function priceDisplay(price) {
-  if (!price) return 'חינם'
+  if (!price || price === 0) return 'לפי תיאום'
   return `₪${Number(price).toFixed(0)}`
 }
 

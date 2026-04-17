@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { addDays, startOfDay, isSameDay, addMinutes, isToday, isBefore, format } from 'date-fns'
@@ -61,6 +61,8 @@ export function SelectDateTime() {
     }
   }, [bookingState.branchId, globalHours.length])
   const { breaks: recurringBreaks } = useRecurringBreaks()
+
+  const autoAdvancedRef = useRef(false)
 
   useEffect(() => {
     if (!bookingState.serviceId) navigate('/book/service', { replace: true })
@@ -202,6 +204,24 @@ export function SelectDateTime() {
         setAvailableSlots(future)
       }
     }
+
+    // Auto-advance to first open day if current date has no slots (only on first load)
+    if (!autoAdvancedRef.current && future.length === 0) {
+      autoAdvancedRef.current = true
+      // Find next open day (skip closed + shabbat)
+      for (let i = 1; i < DAYS_AHEAD; i++) {
+        const d = startOfDay(addDays(new Date(), i))
+        const dow = d.getDay()
+        const bh = hours.find(h => h.day_of_week === dow)
+        if (bh?.is_closed) continue
+        if (settings.shabbat_mode && dow === 6) continue
+        setSelectedDate(d)
+        break
+      }
+    } else if (future.length > 0) {
+      autoAdvancedRef.current = true
+    }
+
     setSlotsLoading(false)
   }
 

@@ -4,27 +4,30 @@ import { BookingLayout } from './layouts/BookingLayout'
 import { AdminLayout } from './layouts/AdminLayout'
 import { PageSpinner } from './components/ui/Spinner'
 
-// Booking pages
-import { HomePage }        from './pages/booking/HomePage'
-import { BookAll }         from './pages/booking/BookAll'
-import { SelectService }   from './pages/booking/SelectService'
-import { SelectStaff }     from './pages/booking/SelectStaff'
-import { SelectDateTime }  from './pages/booking/SelectDateTime'
-import { CustomerDetails } from './pages/booking/CustomerDetails'
-import { Confirmation }    from './pages/booking/Confirmation'
-import { Payment }         from './pages/booking/Payment'
+// Booking pages — HomePage is NOT lazy so landing page loads fast
+import { HomePage } from './pages/booking/HomePage'
+
+// Booking flow — lazy-loaded so framer-motion stays out of the landing critical path
+const BookAll         = lazy(() => import('./pages/booking/BookAll').then(m => ({ default: m.BookAll })))
+const SelectBranch    = lazy(() => import('./pages/booking/SelectBranch').then(m => ({ default: m.SelectBranch })))
+const SelectService   = lazy(() => import('./pages/booking/SelectService').then(m => ({ default: m.SelectService })))
+const SelectStaff     = lazy(() => import('./pages/booking/SelectStaff').then(m => ({ default: m.SelectStaff })))
+const SelectDateTime  = lazy(() => import('./pages/booking/SelectDateTime').then(m => ({ default: m.SelectDateTime })))
+const CustomerDetails = lazy(() => import('./pages/booking/CustomerDetails').then(m => ({ default: m.CustomerDetails })))
+const Confirmation    = lazy(() => import('./pages/booking/Confirmation').then(m => ({ default: m.Confirmation })))
+const Payment         = lazy(() => import('./pages/booking/Payment').then(m => ({ default: m.Payment })))
+const WaitlistConfirm  = lazy(() => import('./pages/booking/WaitlistConfirm').then(m => ({ default: m.WaitlistConfirm })))
+const RescheduleConfirm = lazy(() => import('./pages/booking/RescheduleConfirm').then(m => ({ default: m.RescheduleConfirm })))
+
+// Auth — lazy so login code doesn't ship on landing
+const Login    = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Login })))
+const Register = lazy(() => import('./pages/auth/Register').then(m => ({ default: m.Register })))
 
 // Customer
-import { MyAppointments } from './pages/customer/MyAppointments'
+const MyAppointments = lazy(() => import('./pages/customer/MyAppointments').then(m => ({ default: m.MyAppointments })))
 
-// Auth
-import { Login }    from './pages/auth/Login'
-import { Register } from './pages/auth/Register'
-
-import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
-import { RescheduleConfirm } from './pages/booking/RescheduleConfirm'
-import { SelectBranch }    from './pages/booking/SelectBranch'
-import { PrivacyPolicy }   from './pages/PrivacyPolicy'
+// Static
+import { PrivacyPolicy } from './pages/PrivacyPolicy'
 
 // Admin — code-split so the ~544KB admin bundle (Appointments etc.)
 // doesn't ship to unauth visitors on the landing page.
@@ -53,6 +56,17 @@ function AdminRoute({ children }) {
   )
 }
 
+// Wrap lazy booking/auth pages in Suspense
+function BookingRoute({ children }) {
+  return (
+    <BookingLayout>
+      <Suspense fallback={<PageSpinner />}>
+        {children}
+      </Suspense>
+    </BookingLayout>
+  )
+}
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -60,15 +74,15 @@ const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <BookingLayout><Login /></BookingLayout>,
+    element: <BookingRoute><Login /></BookingRoute>,
   },
   {
     path: '/register',
-    element: <BookingLayout><Register /></BookingLayout>,
+    element: <BookingRoute><Register /></BookingRoute>,
   },
   {
     path: '/my-appointments',
-    element: <BookingLayout><MyAppointments /></BookingLayout>,
+    element: <BookingRoute><MyAppointments /></BookingRoute>,
   },
   {
     path: '/book',
@@ -76,35 +90,35 @@ const router = createBrowserRouter([
   },
   {
     path: '/book/branch',
-    element: <BookingLayout><SelectBranch /></BookingLayout>,
+    element: <BookingRoute><SelectBranch /></BookingRoute>,
   },
   {
     path: '/book/all',
-    element: <BookingLayout><BookAll /></BookingLayout>,
+    element: <BookingRoute><BookAll /></BookingRoute>,
   },
   {
     path: '/book/service',
-    element: <BookingLayout><SelectService /></BookingLayout>,
+    element: <BookingRoute><SelectService /></BookingRoute>,
   },
   {
     path: '/book/staff',
-    element: <BookingLayout><SelectStaff /></BookingLayout>,
+    element: <BookingRoute><SelectStaff /></BookingRoute>,
   },
   {
     path: '/book/datetime',
-    element: <BookingLayout><SelectDateTime /></BookingLayout>,
+    element: <BookingRoute><SelectDateTime /></BookingRoute>,
   },
   {
     path: '/book/details',
-    element: <BookingLayout><CustomerDetails /></BookingLayout>,
+    element: <BookingRoute><CustomerDetails /></BookingRoute>,
   },
   {
     path: '/book/payment',
-    element: <BookingLayout><Payment /></BookingLayout>,
+    element: <BookingRoute><Payment /></BookingRoute>,
   },
   {
     path: '/book/confirm',
-    element: <BookingLayout><Confirmation /></BookingLayout>,
+    element: <BookingRoute><Confirmation /></BookingRoute>,
   },
   // Admin
   { path: '/admin',              element: <AdminRoute><Dashboard /></AdminRoute> },
@@ -124,11 +138,11 @@ const router = createBrowserRouter([
   { path: '/admin/finance',      element: <AdminRoute><Finance /></AdminRoute> },
   {
     path: '/waitlist/confirm',
-    element: <BookingLayout><WaitlistConfirm /></BookingLayout>,
+    element: <BookingRoute><WaitlistConfirm /></BookingRoute>,
   },
   {
     path: '/reschedule/confirm',
-    element: <BookingLayout><RescheduleConfirm /></BookingLayout>,
+    element: <BookingRoute><RescheduleConfirm /></BookingRoute>,
   },
   {
     path: '/privacy',

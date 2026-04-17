@@ -14,7 +14,7 @@ import { supabase } from '../../lib/supabase'
 export function Confirmation() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user, profile } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
 
   // Payment redirect params
   const paymentResult      = searchParams.get('payment')          // 'success' | null
@@ -66,9 +66,10 @@ export function Confirmation() {
         })
       return
     }
+    if (authLoading) return
     if (!bookingState.slotStart && !paymentResult) { navigate('/book/service', { replace: true }); return }
     if (!user) navigate('/login?redirect=/book/confirm', { replace: true })
-  }, [user])
+  }, [user, authLoading])
 
   const slotStart = bookingState.slotStart ? new Date(bookingState.slotStart) : null
   const slotEnd   = bookingState.slotEnd   ? new Date(bookingState.slotEnd)   : null
