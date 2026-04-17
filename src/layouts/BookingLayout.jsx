@@ -537,6 +537,8 @@ function BarIcon({ name, size = 26, color = '#222' }) {
 
 function BottomBarButton({ to, icon, label, active, barText, barBgActive }) {
   const iconColor = active ? 'var(--color-gold)' : barText
+  // Use a darker gold for the small label text to meet WCAG AA contrast
+  const labelColor = active ? 'var(--color-gold-text, var(--color-gold))' : barText
   return (
     <Link
       to={to}
@@ -551,7 +553,7 @@ function BottomBarButton({ to, icon, label, active, barText, barBgActive }) {
       )}
       {/* Color passed directly to SVG stroke — bypasses any CSS color inheritance issues */}
       <BarIcon name={icon} size={26} color={iconColor} />
-      <span className="text-[10px] font-semibold leading-none text-center" style={{ color: iconColor }}>{label}</span>
+      <span className="text-[10px] font-semibold leading-none text-center" style={{ color: labelColor }}>{label}</span>
     </Link>
   )
 }

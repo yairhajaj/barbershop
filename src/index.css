@@ -4,6 +4,8 @@
   --color-primary: #111111;
   --color-primary-light: #333333;
   --color-gold: #FF7A00;
+  --color-gold-text: #b85d00;
+  --color-gold-btn: #c96a00;
   --color-gold-light: #FFA040;
   --color-gold-dark: #D96500;
   --color-surface: #f5f5f5;
@@ -66,6 +68,8 @@
   --color-primary:       #000000;
   --color-primary-light: #1a1a1a;
   --color-gold:          #FF8500;
+  --color-gold-text:     #b85d00;   /* 7:1 on white — for text/labels */
+  --color-gold-btn:      #c96a00;   /* 4.6:1 on white — for buttons with white text */
   --color-gold-light:    #FFA030;
   --color-gold-dark:     #E06000;
   --color-surface:       #ffffff;
@@ -88,6 +92,8 @@
   --color-primary:       #2d1b1f;
   --color-primary-light: #4a2d33;
   --color-gold:          #d4627a;
+  --color-gold-text:     #a63050;   /* darker for text on light bg */
+  --color-gold-btn:      #b84d63;   /* btn bg with white text */
   --color-gold-light:    #e8a0b0;
   --color-gold-dark:     #b84d63;
   --color-surface:       #fdf4f0;
@@ -115,6 +121,8 @@
   --color-primary:       #1a2e22;
   --color-primary-light: #2a4435;
   --color-gold:          #4a8c6a;
+  --color-gold-text:     #326b4f;   /* darker for text on light bg */
+  --color-gold-btn:      #326b4f;   /* btn bg with white text */
   --color-gold-light:    #72b08e;
   --color-gold-dark:     #326b4f;
   --color-surface:       #f0f5f1;
@@ -142,6 +150,8 @@
   --color-primary:       #0f1025;
   --color-primary-light: #1a1b3a;
   --color-gold:          #818cf8;
+  --color-gold-text:     #818cf8;   /* on dark bg — existing gold is fine */
+  --color-gold-btn:      #6366f1;   /* btn bg with white text on dark */
   --color-gold-light:    #a5b4fc;
   --color-gold-dark:     #6366f1;
   --color-surface:       #0f1025;
@@ -227,7 +237,7 @@
 
   /* ── BTN-PRIMARY ── */
   .btn-primary {
-    background: var(--color-gold);
+    background: var(--color-gold-btn, var(--color-gold));
     color: #fff;
     font-weight: 700;
     padding: 0.75rem 1.75rem;
@@ -945,6 +955,8 @@
 [data-theme="navy-gold"],
 [data-theme="charcoal"] {
   --color-gold:        #818cf8;
+  --color-gold-text:   #818cf8;
+  --color-gold-btn:    #6366f1;
   --color-surface:     #0f1025;
   --color-card:        #1a1b3a;
   --color-border:      rgba(129,140,248,0.15);

@@ -67,6 +67,7 @@ export function SelectService() {
               <button
                 key={n}
                 onClick={() => setGroupSize(n)}
+                aria-pressed={groupSize === n}
                 className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border-2"
                 style={{
                   background:  groupSize === n ? 'var(--color-gold)'   : 'var(--color-surface)',
