@@ -157,7 +157,7 @@ export function Appointments() {
   const { breaks: recurringBreaks } = useRecurringBreaks()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { services } = useServices({ activeOnly: false })
-  const { hours: businessHours, saveBusinessHours } = useBusinessSettings()
+  const { settings, hours: businessHours, saveBusinessHours } = useBusinessSettings()
   const [hoursForm, setHoursForm] = useState([])
   const [savingHours, setSavingHours] = useState(false)
 
