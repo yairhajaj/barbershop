@@ -1793,8 +1793,9 @@ export function Appointments() {
                   amount: Number(debtForm.amount),
                   description: debtForm.description,
                 })
-                toast({ message: 'חוב נשמר ✓', type: 'success' })
                 setDebtModal(false)
+                setPendingBlockCustomerId(selectedAppt.customer_id)
+                setBlockConfirmOpen(true)
               } catch (e) {
                 toast({ message: e.message || 'שגיאה', type: 'error' })
               }
@@ -1805,6 +1806,83 @@ export function Appointments() {
             שמור חוב
           </motion.button>
         </div>
+      </Modal>
+
+      {/* ── Block Confirm Modal ── */}
+      <Modal open={blockConfirmOpen} onClose={() => { setBlockConfirmOpen(false); toast({ message: 'חוב נשמר ✓', type: 'success' }) }} title="🚫 חסימת לקוח">
+        <div className="space-y-4 text-center">
+          <p className="text-sm" style={{ color: 'var(--color-text)' }}>האם לחסום את הלקוח מהזמנות עד לתשלום החוב?</p>
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                if (pendingBlockCustomerId) {
+                  await supabase.from('profiles').update({ is_blocked: true }).eq('id', pendingBlockCustomerId)
+                }
+                setBlockConfirmOpen(false)
+                setPendingBlockCustomerId(null)
+                toast({ message: 'חוב נשמר + לקוח נחסם ✓', type: 'success' })
+              }}
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm"
+              style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}
+            >
+              כן, חסום
+            </button>
+            <button
+              onClick={() => {
+                setBlockConfirmOpen(false)
+                setPendingBlockCustomerId(null)
+                toast({ message: 'חוב נשמר ✓', type: 'success' })
+              }}
+              className="flex-1 py-2.5 rounded-xl font-bold text-sm"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}
+            >
+              לא, רק חוב
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Cancel Notification Modal ── */}
+      <Modal open={cancelModal.open} onClose={() => setCancelModal(m => ({ ...m, open: false }))} title="ביטול תור">
+        {cancelModal.appt && (
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+              ביטול התור של <strong>{cancelModal.appt.profiles?.name || 'לקוח'}</strong><br />
+              <span style={{ color: 'var(--color-muted)' }}>{cancelModal.appt.services?.name} · {formatDate(cancelModal.appt.start_at)} {formatTime(cancelModal.appt.start_at)}</span>
+            </p>
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>שלח התראה ללקוח?</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: 'push', label: '🔔 Push' },
+                  { key: 'whatsapp', label: '📱 WhatsApp' },
+                  { key: 'both', label: '📣 שניהם' },
+                  { key: 'none', label: '🚫 ללא' },
+                ].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setCancelModal(m => ({ ...m, notify: opt.key }))}
+                    className="py-2 rounded-xl text-xs font-bold transition-all"
+                    style={{
+                      background: cancelModal.notify === opt.key ? 'var(--color-gold)' : 'var(--color-surface)',
+                      color: cancelModal.notify === opt.key ? '#000' : 'var(--color-text)',
+                      border: `1.5px solid ${cancelModal.notify === opt.key ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={confirmCancel}
+              className="w-full py-2.5 rounded-xl font-bold text-sm text-white"
+              style={{ background: '#dc2626' }}
+            >
+              בטל תור
+            </button>
+          </div>
+        )}
       </Modal>
 
       {/* ── Reschedule Bottom Sheet ── */}

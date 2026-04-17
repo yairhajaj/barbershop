@@ -14,6 +14,8 @@ export function BookingLayout({ children }) {
   const [scrolled, setScrolled] = useState(false)
   const [announcement, setAnnouncement] = useState(null)
   const [annOpen, setAnnOpen] = useState(false)
+  const [blockedDebts, setBlockedDebts] = useState([])
+  const [payingDebt, setPayingDebt] = useState(false)
   const { user, profile, isAdmin, signOut } = useAuth()
   const { layout, theme, isDark } = useTheme()
   const { settings } = useBusinessSettings()
@@ -25,6 +27,18 @@ export function BookingLayout({ children }) {
   const navigate = useNavigate()
 
   const isHome = location.pathname === '/'
+
+  // Fetch pending debts when customer is blocked
+  useEffect(() => {
+    if (!profile?.is_blocked || !profile?.id) return
+    supabase
+      .from('customer_debts')
+      .select('*')
+      .eq('customer_id', profile.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setBlockedDebts(data || []))
+  }, [profile?.is_blocked, profile?.id])
 
   // Fetch & show announcement once per session
   useEffect(() => {
@@ -368,6 +382,68 @@ export function BookingLayout({ children }) {
           </>
         )}
       </motion.header>
+
+      {/* ── Blocked customer popup (not closable) ── */}
+      {profile?.is_blocked && (
+        <Modal open={true} onClose={() => {}} title="🚫 החשבון שלך חסום">
+          <div className="space-y-4 text-center">
+            <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+              הזמנת תורים חסומה עד לתשלום החוב הפתוח.
+            </p>
+            {blockedDebts.length > 0 && (
+              <div className="rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <p className="font-bold text-base" style={{ color: '#d97706' }}>
+                  ₪{blockedDebts.reduce((s, d) => s + Number(d.amount || 0), 0).toLocaleString('he-IL')}
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                  {blockedDebts[0]?.description || 'חוב פתוח'}
+                </p>
+              </div>
+            )}
+            {settings?.payment_enabled && settings?.grow_api_key ? (
+              <button
+                disabled={payingDebt}
+                onClick={async () => {
+                  if (!blockedDebts[0]) return
+                  setPayingDebt(true)
+                  try {
+                    const debt = blockedDebts[0]
+                    const { data } = await supabase.functions.invoke('create-payment', {
+                      body: {
+                        appointmentId: debt.appointment_id,
+                        amount: debt.amount,
+                        successUrl: `${window.location.origin}/?debt_paid=${debt.id}&appt=${debt.appointment_id}`,
+                      },
+                    })
+                    if (data?.url) window.location.href = data.url
+                  } catch { setPayingDebt(false) }
+                }}
+                className="w-full py-3 rounded-xl font-bold text-sm text-white transition-opacity"
+                style={{ background: 'var(--color-gold)', opacity: payingDebt ? 0.7 : 1 }}
+              >
+                {payingDebt ? 'מעביר לתשלום...' : '💳 שלם עכשיו'}
+              </button>
+            ) : (
+              <a
+                href={`https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent('שלום, אני רוצה לשלם את החוב הפתוח שלי.')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full py-3 rounded-xl font-bold text-sm text-white text-center"
+                style={{ background: '#25D366' }}
+              >
+                📱 צור קשר לתשלום
+              </a>
+            )}
+            <button
+              onClick={handleSignOut}
+              className="w-full py-2 text-xs"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              התנתק
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* ── Announcement modal ── */}
       {announcement && annOpen && (() => {
