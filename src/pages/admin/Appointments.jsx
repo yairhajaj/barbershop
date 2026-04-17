@@ -22,7 +22,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
 import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
-import { printInvoice, generateInvoiceHTML } from '../../lib/invoice'
+import { printInvoice } from '../../lib/invoice'
 import { BUSINESS } from '../../config/business'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -669,37 +669,17 @@ export function Appointments() {
     doPrintInvoice(appt, inv)
   }
 
-  async function shareInvoiceWhatsApp(appt, inv, phone) {
-    const html = generateInvoiceHTML({
-      appointment: appt,
-      business: BUSINESS,
-      footerText: settings?.invoice_footer_text,
-      vatRate: settings?.vat_rate || 18,
-      businessType: settings?.business_type || 'osek_morsheh',
-      invoiceNumber: inv?.invoice_number,
-      businessTaxId: settings?.business_tax_id,
-      paymentMethod: inv?.notes || inv?.paymentMethod,
-      invoiceDate: inv?.created_at,
-    })
-    const fileName = `חשבונית-${inv?.invoice_number || 'invoice'}.html`
-    const blob = new Blob([html], { type: 'text/html' })
-    const file = new File([blob], fileName, { type: 'text/html' })
+  function shareInvoiceWhatsApp(appt, inv, phone) {
+    const invoiceUrl = `${window.location.origin}/invoice/${inv?.id}`
     const rawPhone = (phone || '').replace(/\D/g, '')
     const waPhone = rawPhone.startsWith('0') ? '972' + rawPhone.slice(1) : rawPhone
-
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: `חשבונית ${inv?.invoice_number || ''}` })
-        return
-      } catch { /* user cancelled or not supported */ }
-    }
-    // Fallback: download file + open WhatsApp
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = fileName; a.click()
-    URL.revokeObjectURL(url)
-    if (waPhone) window.open(`https://wa.me/${waPhone}`, '_blank')
-    toast({ message: 'החשבונית הורדה — צרף אותה בווצאפ', type: 'success' })
+    const msg = encodeURIComponent(
+      `שלום ${appt.profiles?.name || ''}! 🧾\n` +
+      `חשבונית מס׳ ${inv?.invoice_number} עבור ${appt.services?.name}.\n` +
+      `לצפייה בחשבונית: ${invoiceUrl}\n` +
+      `תודה על הביקור! 💈`
+    )
+    window.open(`https://wa.me/${waPhone}?text=${msg}`, '_blank')
   }
 
   async function handleComplete(id) {
