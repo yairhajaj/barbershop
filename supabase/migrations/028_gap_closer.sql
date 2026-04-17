@@ -4,7 +4,8 @@
 -- Settings
 ALTER TABLE business_settings
   ADD COLUMN IF NOT EXISTS gap_closer_mode text DEFAULT 'off',
-  ADD COLUMN IF NOT EXISTS gap_closer_threshold_minutes integer DEFAULT 30;
+  ADD COLUMN IF NOT EXISTS gap_closer_threshold_minutes integer DEFAULT 30,
+  ADD COLUMN IF NOT EXISTS gap_closer_advance_hours numeric DEFAULT 2;
 
 -- Enhance reschedule_offers with token flow
 ALTER TABLE reschedule_offers

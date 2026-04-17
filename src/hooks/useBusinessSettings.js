@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS = {
   // Gap Closer
   gap_closer_mode:              'off',   // 'off' | 'approval' | 'auto'
   gap_closer_threshold_minutes: 30,
+  gap_closer_advance_hours:     2,      // hours before gap to start acting
 }
 
 export function useBusinessSettings() {

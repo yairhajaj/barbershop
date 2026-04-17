@@ -450,6 +450,7 @@ export function Appointments() {
 
     const mode = settings?.gap_closer_mode || 'off'
     const threshold = settings?.gap_closer_threshold_minutes || 30
+    const advanceHours = settings?.gap_closer_advance_hours ?? 2
 
     // Always notify waitlist
     let waitlistResult = 'none'
@@ -484,17 +485,45 @@ export function Appointments() {
       threshold
     )
 
+    // Smart timing: check if the gap is too far in the future
+    const gapStart = new Date(cancelledAppt.start_at)
+    const now = new Date()
+    const hoursUntilGap = (gapStart - now) / (1000 * 60 * 60)
+    const tooEarly = hoursUntilGap > advanceHours
+    const activateAt = tooEarly ? new Date(gapStart.getTime() - advanceHours * 60 * 60 * 1000) : null
+    const msUntilActivation = activateAt ? activateAt - now : 0
+
     const alert = {
       cancelledAppt,
       freedSlot: { start: cancelledAppt.start_at, end: cancelledAppt.end_at },
       step1_waitlist: waitlistResult,
       step2_reschedule: { candidates, offers: {} },
       step3_shared: false,
+      waiting: tooEarly,
+      activateAt,
     }
     setGapAlert(alert)
 
-    // Auto mode: send offers immediately
-    if (mode === 'auto') {
+    // If too early — schedule activation via setTimeout
+    if (tooEarly && candidates.length > 0) {
+      const timerId = setTimeout(() => {
+        setGapAlert(prev => {
+          if (!prev) return prev
+          return { ...prev, waiting: false, activateAt: null }
+        })
+        // Auto mode: send when timer fires
+        if (mode === 'auto') {
+          candidates.forEach(c => sendRescheduleOffer(c, cancelledAppt))
+        }
+      }, msUntilActivation)
+      // Clean up timer if alert is dismissed
+      const origSetGapAlert = setGapAlert
+      // Store timer ID on the alert for potential cleanup
+      setGapAlert(prev => prev ? { ...prev, _timerId: timerId } : prev)
+    }
+
+    // If within window — act now
+    if (!tooEarly && mode === 'auto') {
       for (const candidate of candidates) {
         await sendRescheduleOffer(candidate, cancelledAppt)
       }
@@ -1224,13 +1253,27 @@ export function Appointments() {
               ⚡ Gap Closer — מילוי חור ביומן
             </h3>
             <button
-              onClick={() => setGapAlert(null)}
+              onClick={() => {
+                if (gapAlert._timerId) clearTimeout(gapAlert._timerId)
+                setGapAlert(null)
+              }}
               className="text-xs font-medium px-2 py-1 rounded-lg"
               style={{ color: 'var(--color-muted)' }}
             >
               ✕
             </button>
           </div>
+
+          {/* Waiting indicator */}
+          {gapAlert.waiting && gapAlert.activateAt && (
+            <div className="text-xs mb-4 px-3 py-2.5 rounded-xl flex items-center gap-2"
+              style={{ background: 'rgba(201,169,110,0.08)', border: '1px solid var(--color-gold)', color: 'var(--color-gold)' }}>
+              <span>⏰</span>
+              <span>
+                החור רחוק — הצעות יישלחו בשעה {formatTime(gapAlert.activateAt)} ({Math.round((gapAlert.activateAt - new Date()) / 60000)} דק׳)
+              </span>
+            </div>
+          )}
 
           {/* Cancelled slot info */}
           <div className="text-xs mb-4 px-3 py-2 rounded-xl" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
@@ -1278,6 +1321,8 @@ export function Appointments() {
                         <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#ef4444' }}>נדחה ✕</span>
                       ) : offerStatus === 'sent' ? (
                         <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>נשלח ⏳</span>
+                      ) : gapAlert.waiting ? (
+                        <span className="text-[10px] px-2 py-1 rounded-lg" style={{ color: 'var(--color-muted)' }}>ממתין ⏰</span>
                       ) : (
                         <button
                           onClick={() => sendRescheduleOffer({ appointment, newStart, newEnd: new Date(newStart.getTime() + (new Date(appointment.end_at) - new Date(appointment.start_at))), timeSaved }, gapAlert.cancelledAppt)}

@@ -543,20 +543,38 @@ export function Settings() {
           </div>
 
           {form.gap_closer_mode !== 'off' && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">סף חור מינימלי (דקות)</label>
-              <input
-                className="input w-28"
-                type="number"
-                min={10}
-                max={120}
-                step={5}
-                value={form.gap_closer_threshold_minutes ?? 30}
-                onChange={e => setForm(f => ({ ...f, gap_closer_threshold_minutes: parseInt(e.target.value) || 30 }))}
-              />
-              <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-                חורים קטנים מ-{form.gap_closer_threshold_minutes || 30} דקות לא יפעילו את המערכת
-              </p>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">סף חור מינימלי (דקות)</label>
+                <input
+                  className="input w-28"
+                  type="number"
+                  min={10}
+                  max={120}
+                  step={5}
+                  value={form.gap_closer_threshold_minutes ?? 30}
+                  onChange={e => setForm(f => ({ ...f, gap_closer_threshold_minutes: parseInt(e.target.value) || 30 }))}
+                />
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                  חורים קטנים מ-{form.gap_closer_threshold_minutes || 30} דקות לא יפעילו את המערכת
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">כמה שעות לפני החור להתחיל לפעול?</label>
+                <input
+                  className="input w-28"
+                  type="number"
+                  min={0.5}
+                  max={12}
+                  step={0.5}
+                  value={form.gap_closer_advance_hours ?? 2}
+                  onChange={e => setForm(f => ({ ...f, gap_closer_advance_hours: parseFloat(e.target.value) || 2 }))}
+                />
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                  לדוגמה: אם הערך 2, חור בשעה 17:00 יפעיל הודעות רק מ-15:00.
+                  {'\n'}ערך 0.5 = חצי שעה לפני
+                </p>
+              </div>
             </div>
           )}
         </section>
