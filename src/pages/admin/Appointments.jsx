@@ -221,6 +221,24 @@ export function Appointments() {
     try { await saveBusinessHours(hoursForm) } finally { setSavingHours(false) }
   }
 
+  // ── Customer prefill: auto-open booking modal with pre-selected customer ──────
+  useEffect(() => {
+    const raw = sessionStorage.getItem('customer_prefill')
+    if (!raw) return
+    sessionStorage.removeItem('customer_prefill')
+    try {
+      const p = JSON.parse(raw)
+      setBookForm(f => ({
+        ...f,
+        customerSearch: p.customerName ? `${p.customerName}${p.customerPhone ? ' · ' + p.customerPhone : ''}` : '',
+        customerId:    p.customerId   || null,
+        customerName:  p.customerName || '',
+        customerPhone: p.customerPhone || '',
+      }))
+      setBookOpen(true)
+    } catch { /* ignore */ }
+  }, [])
+
   // ── Waitlist prefill: auto-open booking modal if navigated from waitlist ──────
   useEffect(() => {
     const raw = sessionStorage.getItem('waitlist_prefill')

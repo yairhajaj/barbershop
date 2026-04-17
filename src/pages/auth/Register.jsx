@@ -90,7 +90,7 @@ export function Register() {
       if (verifyErr) throw verifyErr
       if (!verifyData?.valid) throw new Error(verifyData?.error ?? 'קוד שגוי')
 
-      await signUp({
+      const data = await signUp({
         name: form.name,
         phone: form.phone,
         password: form.password,
@@ -98,6 +98,18 @@ export function Register() {
         gender: form.gender || null,
         termsAccepted: form.termsAccepted,
       })
+      // Migrate guest profile (manually created by admin) → new auth profile
+      if (data?.user?.id) {
+        const cleanPhone = form.phone.replace(/\D/g, '')
+        const { data: guest } = await supabase.from('profiles').select('id').eq('phone', cleanPhone).eq('is_guest', true).maybeSingle()
+        if (guest) {
+          await Promise.all([
+            supabase.from('appointments').update({ customer_id: data.user.id }).eq('customer_id', guest.id),
+            supabase.from('customer_debts').update({ customer_id: data.user.id }).eq('customer_id', guest.id),
+          ])
+          await supabase.from('profiles').delete().eq('id', guest.id)
+        }
+      }
       toast({ message: 'נרשמת בהצלחה! ברוך הבא 👋', type: 'success' })
       navigate(redirect, { replace: true })
     } catch (err) {
