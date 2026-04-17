@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
 import { useManualIncome } from '../../../hooks/useManualIncome'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'

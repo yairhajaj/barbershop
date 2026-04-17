@@ -6,7 +6,7 @@ import { useStaffCommissions } from '../../../hooks/useStaffCommissions'
 import { formatILS } from '../../../lib/finance'
 import { Spinner } from '../../../components/ui/Spinner'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
 
 function StaffPaymentsSection({ settings }) {

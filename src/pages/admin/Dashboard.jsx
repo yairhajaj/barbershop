@@ -256,7 +256,7 @@ export function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg">לוח יום — היום</h2>
-            <Link to="/admin/appointments" className="text-sm font-medium" style={{ color: 'var(--color-gold)' }}>הצג הכל →</Link>
+            <Link to="/admin/appointments" className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--color-gold)' }}>הצג הכל →</Link>
           </div>
 
           {loadingToday ? (

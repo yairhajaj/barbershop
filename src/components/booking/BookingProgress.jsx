@@ -53,7 +53,7 @@ export function BookingProgress({ currentStep }) {
                 style={
                   done   ? { background: 'var(--color-gold)', color: '#fff' } :
                   active ? { background: '#111', color: '#fff', boxShadow: '0 0 0 4px rgba(255,122,0,0.2)' } :
-                           { background: '#f0f0f0', color: '#bbb' }
+                           { background: '#f0f0f0', color: 'var(--color-muted)' }
                 }
               >
                 {done ? '✓' : i + 1}
@@ -61,9 +61,9 @@ export function BookingProgress({ currentStep }) {
               <span
                 className="text-xs mt-1 font-semibold"
                 style={
-                  active ? { color: '#111' } :
+                  active ? { color: 'var(--color-text)' } :
                   done   ? { color: 'var(--color-gold)' } :
-                           { color: '#bbb' }
+                           { color: 'var(--color-muted)' }
                 }
               >
                 {step.label}

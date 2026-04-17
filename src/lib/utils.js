@@ -9,7 +9,7 @@ import {
   areIntervalsOverlapping,
   isSameDay,
 } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 import SunCalc from 'suncalc'
 
 // ── Shabbat Utilities ────────────────────────────────────────────

@@ -4,7 +4,7 @@ import {
   addDays, startOfWeek, endOfWeek, startOfDay, endOfDay,
   isSameDay, format, isToday,
 } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 import {
   DndContext, useDraggable, useDroppable,
   PointerSensor, TouchSensor, useSensor, useSensors,

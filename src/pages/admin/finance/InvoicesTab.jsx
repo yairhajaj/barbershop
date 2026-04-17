@@ -9,7 +9,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
 import { format } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 
 const STATUS_FILTERS = [
   { key: 'all',   label: 'הכל' },

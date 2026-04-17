@@ -6,7 +6,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useServices } from '../../hooks/useServices'
 import { format } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 
 const STATUS_LABELS = {
   paid:     { label: 'שולם',  color: '#16a34a', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)' },

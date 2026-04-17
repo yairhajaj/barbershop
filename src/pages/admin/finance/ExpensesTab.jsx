@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 import { useExpenses } from '../../../hooks/useExpenses'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatILS, calcVat, PAYMENT_METHODS, downloadCSV, hasVat } from '../../../lib/finance'

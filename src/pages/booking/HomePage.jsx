@@ -16,7 +16,7 @@ import { useToast } from '../../components/ui/Toast'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
-import { he } from 'date-fns/locale'
+import { he } from 'date-fns/locale/he'
 
 function StaffVideoCard({ member, portfolioMode }) {
   const videoRef = useRef(null)
@@ -551,7 +551,7 @@ export function HomePage() {
                   <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
                   השירותים שלנו
                 </h2>
-                <Link to={bookHref} className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>הכל ←</Link>
+                <Link to={bookHref} className="text-sm font-bold underline underline-offset-2" style={{ color: 'var(--color-gold)' }}>הכל ←</Link>
               </div>
 
               {servicesLoading ? (
@@ -603,6 +603,9 @@ export function HomePage() {
           <div
             className="flex gap-3 overflow-x-auto pb-4 px-4"
             style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            tabIndex={0}
+            role="region"
+            aria-label="הצוות שלנו"
           >
             {staff.map((member, i) => (
               <motion.div
@@ -632,7 +635,13 @@ export function HomePage() {
               מוצרים מומלצים
             </h2>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-4 px-4" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          <div
+            className="flex gap-3 overflow-x-auto pb-4 px-4"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            tabIndex={0}
+            role="region"
+            aria-label="מוצרים מומלצים"
+          >
             {featuredProducts.map((product, i) => (
               <motion.div
                 key={product.id}
@@ -667,7 +676,13 @@ export function HomePage() {
               <span className="w-[3.5px] h-5 rounded-full flex-shrink-0" style={{ background: 'var(--color-gold)' }} />
               מה אומרים הלקוחות
             </h2>
-            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            <div
+              className="flex gap-3 overflow-x-auto pb-2"
+              style={{ scrollbarWidth: 'none' }}
+              tabIndex={0}
+              role="region"
+              aria-label="מה אומרים הלקוחות"
+            >
               {reviews.slice(0, 10).map((review, i) => (
                 <motion.div
                   key={review.id}
@@ -703,7 +718,13 @@ export function HomePage() {
 
         {/* Gallery carousel */}
         {galleryItems.filter(g => g.type === 'image').length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-4 px-4" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          <div
+            className="flex gap-2 overflow-x-auto pb-4 px-4"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            tabIndex={0}
+            role="region"
+            aria-label="גלריית תמונות"
+          >
             {galleryItems.filter(g => g.type === 'image').map((item, i) => (
               <motion.div
                 key={item.id}

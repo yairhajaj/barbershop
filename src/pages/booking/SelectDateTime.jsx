@@ -191,7 +191,16 @@ export function SelectDateTime() {
         setAvailableSlots(grouped)
       }
     } else {
-      setAvailableSlots(future)
+      // "Any barber" mode — collapse duplicate times so the user picks
+      // a time only, and the first available staff is auto-assigned.
+      if (!bookingState.staffId) {
+        const uniqueByTime = [...new Map(
+          future.map(s => [s.start.getTime(), s])
+        ).values()]
+        setAvailableSlots(uniqueByTime)
+      } else {
+        setAvailableSlots(future)
+      }
     }
     setSlotsLoading(false)
   }
@@ -487,7 +496,7 @@ export function SelectDateTime() {
             >
               {availableSlots.map((slot, i) => (
                 <motion.button
-                  key={slot.start.toISOString()}
+                  key={`${slot.start.toISOString()}-${slot.staffId ?? 'any'}`}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.02 }}

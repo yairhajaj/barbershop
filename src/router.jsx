@@ -1,6 +1,8 @@
+import { lazy, Suspense } from 'react'
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { BookingLayout } from './layouts/BookingLayout'
 import { AdminLayout } from './layouts/AdminLayout'
+import { PageSpinner } from './components/ui/Spinner'
 
 // Booking pages
 import { HomePage }        from './pages/booking/HomePage'
@@ -19,25 +21,37 @@ import { MyAppointments } from './pages/customer/MyAppointments'
 import { Login }    from './pages/auth/Login'
 import { Register } from './pages/auth/Register'
 
-// Admin
-import { Dashboard }    from './pages/admin/Dashboard'
-import { Appointments } from './pages/admin/Appointments'
-import { Staff }        from './pages/admin/Staff'
-import { Services }     from './pages/admin/Services'
-import { Products }     from './pages/admin/Products'
-import { Settings }     from './pages/admin/Settings'
-// import { Invoices }     from './pages/admin/Invoices' // redirected to /admin/finance
-import { Appearance }   from './pages/admin/Appearance'
-import { Messages }     from './pages/admin/Messages'
-import { Branches }        from './pages/admin/Branches'
-import { Customers }       from './pages/admin/Customers'
-import { Waitlist }        from './pages/admin/Waitlist'
-// import { Payments }        from './pages/admin/Payments' // redirected to /admin/finance
-import { Finance }         from './pages/admin/Finance'
 import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
 import { RescheduleConfirm } from './pages/booking/RescheduleConfirm'
 import { SelectBranch }    from './pages/booking/SelectBranch'
 import { PrivacyPolicy }   from './pages/PrivacyPolicy'
+
+// Admin — code-split so the ~544KB admin bundle (Appointments etc.)
+// doesn't ship to unauth visitors on the landing page.
+const Dashboard    = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })))
+const Appointments = lazy(() => import('./pages/admin/Appointments').then(m => ({ default: m.Appointments })))
+const Staff        = lazy(() => import('./pages/admin/Staff').then(m => ({ default: m.Staff })))
+const Services     = lazy(() => import('./pages/admin/Services').then(m => ({ default: m.Services })))
+const Products     = lazy(() => import('./pages/admin/Products').then(m => ({ default: m.Products })))
+const Settings     = lazy(() => import('./pages/admin/Settings').then(m => ({ default: m.Settings })))
+const Appearance   = lazy(() => import('./pages/admin/Appearance').then(m => ({ default: m.Appearance })))
+const Messages     = lazy(() => import('./pages/admin/Messages').then(m => ({ default: m.Messages })))
+const Branches     = lazy(() => import('./pages/admin/Branches').then(m => ({ default: m.Branches })))
+const Customers    = lazy(() => import('./pages/admin/Customers').then(m => ({ default: m.Customers })))
+const Waitlist     = lazy(() => import('./pages/admin/Waitlist').then(m => ({ default: m.Waitlist })))
+const Finance      = lazy(() => import('./pages/admin/Finance').then(m => ({ default: m.Finance })))
+
+// Wrap admin pages in Suspense for lazy loading.
+// Using a component (not a helper fn) so React can reconcile instances.
+function AdminRoute({ children }) {
+  return (
+    <AdminLayout>
+      <Suspense fallback={<PageSpinner />}>
+        {children}
+      </Suspense>
+    </AdminLayout>
+  )
+}
 
 const router = createBrowserRouter([
   {
@@ -93,62 +107,21 @@ const router = createBrowserRouter([
     element: <BookingLayout><Confirmation /></BookingLayout>,
   },
   // Admin
-  {
-    path: '/admin',
-    element: <AdminLayout><Dashboard /></AdminLayout>,
-  },
-  {
-    path: '/admin/appointments',
-    element: <AdminLayout><Appointments /></AdminLayout>,
-  },
-  {
-    path: '/admin/staff',
-    element: <AdminLayout><Staff /></AdminLayout>,
-  },
-  {
-    path: '/admin/services',
-    element: <AdminLayout><Services /></AdminLayout>,
-  },
-  {
-    path: '/admin/products',
-    element: <AdminLayout><Products /></AdminLayout>,
-  },
-  {
-    path: '/admin/settings',
-    element: <AdminLayout><Settings /></AdminLayout>,
-  },
-  {
-    path: '/admin/invoices',
-    element: <Navigate to="/admin/finance" replace />,
-  },
-  {
-    path: '/admin/appearance',
-    element: <AdminLayout><Appearance /></AdminLayout>,
-  },
-  {
-    path: '/admin/messages',
-    element: <AdminLayout><Messages /></AdminLayout>,
-  },
-  {
-    path: '/admin/branches',
-    element: <AdminLayout><Branches /></AdminLayout>,
-  },
-  {
-    path: '/admin/customers',
-    element: <AdminLayout><Customers /></AdminLayout>,
-  },
-  {
-    path: '/admin/waitlist',
-    element: <AdminLayout><Waitlist /></AdminLayout>,
-  },
-  {
-    path: '/admin/payments',
-    element: <Navigate to="/admin/finance" replace />,
-  },
-  {
-    path: '/admin/finance',
-    element: <AdminLayout><Finance /></AdminLayout>,
-  },
+  { path: '/admin',              element: <AdminRoute><Dashboard /></AdminRoute> },
+  { path: '/admin/dashboard',    element: <Navigate to="/admin" replace /> },
+  { path: '/admin/appointments', element: <AdminRoute><Appointments /></AdminRoute> },
+  { path: '/admin/staff',        element: <AdminRoute><Staff /></AdminRoute> },
+  { path: '/admin/services',     element: <AdminRoute><Services /></AdminRoute> },
+  { path: '/admin/products',     element: <AdminRoute><Products /></AdminRoute> },
+  { path: '/admin/settings',     element: <AdminRoute><Settings /></AdminRoute> },
+  { path: '/admin/invoices',     element: <Navigate to="/admin/finance" replace /> },
+  { path: '/admin/appearance',   element: <AdminRoute><Appearance /></AdminRoute> },
+  { path: '/admin/messages',     element: <AdminRoute><Messages /></AdminRoute> },
+  { path: '/admin/branches',     element: <AdminRoute><Branches /></AdminRoute> },
+  { path: '/admin/customers',    element: <AdminRoute><Customers /></AdminRoute> },
+  { path: '/admin/waitlist',     element: <AdminRoute><Waitlist /></AdminRoute> },
+  { path: '/admin/payments',     element: <Navigate to="/admin/finance" replace /> },
+  { path: '/admin/finance',      element: <AdminRoute><Finance /></AdminRoute> },
   {
     path: '/waitlist/confirm',
     element: <BookingLayout><WaitlistConfirm /></BookingLayout>,
