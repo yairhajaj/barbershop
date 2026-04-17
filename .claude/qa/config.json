@@ -1,0 +1,102 @@
+{
+  "project": {
+    "name": "HAJAJ Hair Design",
+    "tech_stack": ["React 19", "Vite", "Tailwind 4", "Supabase", "Capacitor", "Framer Motion"],
+    "language": "he",
+    "rtl": true
+  },
+  "preview": {
+    "command": "npm run dev",
+    "port": 5173,
+    "ready_signal": "ready in",
+    "startup_timeout_seconds": 30
+  },
+  "routes": {
+    "public": [
+      {"path": "/", "label": "דף בית"},
+      {"path": "/book", "label": "הזמנת תור — בחירת סניף"},
+      {"path": "/book/service", "label": "בחירת שירות"},
+      {"path": "/book/staff", "label": "בחירת ספר"},
+      {"path": "/book/datetime", "label": "בחירת תאריך ושעה"},
+      {"path": "/book/details", "label": "פרטי לקוח"},
+      {"path": "/book/payment", "label": "תשלום"},
+      {"path": "/book/confirm", "label": "אישור הזמנה"},
+      {"path": "/my-appointments", "label": "התורים שלי"}
+    ],
+    "auth": [
+      {"path": "/login", "label": "כניסה"},
+      {"path": "/register", "label": "הרשמה"}
+    ],
+    "admin": [
+      {"path": "/admin/dashboard", "label": "דשבורד", "auth_required": true},
+      {"path": "/admin/appointments", "label": "יומן תורים", "auth_required": true},
+      {"path": "/admin/staff", "label": "ניהול ספרים", "auth_required": true},
+      {"path": "/admin/services", "label": "ניהול שירותים", "auth_required": true},
+      {"path": "/admin/customers", "label": "מאגר לקוחות", "auth_required": true},
+      {"path": "/admin/finance", "label": "פיננסים", "auth_required": true},
+      {"path": "/admin/products", "label": "מוצרים", "auth_required": true},
+      {"path": "/admin/appearance", "label": "עיצוב", "auth_required": true},
+      {"path": "/admin/settings", "label": "הגדרות", "auth_required": true}
+    ],
+    "user_flows": [
+      {
+        "name": "הזמנת תור מלאה",
+        "steps": [
+          {"action": "navigate", "path": "/"},
+          {"action": "click", "selector": "a[href*='/book']"},
+          {"action": "wait_for", "selector": "[class*='service']"}
+        ],
+        "success_signal": "/book/confirm"
+      }
+    ]
+  },
+  "viewports": [
+    {"name": "mobile", "width": 390},
+    {"name": "tablet", "width": 768},
+    {"name": "desktop", "width": 1280}
+  ],
+  "auth": {
+    "method": "phone",
+    "login_route": "/login",
+    "store_in_env": "QA_TEST_PASSWORD"
+  },
+  "business_owner_persona": {
+    "role": "יאיר — בעל HAJAJ Hair Design, מספרה בתל מונד",
+    "context": "יאיר בונה אפליקציה שתהיה הכי טובה בארץ — מושלמת עיצובית, חוויית משתמש ברמה הגבוהה ביותר, אפס באגים, מהירה. ניהול העסק חשוב לו לא פחות: יומן, לקוחות, פיננסים, ספרים — הכל חכם ויעיל. לאחר שהאפליקציה מושלמת הוא יפתח SaaS כזה לבעלי עסקים אחרים.",
+    "critical_flows": [
+      "לקוח מזמין תור מההתחלה עד האישור",
+      "יאיר רואה את כל התורים של היום בלחיצה אחת",
+      "יאיר מנהל ספרים, שירותים ולקוחות בקלות",
+      "פיננסים ודוחות ברורים ומדויקים"
+    ],
+    "deal_breakers": [
+      "לקוח לא יכול להזמין תור",
+      "תורים נעלמים או מתבלבלים",
+      "עיצוב לא מרשים — לא ייצוגי",
+      "אפליקציה איטית או תקועה",
+      "פיצ'ר שלא עובד בניהול"
+    ]
+  },
+  "build": {
+    "lint_command": "npm run lint",
+    "build_command": "npm run build",
+    "test_command": null
+  },
+  "git": {
+    "auto_commit": true,
+    "auto_push": true,
+    "commit_message_template": "qa(iter-{N}): {summary}",
+    "branch": "main"
+  },
+  "rubric": {
+    "min_score_to_pass": 9,
+    "max_critical": 0,
+    "max_high": 0,
+    "max_iterations": 10,
+    "max_fixes_per_iter": 6
+  },
+  "ignore": {
+    "routes_pattern": ["/_internal/**"],
+    "files_pattern": ["src/legacy/**"]
+  }
+}

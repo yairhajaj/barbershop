@@ -39,3 +39,11 @@ ios/App/DerivedData/
 
 # Capacitor temp
 .capacitor/
+
+# QA loop runtime (plugin: qa-loop)
+.claude/qa/state.json
+.claude/qa/reports/
+.claude/worktrees/
+
+# Supabase CLI temp
+supabase/.temp/
