@@ -11,6 +11,7 @@ import { StatusBadge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
 import { supabase } from '../../lib/supabase'
+import { useTheme } from '../../contexts/ThemeContext'
 import {
   formatDateFull, formatTime, priceDisplay,
   isWithinCancellationWindow, generateSlots, dayName,
@@ -22,6 +23,7 @@ export function MyAppointments() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const { isDark } = useTheme()
   const { settings, hours } = useBusinessSettings()
   const { staff } = useStaff({ activeOnly: true })
 
@@ -459,7 +461,7 @@ export function MyAppointments() {
               <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <h2 className="font-black text-lg" style={{ color: 'var(--color-text)' }}>דרג את הביקור</h2>
                 <button onClick={() => setReviewAppt(null)} className="w-8 h-8 flex items-center justify-center rounded-full text-xl"
-                  style={{ color: 'var(--color-muted)', background: 'rgba(0,0,0,0.05)' }}>×</button>
+                  style={{ color: 'var(--color-muted)', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>×</button>
               </div>
               <div className="p-5 space-y-5">
                 <div>
@@ -474,7 +476,7 @@ export function MyAppointments() {
                         key={star}
                         onClick={() => setReviewRating(star)}
                         className="text-3xl transition-transform hover:scale-110"
-                        style={{ color: star <= reviewRating ? '#FBBF24' : 'rgba(0,0,0,0.15)', filter: star <= reviewRating ? 'none' : 'grayscale(1)' }}
+                        style={{ color: star <= reviewRating ? '#FBBF24' : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)', filter: star <= reviewRating ? 'none' : 'grayscale(1)' }}
                       >
                         ★
                       </button>
@@ -527,7 +529,7 @@ export function MyAppointments() {
               <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <h2 className="font-black text-lg" style={{ color: 'var(--color-text)' }}>שנה מועד</h2>
                 <button onClick={() => setRescheduleAppt(null)} className="text-2xl w-8 h-8 flex items-center justify-center rounded-full"
-                  style={{ color: 'var(--color-muted)', background: 'rgba(0,0,0,0.05)' }}>×</button>
+                  style={{ color: 'var(--color-muted)', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>×</button>
               </div>
 
               <div className="p-5">

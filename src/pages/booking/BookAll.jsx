@@ -13,6 +13,7 @@ import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 import { Spinner } from '../../components/ui/Spinner'
+import { useTheme } from '../../contexts/ThemeContext'
 import { generateSlots, formatTime, dayName, priceDisplay, isShabbatDay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 
@@ -22,6 +23,7 @@ export function BookAll() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user } = useAuth()
+  const { isDark } = useTheme()
 
   // ── Branch state ──────────────────────────────────────────────────────────
   const [branches,   setBranches]  = useState([])
@@ -254,7 +256,7 @@ export function BookAll() {
                   style={{
                     padding:      '10px 18px',
                     borderRadius: '16px',
-                    background:   selBranch?.id === branch.id ? 'var(--color-gold)' : '#f2f2f2',
+                    background:   selBranch?.id === branch.id ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.08)' : '#f2f2f2',
                     color:        selBranch?.id === branch.id ? '#fff' : 'var(--color-text)',
                     fontWeight:   700,
                     fontSize:     '14px',
@@ -295,7 +297,7 @@ export function BookAll() {
               <span
                 className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
                 style={{
-                  background: selStaff === null ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.08)',
+                  background: selStaff === null ? 'rgba(255,255,255,0.3)' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                 }}
               >✂</span>
               <span>כל ספר</span>
@@ -314,7 +316,7 @@ export function BookAll() {
                   <span
                     className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
                     style={{
-                      background: selStaff?.id === m.id ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)',
+                      background: selStaff?.id === m.id ? 'rgba(255,255,255,0.25)' : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                       color: selStaff?.id === m.id ? '#fff' : 'var(--color-text)',
                     }}
                   >{m.name[0]}</span>
@@ -343,7 +345,7 @@ export function BookAll() {
                 style={{
                   minWidth:    '64px',
                   padding:     '10px 8px',
-                  background:  active ? 'var(--color-gold)' : '#f2f2f2',
+                  background:  active ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.08)' : '#f2f2f2',
                   color:       active ? '#fff' : 'var(--color-text)',
                   boxShadow:   active ? '0 3px 12px rgba(255,133,0,0.35)' : 'none',
                   border:      'none',
@@ -383,7 +385,7 @@ export function BookAll() {
                     style={{
                       padding:    '10px 18px',
                       borderRadius: '999px',
-                      background: active ? 'var(--color-gold)' : '#f2f2f2',
+                      background: active ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.08)' : '#f2f2f2',
                       color:      active ? '#fff' : 'var(--color-text)',
                       fontWeight: 700,
                       fontSize:   '14px',
@@ -465,7 +467,7 @@ export function BookAll() {
                         style={{
                           padding:      '9px 18px',
                           borderRadius: '999px',
-                          background:   active ? 'var(--color-gold)' : '#f2f2f2',
+                          background:   active ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.08)' : '#f2f2f2',
                           color:        active ? '#fff' : 'var(--color-text)',
                           fontWeight:   700,
                           fontSize:     '14px',
@@ -499,16 +501,16 @@ export function BookAll() {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed bottom-0 right-0 left-0 z-30"
             style={{
-              background: '#fff',
-              borderTop: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 -8px 32px rgba(0,0,0,0.08)',
+              background: isDark ? 'var(--color-card)' : '#fff',
+              borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+              boxShadow: isDark ? '0 -8px 32px rgba(0,0,0,0.3)' : '0 -8px 32px rgba(0,0,0,0.08)',
               paddingBottom: 'env(safe-area-inset-bottom)',
             }}
           >
             <div className="max-w-lg mx-auto px-5 py-4">
               {/* Mini summary row */}
               <div className="flex items-center justify-between mb-3">
-                <div style={{ fontSize: '13px', color: '#888' }}>
+                <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
                   {selService.name} · {formatTime(selSlot.start)}
                   {selService.duration_minutes && (
                     <span> · ⏱ {selService.duration_minutes} דק׳</span>
@@ -552,7 +554,7 @@ function SectionLabel({ children }) {
     <p style={{
       fontSize: '11px',
       fontWeight: 700,
-      color: '#aaa',
+      color: 'var(--color-muted)',
       letterSpacing: '0.08em',
       textTransform: 'uppercase',
       marginBottom: '12px',
@@ -564,7 +566,7 @@ function SectionLabel({ children }) {
 
 function Divider() {
   return (
-    <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '0 20px' }} />
+    <div style={{ height: '1px', background: 'var(--color-border)', margin: '0 20px' }} />
   )
 }
 
@@ -576,8 +578,8 @@ function Pill({ active, onClick, children }) {
       style={{
         padding:      '9px 16px 9px 10px',
         borderRadius: '999px',
-        background:   active ? 'var(--color-gold)' : '#f2f2f2',
-        color:        active ? '#fff' : '#1a1a1a',
+        background:   active ? 'var(--color-gold)' : 'var(--color-surface)',
+        color:        active ? '#fff' : 'var(--color-text)',
         fontWeight:   700,
         fontSize:     '14px',
         border:       'none',

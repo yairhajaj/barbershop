@@ -137,9 +137,11 @@ export function ThemeProvider({ children }) {
     if (id) await supabase.from('business_settings').update({ layout: l }).eq('id', id)
   }
 
+  const isDark = ['midnight', 'obsidian'].includes(theme) || ['luxury', 'noir'].includes(layout)
+
   return (
     <ThemeContext.Provider value={{
-      theme, layout, loaded,
+      theme, layout, loaded, isDark,
       previewTheme, previewLayout, cancelPreview,
       saveTheme, saveLayout,
     }}>

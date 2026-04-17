@@ -87,7 +87,7 @@ export function HomePage() {
   const { settings } = useBusinessSettings()
   const { items: galleryItems } = useBusinessGallery()
   const { user, profile } = useAuth()
-  const { theme, layout } = useTheme()
+  const { theme, layout, isDark } = useTheme()
   const showToast = useToast()
 
   // Upcoming appointment — direct query so it's always fresh and never blocked by hook re-fetch timing
@@ -347,9 +347,9 @@ export function HomePage() {
                   <Link to="/my-appointments"
                     className="flex-1 text-center text-sm font-bold py-3 rounded-2xl transition-all"
                     style={{
-                      background: theme === 'midnight' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
                       color: 'var(--color-text)',
-                      border: `1px solid ${theme === 'midnight' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}`
+                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}`
                     }}>
                     התורים שלי
                   </Link>
@@ -386,7 +386,7 @@ export function HomePage() {
               <div
                 className="rounded-3xl p-5"
                 style={
-                  theme === 'midnight' || layout === 'luxury'
+                  isDark
                     ? {
                         background: 'rgba(255,255,255,0.07)',
                         backdropFilter: 'blur(28px) saturate(1.5)',
@@ -448,7 +448,7 @@ export function HomePage() {
                 <div
                   className="rounded-2xl p-3 mb-4 flex items-center gap-3"
                   style={
-                    theme === 'midnight' || layout === 'luxury'
+                    isDark
                       ? { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
                       : { background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }
                   }
@@ -493,7 +493,7 @@ export function HomePage() {
                     to="/my-appointments"
                     className="flex-1 text-center text-sm font-bold py-3 rounded-2xl transition-all"
                     style={
-                      theme === 'midnight' || layout === 'luxury'
+                      isDark
                         ? { background: 'rgba(255,255,255,0.07)', color: 'var(--color-text)', border: '1px solid rgba(255,255,255,0.1)' }
                         : { background: 'rgba(0,0,0,0.05)', color: 'var(--color-text)', border: '1px solid rgba(0,0,0,0.07)' }
                     }
@@ -510,7 +510,7 @@ export function HomePage() {
                     style={
                       calAdded
                         ? { background: 'rgba(34,197,94,0.13)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.28)' }
-                        : theme === 'midnight' || layout === 'luxury'
+                        : isDark
                           ? { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }
                           : { background: 'rgba(0,0,0,0.04)', color: 'var(--color-muted)', border: '1px solid rgba(0,0,0,0.07)' }
                     }
@@ -534,9 +534,9 @@ export function HomePage() {
                     disabled={cancellingAppt}
                     className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 rounded-2xl transition-all"
                     style={{
-                      background: theme === 'midnight' ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)',
+                      background: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)',
                       color: '#ef4444',
-                      border: `1px solid ${theme === 'midnight' ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}`,
+                      border: `1px solid ${isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}`,
                     }}
                   >
                     {cancellingAppt ? '...' : 'ביטול תור'}

@@ -9,6 +9,7 @@ import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { formatDateFull, formatTime, priceDisplay } from '../../lib/utils'
 import { BUSINESS } from '../../config/business'
+import { useTheme } from '../../contexts/ThemeContext'
 import { supabase } from '../../lib/supabase'
 
 export function Confirmation() {
@@ -29,6 +30,7 @@ export function Confirmation() {
 
   const { createAppointment, createRecurringAppointments } = useAppointments()
   const { settings } = useBusinessSettings()
+  const { isDark } = useTheme()
 
   const { isSupported: pushSupported, requestPermission: requestPush } = usePushNotifications()
 
@@ -423,7 +425,7 @@ export function Confirmation() {
               <div className="relative mt-0.5 flex-shrink-0">
                 <input type="checkbox" className="sr-only" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
                 <div className="w-11 h-6 rounded-full transition-all duration-200"
-                  style={{ background: isRecurring ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                  style={{ background: isRecurring ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }}>
                   <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
                     style={{ right: isRecurring ? '2px' : 'calc(100% - 22px)' }} />
                 </div>
@@ -443,7 +445,7 @@ export function Confirmation() {
           style={{ background: 'var(--color-card)', border: `1.5px solid ${wantsReminder ? 'var(--color-gold)' : 'var(--color-border)'}` }}>
           <div className="relative mt-0.5 flex-shrink-0" onClick={() => setWantsReminder(r => !r)}>
             <div className="w-11 h-6 rounded-full transition-all duration-200"
-              style={{ background: wantsReminder ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+              style={{ background: wantsReminder ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }}>
               <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
                 style={{ right: wantsReminder ? '2px' : 'calc(100% - 22px)' }} />
             </div>

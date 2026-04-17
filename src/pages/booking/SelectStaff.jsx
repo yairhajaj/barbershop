@@ -6,9 +6,11 @@ import { Spinner } from '../../components/ui/Spinner'
 import { Modal } from '../../components/ui/Modal'
 import { useStaff } from '../../hooks/useStaff'
 import { useStaffPortfolio } from '../../hooks/useStaffPortfolio'
+import { useTheme } from '../../contexts/ThemeContext'
 
 export function SelectStaff() {
   const navigate = useNavigate()
+  const { isDark } = useTheme()
   const [portfolioStaff, setPortfolioStaff] = useState(null)
 
   const bookingState = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
@@ -89,6 +91,7 @@ export function SelectStaff() {
                 key={member.id}
                 member={member}
                 index={i + 1}
+                isDark={isDark}
                 onSelect={() => selectStaff(member.id, member.name)}
                 onPortfolio={() => setPortfolioStaff(member)}
               />
@@ -112,7 +115,7 @@ export function SelectStaff() {
   )
 }
 
-function StaffCard({ member, index, onSelect, onPortfolio }) {
+function StaffCard({ member, index, isDark, onSelect, onPortfolio }) {
   const { photos } = useStaffPortfolio(member.id)
   const preview = photos.slice(0, 3)
 
@@ -134,7 +137,7 @@ function StaffCard({ member, index, onSelect, onPortfolio }) {
     >
       <button onClick={onSelect} className="w-full flex items-center gap-4 p-4 text-right cursor-pointer">
         <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.06)' }}>
+          style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
           {member.photo_url ? (
             <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
           ) : (
@@ -177,6 +180,7 @@ function StaffCard({ member, index, onSelect, onPortfolio }) {
 }
 
 function PortfolioLightbox({ member, onClose, onSelect }) {
+  const { isDark } = useTheme()
   const { photos, loading } = useStaffPortfolio(member.id)
 
   return (
@@ -198,7 +202,7 @@ function PortfolioLightbox({ member, onClose, onSelect }) {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.04 }}
                 className="rounded-xl overflow-hidden aspect-square relative"
-                style={{ background: 'rgba(0,0,0,0.06)' }}
+                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
               >
                 <img src={photo.image_url} alt={photo.caption || ''} className="w-full h-full object-cover" />
                 {photo.caption && (

@@ -6,10 +6,12 @@ import { Spinner } from '../../components/ui/Spinner'
 import { useServices } from '../../hooks/useServices'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
+import { useTheme } from '../../contexts/ThemeContext'
 
 export function SelectService() {
   const { services, loading } = useServices({ activeOnly: true })
   const { settings } = useBusinessSettings()
+  const { isDark } = useTheme()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const preselectedStaff = searchParams.get('staff')
@@ -170,7 +172,7 @@ export function SelectService() {
                   )}
                   <span
                     className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                    style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--color-muted)' }}
+                    style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: 'var(--color-muted)' }}
                   >
                     ⏱ {minutesToDisplay(service.duration_minutes)}
                   </span>

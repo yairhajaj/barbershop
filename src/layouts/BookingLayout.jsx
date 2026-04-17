@@ -15,7 +15,7 @@ export function BookingLayout({ children }) {
   const [announcement, setAnnouncement] = useState(null)
   const [annOpen, setAnnOpen] = useState(false)
   const { user, profile, isAdmin, signOut } = useAuth()
-  const { layout, theme } = useTheme()
+  const { layout, theme, isDark } = useTheme()
   const { settings } = useBusinessSettings()
   const logoUrl = settings?.logo_url
   const bookingFlow = settings?.booking_flow || localStorage.getItem('booking_flow') || 'multistep'
@@ -70,7 +70,7 @@ export function BookingLayout({ children }) {
   const navVisible = !isHome || scrolled
 
   // Bottom bar — computed once per render, never inside JSX (avoids stale-closure on auth/theme change)
-  const barIsDark = theme === 'midnight' || layout === 'luxury'
+  const barIsDark = isDark
   const barIsGlass = layout === 'glass'
   // Glass bar: light theme → white-glass bar + DARK text. Dark theme → dark-glass bar + LIGHT text.
   // Never mix light text with light/transparent background — that's the "invisible icon" bug.
