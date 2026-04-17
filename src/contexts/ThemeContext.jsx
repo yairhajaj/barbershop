@@ -26,6 +26,12 @@ export const THEMES = [
     desc: 'כחול עמוק — מסתורי ומודרני',
     preview: ['#0f1025', '#818cf8', '#1a1b3a'],
   },
+  {
+    id: 'obsidian',
+    name: 'אובסידיאן',
+    desc: 'שחור עמוק עם זהב חם — פרימיום וגלאס',
+    preview: ['#06080F', '#F59E0B', '#0f1219'],
+  },
 ]
 
 export const LAYOUTS = [

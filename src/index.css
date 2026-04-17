@@ -4,8 +4,8 @@
   --color-primary: #111111;
   --color-primary-light: #333333;
   --color-gold: #FF7A00;
-  --color-gold-text: #b85d00;
-  --color-gold-btn: #c96a00;
+  --color-gold-text: #a85200;
+  --color-gold-btn: #b05500;
   --color-gold-light: #FFA040;
   --color-gold-dark: #D96500;
   --color-surface: #f5f5f5;
@@ -68,8 +68,8 @@
   --color-primary:       #000000;
   --color-primary-light: #1a1a1a;
   --color-gold:          #FF8500;
-  --color-gold-text:     #b85d00;   /* 7:1 on white — for text/labels */
-  --color-gold-btn:      #c96a00;   /* 4.6:1 on white — for buttons with white text */
+  --color-gold-text:     #a85200;   /* 5.28:1 on white — for text/labels */
+  --color-gold-btn:      #b05500;   /* 4.81:1 on white — for buttons with white text */
   --color-gold-light:    #FFA030;
   --color-gold-dark:     #E06000;
   --color-surface:       #ffffff;
@@ -191,11 +191,67 @@
 [data-theme="midnight"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
 
 /* ══════════════════════════════════════════════════════════════════
+   THEME: obsidian — אובסידיאן (deep black + warm gold + glass)
+   Based on premium dark-glass-gold design system
+══════════════════════════════════════════════════════════════════ */
+[data-theme="obsidian"] {
+  --color-primary:       #06080F;
+  --color-primary-light: #0f1219;
+  --color-gold:          #F59E0B;
+  --color-gold-text:     #F59E0B;
+  --color-gold-btn:      #D97706;
+  --color-gold-light:    #FBBF24;
+  --color-gold-dark:     #B45309;
+  --color-surface:       #06080F;
+  --color-card:          #0f1219;
+  --color-border:        rgba(255,255,255,0.07);
+  --color-muted:         #94A3B8;
+  --color-text:          #F8FAFC;
+  --color-navbar:        rgba(6,8,15,0.9);
+  --color-accent-glow:   rgba(245,158,11,0.3);
+  --radius-btn:          9999px;
+  --radius-card:         1.125rem;
+  --shadow-card:         0 4px 24px rgba(0,0,0,0.5);
+  --shadow-elevated:     0 16px 48px rgba(0,0,0,0.7);
+}
+[data-theme="obsidian"] body { background: #06080F; }
+[data-theme="obsidian"] .btn-primary {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #0C0A09;
+  font-weight: 800;
+  box-shadow: 0 4px 24px rgba(245,158,11,0.3);
+}
+[data-theme="obsidian"] .btn-primary:hover {
+  box-shadow: 0 8px 32px rgba(245,158,11,0.45);
+  filter: brightness(1.1);
+}
+[data-theme="obsidian"] .input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: #F8FAFC;
+}
+[data-theme="obsidian"] .input:focus {
+  border-color: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.2);
+}
+[data-theme="obsidian"] .glass {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+[data-theme="obsidian"] .badge-confirmed { background: rgba(52,211,153,0.15);  color: #34d399; }
+[data-theme="obsidian"] .badge-cancelled { background: rgba(239,68,68,0.15);   color: #ef4444; }
+[data-theme="obsidian"] .badge-completed { background: rgba(255,255,255,0.08); color: #888; }
+[data-theme="obsidian"] .badge-pending   { background: rgba(245,158,11,0.15);  color: #FBBF24; }
+[data-theme="obsidian"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+
+/* ══════════════════════════════════════════════════════════════════
    UTILITIES
 ══════════════════════════════════════════════════════════════════ */
 @layer utilities {
-  .text-gold   { color: var(--color-gold); }
-  .bg-gold     { background-color: var(--color-gold); }
+  .text-gold   { color: var(--color-gold-text, var(--color-gold)); }
+  .bg-gold     { background-color: var(--color-gold-btn, var(--color-gold)); }
   .border-gold { border-color: var(--color-gold); }
   .text-muted  { color: var(--color-muted); }
 
@@ -221,6 +277,7 @@
     border: 1px solid rgba(0,0,0,0.06);
   }
 
+  [data-theme="obsidian"] .glass,
   [data-theme="dark-gold"] .glass,
   [data-theme="navy-gold"] .glass,
   [data-theme="charcoal"] .glass {
@@ -305,10 +362,11 @@
 
   .btn-outline:hover {
     border-color: var(--color-gold);
-    color: var(--color-gold);
+    color: var(--color-gold-text, var(--color-gold));
     background: rgba(255,122,0,0.05);
   }
 
+  [data-theme="obsidian"]  .btn-outline:hover,
   [data-theme="dark-gold"] .btn-outline:hover,
   [data-theme="navy-gold"] .btn-outline:hover,
   [data-theme="charcoal"] .btn-outline:hover {
@@ -343,6 +401,7 @@
   }
   .btn-ghost:hover { color: var(--color-text); background: rgba(0,0,0,0.06); }
 
+  [data-theme="obsidian"]  .btn-ghost:hover,
   [data-theme="dark-gold"] .btn-ghost:hover,
   [data-theme="navy-gold"] .btn-ghost:hover,
   [data-theme="charcoal"] .btn-ghost:hover,
@@ -365,6 +424,7 @@
     color: var(--color-text);
   }
 
+  [data-theme="obsidian"]  .input,
   [data-theme="dark-gold"] .input,
   [data-theme="navy-gold"] .input,
   [data-theme="charcoal"]  .input {
@@ -402,18 +462,22 @@
   .badge-pending   { background: #fef9c3; color: #854d0e; }
 
   /* Dark themes */
+  [data-theme="obsidian"]  .badge-confirmed,
   [data-theme="dark-gold"] .badge-confirmed,
   [data-theme="navy-gold"] .badge-confirmed,
   [data-theme="charcoal"]  .badge-confirmed { background: rgba(52,211,153,0.15); color: #34d399; }
 
+  [data-theme="obsidian"]  .badge-cancelled,
   [data-theme="dark-gold"] .badge-cancelled,
   [data-theme="navy-gold"] .badge-cancelled,
   [data-theme="charcoal"]  .badge-cancelled { background: rgba(239,68,68,0.15); color: #ef4444; }
 
+  [data-theme="obsidian"]  .badge-completed,
   [data-theme="dark-gold"] .badge-completed,
   [data-theme="navy-gold"] .badge-completed,
   [data-theme="charcoal"]  .badge-completed { background: rgba(255,255,255,0.08); color: #888; }
 
+  [data-theme="obsidian"]  .badge-pending,
   [data-theme="dark-gold"] .badge-pending,
   [data-theme="navy-gold"] .badge-pending,
   [data-theme="charcoal"]  .badge-pending   { background: rgba(251,191,36,0.15); color: #fbbf24; }
@@ -432,6 +496,7 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
 
+  [data-theme="obsidian"]  ::-webkit-scrollbar-thumb,
   [data-theme="dark-gold"] ::-webkit-scrollbar-thumb,
   [data-theme="navy-gold"] ::-webkit-scrollbar-thumb,
   [data-theme="charcoal"]  ::-webkit-scrollbar-thumb,
