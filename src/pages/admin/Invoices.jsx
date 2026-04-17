@@ -60,6 +60,7 @@ export function Invoices() {
       businessTaxId: settings?.business_tax_id,
       paymentMethod: inv.notes,
       invoiceDate: inv.created_at,
+      logoUrl: settings?.logo_url,
     })
   }
 

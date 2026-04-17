@@ -23,6 +23,7 @@ export function generateInvoiceHTML({
   businessTaxId,
   paymentMethod,
   invoiceDate,
+  logoUrl,
 }) {
   const invoiceNum     = invoiceNumber || `INV-${String(appointment.id).slice(0, 8).toUpperCase()}`
   const price          = Number(appointment.services?.price) || 0
@@ -95,7 +96,19 @@ export function generateInvoiceHTML({
       align-items: flex-start;
       gap: 16px;
     }
-    .biz-block {}
+    .biz-block {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .biz-logo {
+      height: 64px;
+      width: auto;
+      max-width: 120px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .biz-text {}
     .biz-name {
       font-size: 20px;
       font-weight: 700;
@@ -275,13 +288,16 @@ export function generateInvoiceHTML({
     <!-- Header -->
     <div class="doc-header">
       <div class="biz-block">
-        <div class="biz-name">${esc(business.name)}</div>
-        <div class="biz-meta">
-          ${business.address ? esc(business.address) + '<br>' : ''}
-          ${business.phone   ? 'טל׳: ' + esc(business.phone) + '<br>' : ''}
-          ${business.email   ? esc(business.email) : ''}
+        ${logoUrl ? `<img src="${logoUrl}" alt="${esc(business.name)}" class="biz-logo" />` : ''}
+        <div class="biz-text">
+          <div class="biz-name">${esc(business.name)}</div>
+          <div class="biz-meta">
+            ${business.address ? esc(business.address) + '<br>' : ''}
+            ${business.phone   ? 'טל׳: ' + esc(business.phone) + '<br>' : ''}
+            ${business.email   ? esc(business.email) : ''}
+          </div>
+          <div class="biz-taxid">${esc(taxIdLine)}</div>
         </div>
-        <div class="biz-taxid">${esc(taxIdLine)}</div>
       </div>
       <div class="doc-title-block">
         <div class="doc-title">${esc(docTitle)}</div>

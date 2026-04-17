@@ -136,6 +136,11 @@ export function Appointments() {
   // Debt modal
   const [debtModal, setDebtModal] = useState(false)
   const [debtForm, setDebtForm] = useState({ amount: '', description: '' })
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false)
+  const [pendingBlockCustomerId, setPendingBlockCustomerId] = useState(null)
+
+  // Cancel notification modal
+  const [cancelModal, setCancelModal] = useState({ open: false, appt: null, notify: 'push' })
 
   // Reschedule appointment sheet
   const [rescheduleOpen,   setRescheduleOpen]   = useState(false)
@@ -438,10 +443,17 @@ export function Appointments() {
   }, [!!gapAlert])
 
   // ── Appointment actions ────────────────────────────────────────────────────
-  async function handleCancel(id) {
-    if (!confirm('לבטל תור זה?')) return
+  function handleCancel(id) {
+    const appt = appointments.find(a => a.id === id)
+    setCancelModal({ open: true, appt, notify: 'push' })
+  }
 
-    const cancelledAppt = appointments.find(a => a.id === id)
+  async function confirmCancel() {
+    const { appt, notify } = cancelModal
+    if (!appt) return
+    const id = appt.id
+    setCancelModal(m => ({ ...m, open: false }))
+
     const { error } = await supabase
       .from('appointments')
       .update({ status: 'cancelled', cancelled_by: 'admin' })
@@ -452,6 +464,28 @@ export function Appointments() {
     setSelectedAppt(null)
     toast({ message: 'תור בוטל', type: 'success' })
 
+    // Send cancellation notification
+    if (notify !== 'none') {
+      const customerName = appt.profiles?.name || 'לקוח'
+      const serviceName  = appt.services?.name  || 'תור'
+      const dateStr      = formatDate(appt.start_at)
+      const timeStr      = formatTime(appt.start_at)
+      const msg = `שלום ${customerName}, תורך ל${serviceName} ב${dateStr} בשעה ${timeStr} בוטל.`
+      if (notify === 'push' || notify === 'both') {
+        const token = appt.profiles?.push_token
+        if (token) {
+          try { await supabase.functions.invoke('send-push', { body: { title: 'תור בוטל ❌', body: msg, tokens: [token] } }) } catch {}
+        }
+      }
+      if (notify === 'whatsapp' || notify === 'both') {
+        const phone = appt.profiles?.phone
+        if (phone) {
+          try { await supabase.functions.invoke('send-whatsapp', { body: { recipients: [{ name: customerName, phone }], message: msg } }) } catch {}
+        }
+      }
+    }
+
+    const cancelledAppt = appt
     const mode = settings?.gap_closer_mode || 'off'
     const threshold = settings?.gap_closer_threshold_minutes || 30
     const advanceHours = settings?.gap_closer_advance_hours ?? 2
@@ -661,6 +695,7 @@ export function Appointments() {
       businessTaxId: settings?.business_tax_id,
       paymentMethod: inv?.notes,
       invoiceDate: inv?.created_at,
+      logoUrl: settings?.logo_url,
     })
   }
 
@@ -1681,7 +1716,13 @@ export function Appointments() {
             {!(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => { setDebtForm({ amount: '', description: '' }); setDebtModal(true) }}
+                onClick={() => {
+                  setDebtForm({
+                    amount: selectedAppt.services?.price || '',
+                    description: 'אי הגעה לתור',
+                  })
+                  setDebtModal(true)
+                }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
                 style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.3)' }}
               >
