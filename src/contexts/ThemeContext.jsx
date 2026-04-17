@@ -123,7 +123,8 @@ export function ThemeProvider({ children }) {
 
   async function saveTheme(t) {
     setThemeState(t)
-    applyToDOM(t, layout)
+    const currentLayout = localStorage.getItem('app_layout') || layout
+    applyToDOM(t, currentLayout)
     localStorage.setItem('app_theme', t)
     const id = await getSettingsId()
     if (id) await supabase.from('business_settings').update({ theme: t }).eq('id', id)
@@ -131,7 +132,8 @@ export function ThemeProvider({ children }) {
 
   async function saveLayout(l) {
     setLayoutState(l)
-    applyToDOM(theme, l)
+    const currentTheme = localStorage.getItem('app_theme') || theme
+    applyToDOM(currentTheme, l)
     localStorage.setItem('app_layout', l)
     const id = await getSettingsId()
     if (id) await supabase.from('business_settings').update({ layout: l }).eq('id', id)
