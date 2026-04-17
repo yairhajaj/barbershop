@@ -79,7 +79,12 @@
       "Read(//c/Users/yairh/**)",
       "Bash(taskkill //F //PID 21160)",
       "Bash(netstat -ano)",
-      "Bash(git -C \"C:/Users/yairh/barbershop-app\" ls-files .claude/)"
+      "Bash(git -C \"C:/Users/yairh/barbershop-app\" ls-files .claude/)",
+      "Bash(git -C /c/Users/yairh/barbershop-app log --oneline -4)",
+      "Bash(git -C /c/Users/yairh/barbershop-app add src/pages/booking/SelectDateTime.jsx)",
+      "Bash(git -C /c/Users/yairh/barbershop-app commit -m ' *)",
+      "Bash(git -C /c/Users/yairh/barbershop-app push)",
+      "Bash(git -C /c/Users/yairh/barbershop-app log --oneline -3)"
     ]
   }
 }

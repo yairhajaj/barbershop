@@ -28,7 +28,7 @@
       {"path": "/register", "label": "הרשמה"}
     ],
     "admin": [
-      {"path": "/admin/dashboard", "label": "דשבורד", "auth_required": true},
+      {"path": "/admin", "label": "דשבורד", "auth_required": true},
       {"path": "/admin/appointments", "label": "יומן תורים", "auth_required": true},
       {"path": "/admin/staff", "label": "ניהול ספרים", "auth_required": true},
       {"path": "/admin/services", "label": "ניהול שירותים", "auth_required": true},

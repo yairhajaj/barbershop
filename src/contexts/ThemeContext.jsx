@@ -53,6 +53,12 @@ export const LAYOUTS = [
     desc: 'זכוכית מקפיאה — iOS, שקיפות ו-blur קינמטי',
     icon: '◻',
   },
+  {
+    id: 'noir',
+    name: 'נואר',
+    desc: 'כהה פרימיום — זכוכית זוהרת, אנימציות מדורגות, glow חם',
+    icon: '✦',
+  },
 ]
 
 const ThemeContext = createContext(null)

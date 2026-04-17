@@ -989,6 +989,216 @@
   border-bottom: 1px solid rgba(200,150,160,0.12) !important;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT: noir — נואר (premium dark glass + warm glow + cinematic)
+   The "premium app" design — deep black, glass cards with accent glow,
+   staggered entrance animations, dramatic hover effects.
+   Scoped to .booking-root only — admin untouched.
+══════════════════════════════════════════════════════════════════ */
+[data-layout="noir"] {
+  --radius-card: 1.125rem;
+  --radius-btn: 9999px;
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.45), 0 0 1px rgba(255,255,255,0.05);
+  --shadow-elevated: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+/* Color overrides — booking pages only (admin stays light) */
+[data-layout="noir"] .booking-root {
+  --color-surface: #06080F;
+  --color-card:    rgba(255,255,255,0.05);
+  --color-border:  rgba(255,255,255,0.07);
+  --color-text:    #F8FAFC;
+  --color-muted:   #94A3B8;
+  --color-navbar:  rgba(6,8,15,0.92);
+  background: #06080F;
+  color: #F8FAFC;
+}
+
+/* ── Entrance animations — staggered cascade ── */
+@keyframes noirFadeUp {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes noirGlowPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 rgba(var(--glow-rgb, 245,158,11), 0); }
+  50%      { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 28px rgba(var(--glow-rgb, 245,158,11), 0.06); }
+}
+
+/* ── Cards — glass with warm inner light ── */
+[data-layout="noir"] .booking-root .card {
+  border-radius: 1.125rem !important;
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(24px) saturate(1.3) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.3) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+[data-layout="noir"] .booking-root .card:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 20px var(--color-accent-glow) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Booking item list — glass items with stagger + glow on hover ── */
+[data-layout="noir"] .booking-root .booking-item-list {
+  gap: 0.875rem !important;
+}
+[data-layout="noir"] .booking-root .booking-item-list > * {
+  border-radius: 1.125rem !important;
+  background: rgba(255,255,255,0.035) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+[data-layout="noir"] .booking-root .booking-item-list > *:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px var(--color-accent-glow), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  transform: translateY(-3px) scale(1.01) !important;
+}
+
+/* Stagger entrance animation */
+[data-layout="noir"] .booking-root .booking-item-list > *:nth-child(1) { animation: noirFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+[data-layout="noir"] .booking-root .booking-item-list > *:nth-child(2) { animation: noirFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.12s both; }
+[data-layout="noir"] .booking-root .booking-item-list > *:nth-child(3) { animation: noirFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.19s both; }
+[data-layout="noir"] .booking-root .booking-item-list > *:nth-child(4) { animation: noirFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.25s both; }
+[data-layout="noir"] .booking-root .booking-item-list > *:nth-child(5) { animation: noirFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.30s both; }
+[data-layout="noir"] .booking-root .booking-item-list > *:nth-child(n+6) { animation: noirFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.34s both; }
+
+/* ── Buttons — pill with glow shadow ── */
+[data-layout="noir"] .booking-root .btn-primary {
+  border-radius: 9999px !important;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  padding: 1rem 2.25rem !important;
+  box-shadow: 0 4px 24px var(--color-accent-glow), 0 0 0 1px rgba(255,255,255,0.06) !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+[data-layout="noir"] .booking-root .btn-primary:hover {
+  transform: translateY(-3px) scale(1.03) !important;
+  box-shadow: 0 12px 40px var(--color-accent-glow), 0 0 0 1px rgba(255,255,255,0.1) !important;
+  filter: brightness(1.1);
+}
+[data-layout="noir"] .booking-root .btn-primary:active {
+  transform: scale(0.96) !important;
+  transition-duration: 100ms !important;
+}
+[data-layout="noir"] .booking-root .btn-outline {
+  border-radius: 9999px !important;
+  border-width: 1px !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  color: rgba(255,255,255,0.8) !important;
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  transition: all 0.25s ease !important;
+}
+[data-layout="noir"] .booking-root .btn-outline:hover {
+  border-color: var(--color-gold) !important;
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--color-gold) !important;
+  box-shadow: 0 0 16px var(--color-accent-glow) !important;
+}
+[data-layout="noir"] .booking-root .btn-ghost {
+  border-radius: 9999px !important;
+  color: var(--color-muted) !important;
+}
+[data-layout="noir"] .booking-root .btn-ghost:hover {
+  color: #F8FAFC !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* ── Inputs — dark glass ── */
+[data-layout="noir"] .booking-root .input {
+  border-radius: 9999px !important;
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  color: #F8FAFC !important;
+  padding: 0.875rem 1.5rem !important;
+  transition: all 0.25s ease !important;
+}
+[data-layout="noir"] .booking-root .input:focus {
+  border-color: var(--color-gold) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-glow), 0 0 20px var(--color-accent-glow) !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+[data-layout="noir"] .booking-root .input::placeholder {
+  color: rgba(255,255,255,0.3) !important;
+}
+
+/* ── Hero section — tall & dramatic ── */
+[data-layout="noir"] .booking-root .hero-section {
+  min-height: 85vh !important;
+}
+[data-layout="noir"] .booking-root .hero-section h1 {
+  font-size: clamp(2rem, 6vw, 3.2rem) !important;
+  letter-spacing: -0.02em !important;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+/* ── Navbar — deep frosted glass ── */
+[data-layout="noir"] .booking-root .booking-navbar {
+  background: rgba(6,8,15,0.88) !important;
+  backdrop-filter: blur(24px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* ── Badge / pill labels fix for dark bg ── */
+[data-layout="noir"] .booking-root [style*="rgba(0,0,0,0.05)"],
+[data-layout="noir"] .booking-root [style*="rgba(0,0,0,0.06)"],
+[data-layout="noir"] .booking-root [style*="rgba(0,0,0,0.07)"],
+[data-layout="noir"] .booking-root [style*="rgba(0,0,0,0.08)"] {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* ── Time slots / date picker ── */
+[data-layout="noir"] .booking-root .grid.grid-cols-3 button,
+[data-layout="noir"] .booking-root .grid.grid-cols-4 button {
+  border-radius: 14px !important;
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  color: #F8FAFC !important;
+  transition: all 0.2s ease !important;
+}
+[data-layout="noir"] .booking-root .grid.grid-cols-3 button:hover,
+[data-layout="noir"] .booking-root .grid.grid-cols-4 button:hover {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+/* ── Sections — subtle fade-in ── */
+[data-layout="noir"] .booking-root section {
+  animation: noirFadeUp 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── Scrollbar ── */
+[data-layout="noir"] ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1) !important;
+  border-radius: 4px;
+}
+
+/* ── Obsidian theme + noir layout combo — gold accent glow on everything ── */
+[data-layout="noir"][data-theme="obsidian"] .booking-root .card {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,158,11,0.04), 0 0 0 rgba(245,158,11,0) !important;
+}
+[data-layout="noir"][data-theme="obsidian"] .booking-root .card:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(245,158,11,0.08), 0 0 28px rgba(245,158,11,0.08) !important;
+  border-color: rgba(245,158,11,0.15) !important;
+}
+[data-layout="noir"][data-theme="obsidian"] .booking-root .booking-item-list > *:hover {
+  border-color: rgba(245,158,11,0.18) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 24px rgba(245,158,11,0.1), inset 0 1px 0 rgba(245,158,11,0.06) !important;
+}
+
 /* ── Mobile bottom bar — theming handled via inline JSX styles (no CSS overrides needed) ── */
 
 /* ── BACKWARDS COMPATIBILITY ALIASES ── */
