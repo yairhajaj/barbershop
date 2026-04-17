@@ -149,7 +149,7 @@ export function SettingsTab() {
       // 1. Save business settings
       await saveSettings({
         business_type: businessType,
-        vat_rate: businessType === 'osek_patur' ? 0 : vatRate,
+        vat_rate: vatRate,
         business_tax_id: businessTaxId,
         invoice_prefix: invoicePrefix,
         invoice_footer_text: invoiceFooterText,

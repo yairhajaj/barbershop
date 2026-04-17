@@ -90,14 +90,17 @@ export function TaxReportTab() {
 
   const currentPeriod = periods[periodIdx]
 
-  useEffect(() => { if (currentPeriod) fetchData() }, [currentPeriod])
+  // re-fetch when period OR business settings change
+  useEffect(() => { if (currentPeriod && businessType) fetchData() }, [currentPeriod, businessType, vatRate])
 
   async function fetchData() {
     setLoading(true)
+    try {
     const { startDate, endDate } = currentPeriod
+    const effectiveVatRate = vatRate || 18
 
     const [{ data: payments }, { data: manualIncome }, { data: expenses }] = await Promise.all([
-      supabase.from('payments').select('amount, method').eq('status', 'paid')
+      supabase.from('payments').select('amount').eq('status', 'paid')
         .gte('created_at', startDate).lte('created_at', endDate + 'T23:59:59'),
       supabase.from('manual_income').select('amount, vat_amount, payment_method')
         .gte('date', startDate).lte('date', endDate),
@@ -115,13 +118,13 @@ export function TaxReportTab() {
     }
     ;(payments ?? []).forEach(p => {
       const amt = Number(p.amount || 0)
-      const rate = vatRate / 100
+      const rate = effectiveVatRate / 100
       const vat  = showVat ? Math.round(amt - amt / (1 + rate)) : 0
-      addInc(p.method || 'other', amt, vat)
+      addInc('grow', amt, vat)
     })
     ;(manualIncome ?? []).forEach(m => {
       const amt = Number(m.amount || 0)
-      const rate = vatRate / 100
+      const rate = effectiveVatRate / 100
       const vat  = showVat ? Math.round(amt - amt / (1 + rate)) : 0
       addInc(m.payment_method || 'cash', amt, vat)
     })
@@ -141,7 +144,11 @@ export function TaxReportTab() {
     setExpenseRows(Object.values(expMap).sort((a, b) => b.amount - a.amount))
     setIncomeCount((payments ?? []).length + (manualIncome ?? []).length)
     setExpenseCount((expenses ?? []).length)
-    setLoading(false)
+    } catch (err) {
+      console.error('TaxReportTab fetchData error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const totalIncome    = incomeRows.reduce((s, r)  => s + r.amount, 0)
