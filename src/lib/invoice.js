@@ -4,6 +4,7 @@ const PAYMENT_METHOD_LABELS = {
   cash:     'מזומן',
   credit:   'כרטיס אשראי',
   bit:      'ביט',
+  paybox:   'Paybox',
   transfer: 'העברה בנקאית',
   check:    "צ'ק",
 }

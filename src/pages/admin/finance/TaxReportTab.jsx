@@ -47,8 +47,8 @@ function getQuarterlyPeriods(year) {
 }
 
 const METHOD_LABELS = {
-  cash: '💵 מזומן', credit: '💳 אשראי', transfer: '🏦 העברה',
-  check: '📄 צ׳ק', grow: '🌐 Grow', other: '📦 אחר',
+  cash: '💵 מזומן', credit: '💳 אשראי', bit: '📱 ביט', paybox: '📦 Paybox',
+  transfer: '🏦 העברה', check: '📄 צ׳ק', grow: '🌐 Grow', other: '📦 אחר',
 }
 
 export function TaxReportTab() {
@@ -120,7 +120,13 @@ export function TaxReportTab() {
       addInc(p.method || 'other', amt, vat)
     })
     ;(manualIncome ?? []).forEach(m => {
-      addInc(m.payment_method || 'cash', m.amount, showVat ? (m.vat_amount || 0) : 0)
+      const amt = Number(m.amount || 0)
+      const storedVat = m.vat_amount != null ? Number(m.vat_amount) : null
+      const rate = vatRate / 100
+      const vat = showVat
+        ? (storedVat !== null ? storedVat : Math.round(amt - amt / (1 + rate)))
+        : 0
+      addInc(m.payment_method || 'cash', amt, vat)
     })
 
     // Group expenses by category

@@ -587,7 +587,7 @@ export function Appointments() {
   }, [selectedAppt])
 
   // Pay + auto-generate invoice in one click
-  const PAYMENT_LABELS = { cash: 'מזומן', credit: 'כרטיס אשראי', bit: 'ביט', transfer: 'העברה בנקאית' }
+  const PAYMENT_LABELS = { cash: 'מזומן', credit: 'כרטיס אשראי', bit: 'ביט', paybox: 'Paybox', transfer: 'העברה בנקאית' }
   async function handlePayAndInvoice(appt, method) {
     setInvoiceStep('paying')
     try {
@@ -1679,6 +1679,7 @@ export function Appointments() {
                       { key: 'cash',     icon: '💵', label: 'מזומן' },
                       { key: 'credit',   icon: '💳', label: 'אשראי' },
                       { key: 'bit',      icon: '📱', label: 'ביט' },
+                      { key: 'paybox',   icon: '📦', label: 'Paybox' },
                       { key: 'transfer', icon: '🏦', label: 'העברה' },
                     ].map(({ key, icon, label }) => (
                       <motion.button

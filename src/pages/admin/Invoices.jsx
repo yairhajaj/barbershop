@@ -22,7 +22,7 @@ const STATUS_BADGE = {
 }
 
 const PAYMENT_LABELS = {
-  cash: 'מזומן', credit: 'אשראי', bit: 'ביט', transfer: 'העברה',
+  cash: 'מזומן', credit: 'אשראי', bit: 'ביט', paybox: 'Paybox', transfer: 'העברה',
 }
 
 export function Invoices() {

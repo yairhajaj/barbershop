@@ -78,6 +78,8 @@ export function downloadCSV(headers, rows, filename = 'export.csv') {
 export const PAYMENT_METHODS = {
   cash:     '💵 מזומן',
   credit:   '💳 אשראי',
+  bit:      '📱 ביט',
+  paybox:   '📦 Paybox',
   transfer: '🏦 העברה',
   check:    '📄 צ׳ק',
   grow:     '🌐 Grow',
