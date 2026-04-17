@@ -346,6 +346,7 @@ function GapCloserCard({ settings, saveSettings, toast }) {
   const advanceHours = settings?.gap_closer_advance_hours ?? 2
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
 
   async function updateField(field, value) {
     setSaving(true)
@@ -365,7 +366,14 @@ function GapCloserCard({ settings, saveSettings, toast }) {
         <div className="flex items-center gap-3">
           <span className="text-xl">🧩</span>
           <div>
-            <h2 className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>Gap Closer</h2>
+            <h2 className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
+              Gap Closer
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all"
+                style={{ background: showInfo ? 'var(--color-gold)' : 'var(--color-border)', color: showInfo ? '#fff' : 'var(--color-muted)' }}
+              >?</button>
+            </h2>
             <p className="text-xs" style={{ color: 'var(--color-muted)' }}>מילוי חורים אוטומטי כשתור מתבטל</p>
           </div>
         </div>
@@ -408,6 +416,28 @@ function GapCloserCard({ settings, saveSettings, toast }) {
           </>
         )}
       </div>
+
+      {/* Info tooltip */}
+      <AnimatePresence>
+        {showInfo && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 p-3 rounded-xl text-xs leading-relaxed" style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
+              <p className="font-bold mb-1">כשתור מתבטל, המערכת פועלת ב-3 שלבים:</p>
+              <p>1️⃣ שולחת הודעה ללקוחות ברשימת המתנה</p>
+              <p>2️⃣ מציעה ללקוחות עם תור מאוחר יותר להקדים</p>
+              <p>3️⃣ מאפשרת לשתף את החור בקבוצת וואטסאפ</p>
+              <p className="mt-1.5" style={{ color: 'var(--color-muted)' }}>
+                <strong>ידני</strong> = אתה מאשר כל שלב · <strong>אוטומטי</strong> = הכל קורה לבד
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Expanded settings */}
       <AnimatePresence>
