@@ -143,6 +143,9 @@ export function Dashboard() {
         ))}
       </div>
 
+      {/* Gap Closer Quick Settings */}
+      <GapCloserCard settings={settings} saveSettings={saveSettings} toast={toast} />
+
       {/* Waitlist Section */}
       <section className="card p-5 mb-6">
         <div className="flex items-center justify-between">
@@ -327,5 +330,121 @@ export function Dashboard() {
         </div>
       </div>
     </div>
+  )
+}
+
+/* ── Gap Closer Quick Card ─────────────────────────────────────────── */
+const MODE_OPTIONS = [
+  { value: 'off',      label: 'כבוי',       icon: '⭕', desc: 'ללא פעולה אוטומטית' },
+  { value: 'approval', label: 'ידני',       icon: '👆', desc: 'אתה מאשר כל הצעה' },
+  { value: 'auto',     label: 'אוטומטי',    icon: '⚡', desc: 'שולח הודעות לבד' },
+]
+
+function GapCloserCard({ settings, saveSettings, toast }) {
+  const mode = settings?.gap_closer_mode || 'off'
+  const threshold = settings?.gap_closer_threshold_minutes || 30
+  const advanceHours = settings?.gap_closer_advance_hours ?? 2
+  const [saving, setSaving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  async function updateField(field, value) {
+    setSaving(true)
+    try {
+      await saveSettings({ [field]: value })
+      toast({ message: 'נשמר ✓', type: 'success' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const currentMode = MODE_OPTIONS.find(m => m.value === mode) || MODE_OPTIONS[0]
+
+  return (
+    <section className="rounded-2xl p-5 mb-6" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">🧩</span>
+          <div>
+            <h2 className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>Gap Closer</h2>
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>מילוי חורים אוטומטי כשתור מתבטל</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Mode quick toggle */}
+          <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
+            {MODE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => updateField('gap_closer_mode', opt.value)}
+                disabled={saving}
+                className="px-3 py-1.5 text-[11px] font-bold transition-all"
+                style={{
+                  background: mode === opt.value ? 'var(--color-gold)' : 'transparent',
+                  color: mode === opt.value ? '#fff' : 'var(--color-muted)',
+                }}
+                title={opt.desc}
+              >
+                {opt.icon} {opt.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs px-2 py-1 rounded-lg transition-all"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            {expanded ? '▲' : '⚙️'}
+          </button>
+        </div>
+      </div>
+
+      {/* Status line */}
+      <div className="mt-3 flex items-center gap-4 text-[11px]" style={{ color: 'var(--color-muted)' }}>
+        <span>מצב: <strong style={{ color: mode !== 'off' ? 'var(--color-gold)' : 'var(--color-muted)' }}>{currentMode.label}</strong></span>
+        {mode !== 'off' && (
+          <>
+            <span>סף: <strong>{threshold} דק׳</strong></span>
+            <span>הפעלה: <strong>{advanceHours} שע׳ לפני</strong></span>
+          </>
+        )}
+      </div>
+
+      {/* Expanded settings */}
+      <AnimatePresence>
+        {expanded && mode !== 'off' && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 pt-4 grid grid-cols-2 gap-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text)' }}>סף חור מינימלי (דקות)</label>
+                <input
+                  className="input w-full text-sm"
+                  type="number"
+                  min={10} max={120} step={5}
+                  value={threshold}
+                  onChange={e => updateField('gap_closer_threshold_minutes', parseInt(e.target.value) || 30)}
+                />
+                <p className="text-[10px] mt-1" style={{ color: 'var(--color-muted)' }}>חורים קטנים מ-{threshold} דק׳ לא יפעילו</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text)' }}>שעות לפני החור להתחיל</label>
+                <input
+                  className="input w-full text-sm"
+                  type="number"
+                  min={0.5} max={12} step={0.5}
+                  value={advanceHours}
+                  onChange={e => updateField('gap_closer_advance_hours', parseFloat(e.target.value) || 2)}
+                />
+                <p className="text-[10px] mt-1" style={{ color: 'var(--color-muted)' }}>לא ישלח הודעות מוקדם מדי</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   )
 }
