@@ -53,6 +53,9 @@ const DEFAULT_SETTINGS = {
   announcement_body:       '',
   announcement_expires_at: null,
   announcement_color:      'gold',
+  // Gap Closer
+  gap_closer_mode:              'off',   // 'off' | 'approval' | 'auto'
+  gap_closer_threshold_minutes: 30,
 }
 
 export function useBusinessSettings() {

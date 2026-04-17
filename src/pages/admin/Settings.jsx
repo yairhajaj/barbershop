@@ -504,6 +504,63 @@ export function Settings() {
           )}
         </section>
 
+        {/* ── Gap Closer ── */}
+        <section className="card p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">🧩</span>
+            <h2 className="font-semibold text-lg">Gap Closer — מילוי חורים ביומן</h2>
+          </div>
+          <p className="text-sm text-muted mb-5">כשתור מתבטל, המערכת מנסה למלא את החור אוטומטית</p>
+
+          <div className="space-y-2 mb-4">
+            {[
+              { value: 'off',      label: 'כבוי',       desc: 'ללא פעולה אוטומטית — רק התראה רגילה' },
+              { value: 'approval', label: 'אישור ידני', desc: 'מציג הצעות ואתה מאשר כל צעד בלחיצה' },
+              { value: 'auto',     label: 'אוטומטי',    desc: 'שולח הודעות ללקוחות אוטומטית ללא אישור' },
+            ].map(opt => (
+              <label
+                key={opt.value}
+                className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                style={{
+                  background: form.gap_closer_mode === opt.value ? 'rgba(201,169,110,0.08)' : 'transparent',
+                  border: `2px solid ${form.gap_closer_mode === opt.value ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                }}
+              >
+                <input
+                  type="radio"
+                  name="gap_closer_mode"
+                  value={opt.value}
+                  checked={form.gap_closer_mode === opt.value}
+                  onChange={e => setForm(f => ({ ...f, gap_closer_mode: e.target.value }))}
+                  className="mt-1"
+                />
+                <div>
+                  <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.label}</div>
+                  <div className="text-xs" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {form.gap_closer_mode !== 'off' && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">סף חור מינימלי (דקות)</label>
+              <input
+                className="input w-28"
+                type="number"
+                min={10}
+                max={120}
+                step={5}
+                value={form.gap_closer_threshold_minutes ?? 30}
+                onChange={e => setForm(f => ({ ...f, gap_closer_threshold_minutes: parseInt(e.target.value) || 30 }))}
+              />
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                חורים קטנים מ-{form.gap_closer_threshold_minutes || 30} דקות לא יפעילו את המערכת
+              </p>
+            </div>
+          )}
+        </section>
+
         <button type="submit" disabled={saving} className="btn-primary text-base px-8 py-3">
           {saving ? 'שומר...' : 'שמור הגדרות'}
         </button>

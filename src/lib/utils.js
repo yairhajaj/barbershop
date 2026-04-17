@@ -304,6 +304,53 @@ export function findGapOpportunities(appointments, cancelledId, gapThreshold = 1
   return opportunities
 }
 
+/**
+ * Find appointments later in the day that could be moved earlier to fill a gap.
+ * @param {{ start: Date, end: Date }} freedSlot - The cancelled appointment's time range
+ * @param {Array} dayAppointments - Confirmed appointments for same staff same day (with profiles, services joins)
+ * @param {number} gapThreshold - Minimum minutes saved to be worth offering (default 30)
+ * @returns {Array<{ appointment, newStart: Date, newEnd: Date, timeSaved: number }>}
+ */
+export function findRescheduleCandidates(freedSlot, dayAppointments, gapThreshold = 30) {
+  const sorted = dayAppointments
+    .filter(a => a.status === 'confirmed' && new Date(a.start_at) >= freedSlot.end)
+    .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+
+  if (sorted.length === 0) return []
+
+  const others = dayAppointments
+    .filter(a => a.status === 'confirmed' && new Date(a.start_at) < freedSlot.end)
+    .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+
+  const results = []
+
+  for (const appt of sorted) {
+    const apptStart = new Date(appt.start_at)
+    const apptEnd   = new Date(appt.end_at || apptStart.getTime() + (appt.services?.duration_minutes || 30) * 60000)
+    const duration  = apptEnd - apptStart
+
+    const newStart = new Date(freedSlot.start)
+    const newEnd   = new Date(newStart.getTime() + duration)
+    const timeSaved = Math.round((apptStart - newStart) / 60000)
+
+    if (timeSaved < gapThreshold) continue
+    if (!appt.profiles?.phone) continue
+
+    // Check no overlap with other appointments
+    const overlaps = [...others, ...results.map(r => ({ start_at: r.newStart, end_at: r.newEnd }))].some(o => {
+      const oStart = new Date(o.start_at)
+      const oEnd   = new Date(o.end_at)
+      return newStart < oEnd && newEnd > oStart
+    })
+    if (overlaps) continue
+
+    results.push({ appointment: appt, newStart, newEnd, timeSaved })
+    break // Only offer the closest candidate (one at a time)
+  }
+
+  return results
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 
 function parseDateWithTime(date, timeStr) {

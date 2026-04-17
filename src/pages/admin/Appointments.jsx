@@ -20,7 +20,7 @@ import { StatusBadge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
-import { findGapOpportunities, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
+import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export function Appointments() {
   const [view, setView] = useState('week')
   const [filterStaff, setFilterStaff] = useState('')
   const [selectedAppt, setSelectedAppt] = useState(null)
-  const [gapAppts, setGapAppts] = useState([])
+  const [gapAlert, setGapAlert] = useState(null)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
   const [savingEvent, setSavingEvent] = useState(false)
@@ -404,38 +404,148 @@ export function Appointments() {
     return staff.slice(0, calColumns)
   }, [staff, filterStaff, calColumns])
 
+  // ── Realtime subscription for reschedule offer updates ──────────────────
+  useEffect(() => {
+    if (!gapAlert) return
+
+    const channel = supabase
+      .channel('reschedule-offers')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'reschedule_offers',
+      }, (payload) => {
+        const { appointment_id, status } = payload.new
+        setGapAlert(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            step2_reschedule: {
+              ...prev.step2_reschedule,
+              offers: { ...prev.step2_reschedule.offers, [appointment_id]: status }
+            }
+          }
+        })
+        if (status === 'accepted') refetch()
+      })
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [!!gapAlert])
+
   // ── Appointment actions ────────────────────────────────────────────────────
   async function handleCancel(id) {
     if (!confirm('לבטל תור זה?')) return
+
+    const cancelledAppt = appointments.find(a => a.id === id)
     const { error } = await supabase
       .from('appointments')
       .update({ status: 'cancelled', cancelled_by: 'admin' })
       .eq('id', id)
     if (error) { toast({ message: 'שגיאה', type: 'error' }); return }
 
-    const remaining = appointments.filter(a => a.id !== id)
-    const opps = findGapOpportunities(remaining, id)
-    if (opps.length > 0) setGapAppts(opps)
-
     await refetch()
     setSelectedAppt(null)
     toast({ message: 'תור בוטל', type: 'success' })
 
-    // Notify first person on waitlist for this slot (fire-and-forget)
-    const cancelled = appointments.find(a => a.id === id)
-    if (cancelled) {
-      supabase.functions.invoke('notify-waitlist', {
-        body: {
-          serviceId:   cancelled.service_id,
-          branchId:    cancelled.branch_id ?? null,
-          staffId:     cancelled.staff_id  ?? null,
-          staffName:   cancelled.staff?.name ?? '',
-          slotStart:   cancelled.start_at,
-          slotEnd:     cancelled.end_at,
-          serviceName: cancelled.services?.name ?? '',
-        },
-      }).then(() => {})
+    const mode = settings?.gap_closer_mode || 'off'
+    const threshold = settings?.gap_closer_threshold_minutes || 30
+
+    // Always notify waitlist
+    let waitlistResult = 'none'
+    if (cancelledAppt) {
+      try {
+        const { data } = await supabase.functions.invoke('notify-waitlist', {
+          body: {
+            serviceId:   cancelledAppt.service_id,
+            branchId:    cancelledAppt.branch_id ?? null,
+            staffId:     cancelledAppt.staff_id  ?? null,
+            staffName:   cancelledAppt.staff?.name ?? '',
+            slotStart:   cancelledAppt.start_at,
+            slotEnd:     cancelledAppt.end_at,
+            serviceName: cancelledAppt.services?.name ?? '',
+          },
+        })
+        waitlistResult = data?.notified > 0 ? 'sent' : 'none'
+      } catch { waitlistResult = 'none' }
     }
+
+    if (mode === 'off' || !cancelledAppt) return
+
+    // Find reschedule candidates
+    const remaining = appointments.filter(a => a.id !== id && a.status === 'confirmed')
+    const sameDayStaff = remaining.filter(a =>
+      a.staff_id === cancelledAppt.staff_id &&
+      isSameDay(new Date(a.start_at), new Date(cancelledAppt.start_at))
+    )
+    const candidates = findRescheduleCandidates(
+      { start: new Date(cancelledAppt.start_at), end: new Date(cancelledAppt.end_at) },
+      sameDayStaff,
+      threshold
+    )
+
+    const alert = {
+      cancelledAppt,
+      freedSlot: { start: cancelledAppt.start_at, end: cancelledAppt.end_at },
+      step1_waitlist: waitlistResult,
+      step2_reschedule: { candidates, offers: {} },
+      step3_shared: false,
+    }
+    setGapAlert(alert)
+
+    // Auto mode: send offers immediately
+    if (mode === 'auto') {
+      for (const candidate of candidates) {
+        await sendRescheduleOffer(candidate, cancelledAppt)
+      }
+    }
+  }
+
+  async function sendRescheduleOffer(candidate, cancelledAppt) {
+    const { appointment, newStart, newEnd } = candidate
+
+    // Insert offer with token
+    const { data: offer, error } = await supabase
+      .from('reschedule_offers')
+      .insert({
+        appointment_id: appointment.id,
+        customer_id: appointment.customer_id,
+        staff_id: cancelledAppt.staff_id,
+        offered_start_at: newStart.toISOString(),
+        offered_end_at: newEnd.toISOString(),
+        original_start_at: appointment.start_at,
+        original_end_at: appointment.end_at,
+      })
+      .select('token')
+      .single()
+
+    if (error || !offer) { toast({ message: 'שגיאה ביצירת הצעה', type: 'error' }); return }
+
+    // Send WhatsApp
+    const APP_URL = window.location.origin
+    const message = `היי ${appointment.profiles?.name || 'לקוח/ה'}! 🙋‍♂️\n` +
+      `יש אפשרות להקדים את התור שלך ל-${formatTime(newStart)} (במקום ${formatTime(appointment.start_at)}).\n` +
+      `אישור: ${APP_URL}/reschedule/confirm?token=${offer.token}&action=accept\n` +
+      `לא מתאים: ${APP_URL}/reschedule/confirm?token=${offer.token}&action=decline`
+
+    await supabase.functions.invoke('send-whatsapp', {
+      body: {
+        recipients: [{ name: appointment.profiles?.name || '', phone: appointment.profiles?.phone }],
+        message,
+      },
+    })
+
+    // Mark sent
+    await supabase.from('reschedule_offers').update({ notification_sent: true }).eq('token', offer.token)
+
+    // Update UI
+    setGapAlert(prev => prev ? ({
+      ...prev,
+      step2_reschedule: {
+        ...prev.step2_reschedule,
+        offers: { ...prev.step2_reschedule.offers, [appointment.id]: 'sent' }
+      }
+    }) : prev)
   }
 
   async function handleComplete(id) {
@@ -1101,47 +1211,115 @@ export function Appointments() {
         )
       })()}
 
-      {/* ── Gap Closer Alert ── */}
-      {gapAppts.length > 0 && (
+      {/* ── Gap Closer Alert — 3-step progress card ── */}
+      {gapAlert && (
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4"
+          className="rounded-2xl p-5 mb-4"
+          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-amber-800">⚡ Gap Closer — נמצאו תורים בודדים ביומן</p>
-              <p className="text-sm text-amber-700">
-                {gapAppts.length} לקוחות יכולים למלא חורים — שלח להם הצעת העברה
-              </p>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-black text-sm flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
+              ⚡ Gap Closer — מילוי חור ביומן
+            </h3>
             <button
-              onClick={() => setGapAppts([])}
-              className="text-amber-600 hover:text-amber-800 text-sm font-medium"
+              onClick={() => setGapAlert(null)}
+              className="text-xs font-medium px-2 py-1 rounded-lg"
+              style={{ color: 'var(--color-muted)' }}
             >
-              סגור
+              ✕
             </button>
           </div>
-          <div className="mt-3 flex flex-col gap-2">
-            {gapAppts.map(({ appointment }) => (
-              <div key={appointment.id} className="flex items-center justify-between rounded-lg p-2 text-sm" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-                <span>{appointment.profiles?.name} — {formatTime(appointment.start_at)}</span>
-                <button
-                  onClick={async () => {
-                    await supabase.from('reschedule_offers').insert({
-                      appointment_id: appointment.id,
-                      offered_start_at: appointment.start_at,
-                      offered_end_at: appointment.end_at,
-                    })
-                    toast({ message: 'הצעת העברה נשלחה ללקוח', type: 'success' })
-                    setGapAppts(g => g.filter(x => x.appointment.id !== appointment.id))
-                  }}
-                  className="text-xs px-3 py-1 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
-                >
-                  שלח הצעה
-                </button>
+
+          {/* Cancelled slot info */}
+          <div className="text-xs mb-4 px-3 py-2 rounded-xl" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
+            תור שבוטל: {gapAlert.cancelledAppt?.services?.name || 'שירות'} — {formatTime(gapAlert.freedSlot.start)}
+            {gapAlert.cancelledAppt?.staff?.name && ` (${gapAlert.cancelledAppt.staff.name})`}
+          </div>
+
+          {/* Step 1: Waitlist */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: 'var(--color-gold)', color: '#fff' }}>1</div>
+            <span className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>רשימת המתנה</span>
+            <span className="text-xs" style={{ color: gapAlert.step1_waitlist === 'sent' ? '#22c55e' : 'var(--color-muted)' }}>
+              {gapAlert.step1_waitlist === 'sent' ? '— הודעה נשלחה ✓' :
+               gapAlert.step1_waitlist === 'none' ? '— אין ממתינים' :
+               '— שולח...'}
+            </span>
+          </div>
+
+          {/* Step 2: Reschedule */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: 'var(--color-gold)', color: '#fff' }}>2</div>
+            <span className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>הקדמת תורים</span>
+          </div>
+          <div className="mr-9 mb-3">
+            {gapAlert.step2_reschedule.candidates.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>אין תורים מתאימים להקדמה</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {gapAlert.step2_reschedule.candidates.map(({ appointment, newStart, timeSaved }) => {
+                  const offerStatus = gapAlert.step2_reschedule.offers[appointment.id]
+                  return (
+                    <div key={appointment.id} className="flex items-center justify-between rounded-xl px-3 py-2 text-xs"
+                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                      <div style={{ color: 'var(--color-text)' }}>
+                        <span className="font-medium">{appointment.profiles?.name || 'לקוח'}</span>
+                        <span className="mx-1" style={{ color: 'var(--color-muted)' }}>—</span>
+                        <span style={{ color: 'var(--color-muted)' }}>{formatTime(appointment.start_at)} → {formatTime(newStart)}</span>
+                        <span className="mx-1 text-[10px]" style={{ color: 'var(--color-gold)' }}>({timeSaved} דק׳ מוקדם)</span>
+                      </div>
+                      {offerStatus === 'accepted' ? (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#22c55e' }}>אושר ✓</span>
+                      ) : offerStatus === 'declined' ? (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#ef4444' }}>נדחה ✕</span>
+                      ) : offerStatus === 'sent' ? (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>נשלח ⏳</span>
+                      ) : (
+                        <button
+                          onClick={() => sendRescheduleOffer({ appointment, newStart, newEnd: new Date(newStart.getTime() + (new Date(appointment.end_at) - new Date(appointment.start_at))), timeSaved }, gapAlert.cancelledAppt)}
+                          className="px-3 py-1 rounded-lg text-[10px] font-bold text-white transition-all"
+                          style={{ background: 'var(--color-gold)' }}
+                        >
+                          שלח הצעה
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* Step 3: WhatsApp Share */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: 'var(--color-gold)', color: '#fff' }}>3</div>
+            <span className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>שיתוף בוואטסאפ</span>
+          </div>
+          <div className="mr-9">
+            {gapAlert.step3_shared ? (
+              <p className="text-xs" style={{ color: '#22c55e' }}>שותף ✓</p>
+            ) : (
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `🔥 תור פנוי!\n` +
+                  `${gapAlert.cancelledAppt?.services?.name || 'שירות'} ביום ${dayName(new Date(gapAlert.freedSlot.start).getDay())} בשעה ${formatTime(gapAlert.freedSlot.start)}\n` +
+                  `${gapAlert.cancelledAppt?.staff?.name ? `אצל ${gapAlert.cancelledAppt.staff.name}\n` : ''}` +
+                  `לקביעת תור: ${window.location.origin}/book/all`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setGapAlert(prev => prev ? ({ ...prev, step3_shared: true }) : prev)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all"
+                style={{ background: '#25D366' }}
+              >
+                📲 שתף בקבוצת וואטסאפ
+              </a>
+            )}
           </div>
         </motion.div>
       )}

@@ -35,6 +35,7 @@ import { Waitlist }        from './pages/admin/Waitlist'
 // import { Payments }        from './pages/admin/Payments' // redirected to /admin/finance
 import { Finance }         from './pages/admin/Finance'
 import { WaitlistConfirm } from './pages/booking/WaitlistConfirm'
+import { RescheduleConfirm } from './pages/booking/RescheduleConfirm'
 import { SelectBranch }    from './pages/booking/SelectBranch'
 import { PrivacyPolicy }   from './pages/PrivacyPolicy'
 
@@ -151,6 +152,10 @@ const router = createBrowserRouter([
   {
     path: '/waitlist/confirm',
     element: <BookingLayout><WaitlistConfirm /></BookingLayout>,
+  },
+  {
+    path: '/reschedule/confirm',
+    element: <BookingLayout><RescheduleConfirm /></BookingLayout>,
   },
   {
     path: '/privacy',
