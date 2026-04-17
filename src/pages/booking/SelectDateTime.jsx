@@ -206,7 +206,7 @@ export function SelectDateTime() {
     }
 
     // Auto-advance to first open day if current date has no slots (only on first load)
-    if (!autoAdvancedRef.current && future.length === 0) {
+    if (!autoAdvancedRef.current && future.length === 0 && hours.length > 0) {
       autoAdvancedRef.current = true
       // Find next open day (skip closed + shabbat)
       for (let i = 1; i < DAYS_AHEAD; i++) {
