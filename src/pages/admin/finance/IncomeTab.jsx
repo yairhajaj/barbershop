@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { useMotion } from '../../../hooks/useMotion'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
@@ -24,6 +25,7 @@ const METHOD_BADGE_COLORS = {
 }
 
 export function IncomeTab() {
+  const m = useMotion()
   const showToast = useToast()
   const { settings } = useBusinessSettings()
   const { staff } = useStaff()
@@ -310,8 +312,13 @@ export function IncomeTab() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {combined.map((item, i) => {
+        <motion.div
+          className="flex flex-col gap-3"
+          variants={m.listStagger}
+          initial="hidden"
+          animate="visible"
+        >
+          {combined.map((item) => {
             let formattedDate = ''
             try {
               formattedDate = format(new Date(item.date), 'dd/MM/yy', { locale: he })
@@ -323,9 +330,7 @@ export function IncomeTab() {
             return (
               <motion.div
                 key={`${item.source}-${item.id}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.02 }}
+                variants={m.fadeUp}
                 className="card p-4 flex items-center justify-between gap-3"
               >
                 <div className="flex-1 min-w-0">
@@ -364,7 +369,7 @@ export function IncomeTab() {
               </motion.div>
             )
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* Breakdown: services + products */}
