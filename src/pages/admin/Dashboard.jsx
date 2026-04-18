@@ -129,44 +129,43 @@ export function Dashboard() {
 
     const stats = [
       {
-        label: 'הכנסה בפועל',
-        value: `₪${revenuePaid.toLocaleString('he-IL')}`,
-        sub: 'שולם היום',
-        accent: '#16a34a',
-        size: 'hero',
-      },
-      {
         label: 'תורים היום',
         value: `${doneToday}/${totalToday}`,
         sub: 'הושלמו/סה"כ',
         accent: 'var(--color-text)',
-        size: 'wide',
+      },
+      {
+        label: 'הכנסה בפועל',
+        value: `₪${revenuePaid.toLocaleString('he-IL')}`,
+        sub: 'שולם היום',
+        accent: '#16a34a',
+        tint: 'rgba(22,163,74,0.06)',
       },
       {
         label: 'צפוי היום',
         value: `₪${revenueExpected.toLocaleString('he-IL')}`,
         sub: `${future.length} תורים נותרו`,
         accent: 'var(--color-gold)',
-        size: 'wide',
+        tint: 'rgba(255,133,0,0.06)',
       },
       {
         label: 'חובות פתוחים',
         value: `₪${debtsSum.toLocaleString('he-IL')}`,
         sub: `${openDebts.length} לקוחות`,
         accent: openDebts.length > 0 ? '#dc2626' : 'var(--color-muted)',
-        size: 'wide',
+        tint: openDebts.length > 0 ? 'rgba(220,38,38,0.06)' : undefined,
       },
       {
         label: 'לא הגיעו',
         value: String(noShows.length),
         accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
-        size: 'sm',
+        tint: noShows.length > 0 ? 'rgba(220,38,38,0.06)' : undefined,
       },
       {
         label: 'ממתינים',
         value: String(waitlistActive.length),
         accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
-        size: 'sm',
+        tint: waitlistActive.length > 0 ? 'rgba(255,133,0,0.06)' : undefined,
       },
     ]
 
@@ -219,30 +218,40 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* KPI strip */}
-      <KpiStrip stats={stats} />
+      {/* Responsive grid: single col on mobile, 3-col (2 main + 1 sidebar) on lg+.
+          Mobile order: Hero → KPIs → Inbox → Upcoming → Staff → GapCloser.
+          Desktop: main content stacked on one side, sidebar on the other. */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Hero — next appointment */}
+        <div className="order-1 lg:col-span-2">
+          <NextAppointmentHero apt={nextApt} onChange={refreshAll} />
+        </div>
 
-      {/* Hero — next appointment */}
-      <NextAppointmentHero apt={nextApt} onChange={refreshAll} />
+        {/* KPI grid */}
+        <div className="order-2 lg:order-3">
+          <KpiStrip stats={stats} />
+        </div>
 
-      {/* 3 upcoming */}
-      <UpcomingAppointmentsList appointments={upcoming} limit={3} />
+        {/* Action inbox */}
+        <div className="order-3 lg:order-5">
+          <ActionInbox
+            uninvoiced={uninvoiced}
+            openDebts={openDebts}
+            debtsTotal={openDebts.reduce((s, d) => s + Number(d.amount || 0), 0)}
+            waitlist={waitlistActive}
+            onScheduleWaitlist={handleScheduleWaitlist}
+          />
+        </div>
 
-      {/* Action inbox */}
-      <ActionInbox
-        uninvoiced={uninvoiced}
-        openDebts={openDebts}
-        debtsTotal={openDebts.reduce((s, d) => s + Number(d.amount || 0), 0)}
-        waitlist={waitlistActive}
-        onScheduleWaitlist={handleScheduleWaitlist}
-      />
+        {/* 3 upcoming */}
+        <div className="order-4 lg:order-2 lg:col-span-2">
+          <UpcomingAppointmentsList appointments={upcoming} limit={3} />
+        </div>
 
-      {/* Gap Closer */}
-      <GapCloserCard settings={settings} saveSettings={saveSettings} />
-
-      {/* Staff compact row */}
-      {staff.length > 0 && (
-        <section className="mb-4">
+        {/* Staff compact row */}
+        {staff.length > 0 && (
+          <div className="order-5 lg:order-4 lg:col-span-2">
+            <section className="mb-4">
           <h2 className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
             ✂️ הספרים היום
           </h2>
@@ -270,11 +279,18 @@ export function Dashboard() {
                     {done}/{total} תורים · ₪{revenue.toLocaleString('he-IL')}
                   </div>
                 </div>
-              )
-            })}
+                )
+              })}
+            </div>
+          </section>
           </div>
-        </section>
-      )}
+        )}
+
+        {/* Gap Closer */}
+        <div className="order-6">
+          <GapCloserCard settings={settings} saveSettings={saveSettings} />
+        </div>
+      </div>
 
       {/* Walk-in modal */}
       <WalkInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} onSaved={refreshAll} />
