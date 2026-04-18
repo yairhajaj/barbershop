@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useMotion } from '../../../hooks/useMotion'
 import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useServices } from '../../../hooks/useServices'
@@ -63,6 +64,7 @@ function ModePill({ value, onChange }) {
 }
 
 export function SettingsTab() {
+  const m = useMotion()
   const showToast = useToast()
   const { settings, saveSettings, loading: settingsLoading } = useBusinessSettings()
   const { services, loading: servicesLoading } = useServices()
@@ -219,12 +221,15 @@ export function SettingsTab() {
   }
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <motion.div
+      className="space-y-5 max-w-2xl"
+      variants={m.listStagger}
+      initial="hidden"
+      animate="visible"
+    >
       {/* ══════════ Section 1: Business Type + VAT ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <h3
@@ -310,9 +315,7 @@ export function SettingsTab() {
 
       {/* ══════════ Section 2: Invoice Settings ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <h3
@@ -382,9 +385,7 @@ export function SettingsTab() {
 
       {/* ══════════ Section 3: Payment Mode (migrated from Payments.jsx) ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <h3
@@ -552,9 +553,7 @@ export function SettingsTab() {
 
       {/* ══════════ Section 4: Staff Commission ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <h3
@@ -618,9 +617,7 @@ export function SettingsTab() {
 
       {/* ══════════ Section 5: Expense Categories ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <h3
@@ -752,9 +749,7 @@ export function SettingsTab() {
 
       {/* ══════════ Section 6: Accountant ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <h3
@@ -823,9 +818,7 @@ export function SettingsTab() {
 
       {/* ══════════ Section 7: Cash Tracking ══════════ */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        variants={m.fadeUp}
         className="card p-5"
       >
         <div className="flex items-center justify-between">
@@ -856,11 +849,7 @@ export function SettingsTab() {
       </motion.div>
 
       {/* ══════════ Global Save Button ══════════ */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
+      <motion.div variants={m.fadeUp}>
         <button
           onClick={handleSave}
           disabled={saving}
@@ -875,6 +864,6 @@ export function SettingsTab() {
           )}
         </button>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
