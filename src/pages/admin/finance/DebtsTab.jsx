@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { Spinner } from '../../../components/ui/Spinner'
+import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
@@ -148,7 +148,7 @@ export function DebtsTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+        <AdminSkeleton />
       ) : debts.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--color-muted)' }}>
           <div className="text-5xl mb-3">✅</div>

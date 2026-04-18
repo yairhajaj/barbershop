@@ -9,6 +9,7 @@ import { useStaffCommissions } from '../../../hooks/useStaffCommissions'
 import { useServices } from '../../../hooks/useServices'
 import { formatILS, calcVat, hasVat, PAYMENT_METHODS } from '../../../lib/finance'
 import { Spinner } from '../../../components/ui/Spinner'
+import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 import { useToast } from '../../../components/ui/Toast'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
@@ -561,13 +562,7 @@ export function DashboardTab() {
   const { settings } = useBusinessSettings()
   const isOsekPatur = settings?.business_type === 'osek_patur'
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spinner size="lg" />
-      </div>
-    )
-  }
+  if (loading) return <AdminSkeleton />
 
   const statCards = [
     {

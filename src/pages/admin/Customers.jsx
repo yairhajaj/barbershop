@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
+import { AdminSkeleton } from '../../components/feedback/AdminSkeleton'
 import { useToast } from '../../components/ui/Toast'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useCustomerDebts } from '../../hooks/useCustomerDebts'
@@ -168,7 +169,7 @@ export function Customers() {
 
       {/* List */}
       {loading ? (
-        <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+        <AdminSkeleton />
       ) : customers.length === 0 ? (
         <div className="text-center py-16 rounded-2xl" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
           <div className="text-5xl mb-3">👥</div>

@@ -6,7 +6,7 @@ import { useBranch } from '../../../contexts/BranchContext'
 import { formatILS, getBiMonthlyPeriods, hasVat, downloadCSV } from '../../../lib/finance'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
-import { Spinner } from '../../../components/ui/Spinner'
+import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 
 const PERIOD_TYPES = [
   { value: 'monthly',    label: 'חודשי' },
@@ -238,7 +238,7 @@ export function TaxReportTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+        <AdminSkeleton />
       ) : (
         <>
           {/* Stat cards */}

@@ -10,6 +10,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { useConfirm } from '../../../components/ui/ConfirmDialog'
 import { Spinner } from '../../../components/ui/Spinner'
+import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 import { ImageUpload } from '../../../components/ui/ImageUpload'
 
 const CATEGORY_COLORS = [
@@ -262,7 +263,7 @@ export function ExpensesTab() {
 
       {/* Expense list */}
       {loading ? (
-        <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+        <AdminSkeleton />
       ) : expenses.length === 0 ? (
         <div
           className="text-center py-20 rounded-2xl"

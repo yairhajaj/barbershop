@@ -19,6 +19,7 @@ import { useBranch } from '../../contexts/BranchContext'
 import { StatusBadge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
+import { AdminSkeleton } from '../../components/feedback/AdminSkeleton'
 import { useToast } from '../../components/ui/Toast'
 import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
@@ -1529,7 +1530,7 @@ export function Appointments() {
 
       {/* ── Calendar Content ── */}
       {loading ? (
-        <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+        <AdminSkeleton />
       ) : view === 'list' ? (
         <ListViewAppointments appointments={appointments} onSelect={setSelectedAppt} staff={staff} />
       ) : view === 'day' ? (

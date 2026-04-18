@@ -215,7 +215,7 @@ export function SettingsTab() {
   }
 
   if (settingsLoading) {
-    return <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+    return <AdminSkeleton />
   }
 
   return (

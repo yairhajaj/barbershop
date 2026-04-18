@@ -9,6 +9,7 @@ import { printInvoice } from '../../../lib/invoice'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
+import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
@@ -236,7 +237,7 @@ export function InvoicesTab() {
 
       {/* Invoice list */}
       {loading ? (
-        <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+        <AdminSkeleton />
       ) : invoices.length === 0 ? (
         <div
           className="text-center py-20 rounded-2xl"
