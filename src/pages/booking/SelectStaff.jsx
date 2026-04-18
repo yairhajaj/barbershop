@@ -40,7 +40,7 @@ export function SelectStaff() {
       <div className="container px-4 sm:px-6 max-w-xl mx-auto">
         <BookingProgress currentStep="staff" />
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-7">
           <h1 className="text-3xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
             בחר ספר
           </h1>
@@ -54,35 +54,43 @@ export function SelectStaff() {
         {loading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : (
-          <div className="flex flex-col gap-3 booking-item-list">
-            {/* Any staff */}
+          <div className="flex flex-col gap-4">
+            {/* Any staff — featured card */}
             <motion.button
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={selectAny}
-              className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer text-right"
-              style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all cursor-pointer text-right group"
+              style={{
+                background: isDark
+                  ? 'linear-gradient(135deg, rgba(255,133,0,0.14), rgba(255,133,0,0.06))'
+                  : 'linear-gradient(135deg, rgba(255,133,0,0.09), rgba(255,133,0,0.03))',
+                border: '1px solid rgba(255,133,0,0.25)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+              }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--color-gold)'
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,122,0,0.12)'
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 10px 28px rgba(255,133,0,0.18)'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--color-border)'
-                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.05)'
               }}
             >
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+                className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
                 style={{ background: 'var(--color-gold)', color: '#fff' }}
               >
                 ✂
               </div>
               <div className="flex-1">
-                <div className="font-bold text-base" style={{ color: 'var(--color-text)' }}>כל ספר פנוי</div>
+                <div className="font-black text-base" style={{ color: 'var(--color-text)' }}>כל ספר פנוי</div>
                 <div className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>הזמן המוקדם ביותר הזמין</div>
               </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-                style={{ background: 'var(--color-gold)', color: '#fff' }}>←</div>
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-transform duration-300 group-hover:scale-110"
+                style={{ background: 'var(--color-gold)', color: '#fff' }}
+              >←</div>
             </motion.button>
 
             {/* Individual staff */}
@@ -100,7 +108,6 @@ export function SelectStaff() {
         )}
       </div>
 
-      {/* Portfolio Lightbox */}
       {portfolioStaff && (
         <PortfolioLightbox
           member={portfolioStaff}
@@ -124,38 +131,71 @@ function StaffCard({ member, index, isDark, onSelect, onPortfolio }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07 }}
-      className="rounded-2xl border-2 transition-all overflow-hidden"
-      style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+      className="rounded-2xl overflow-hidden transition-all"
+      style={{
+        background: 'var(--color-card)',
+        border: '1px solid var(--color-border)',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = 'var(--color-gold)'
-        e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,122,0,0.12)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.boxShadow = '0 10px 32px rgba(255,133,0,0.13)'
+        e.currentTarget.style.borderColor = 'rgba(255,133,0,0.35)'
       }}
       onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'
         e.currentTarget.style.borderColor = 'var(--color-border)'
-        e.currentTarget.style.boxShadow = 'none'
       }}
     >
-      <button onClick={onSelect} className="w-full flex items-center gap-4 p-4 text-right cursor-pointer">
-        <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-          style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+      {/* Photo banner */}
+      <button onClick={onSelect} className="w-full block group cursor-pointer text-right">
+        <div
+          className="relative h-36 overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, rgba(255,133,0,0.12), rgba(255,133,0,0.04))' }}
+        >
           {member.photo_url ? (
-            <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+            <img
+              src={member.photo_url}
+              alt={member.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
           ) : (
-            <span className="text-2xl font-black" style={{ color: 'var(--color-muted)' }}>{member.name[0]}</span>
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-6xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.2 }}>
+                {member.name[0]}
+              </span>
+            </div>
           )}
+          {/* Gradient overlay */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.1) 55%, transparent 100%)' }}
+          />
+          {/* Name + bio on photo */}
+          <div className="absolute bottom-3 right-4 left-14 text-right">
+            <div className="font-black text-white text-lg leading-tight">{member.name}</div>
+            {member.bio && (
+              <div className="text-xs mt-0.5 line-clamp-1" style={{ color: 'rgba(255,255,255,0.65)' }}>{member.bio}</div>
+            )}
+          </div>
+          {/* Arrow button */}
+          <div
+            className="absolute bottom-3 left-4 w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-transform duration-300 group-hover:scale-110"
+            style={{ background: 'var(--color-gold)', color: '#fff' }}
+          >
+            ←
+          </div>
         </div>
-        <div className="flex-1">
-          <div className="font-bold text-base" style={{ color: 'var(--color-text)' }}>{member.name}</div>
-          {member.bio && <div className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>{member.bio}</div>}
-        </div>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-          style={{ background: 'var(--color-gold)', color: '#fff' }}>←</div>
       </button>
 
       {/* Portfolio thumbnails */}
       {preview.length > 0 && (
-        <div className="px-4 pb-4 flex gap-2 items-center" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="flex gap-1.5 mt-3">
+        <div
+          className="px-4 py-3 flex gap-2 items-center"
+          style={{ borderTop: '1px solid var(--color-border)' }}
+        >
+          <div className="flex gap-1.5">
             {preview.map(p => (
               <img
                 key={p.id}
@@ -168,7 +208,7 @@ function StaffCard({ member, index, isDark, onSelect, onPortfolio }) {
           </div>
           <button
             onClick={onPortfolio}
-            className="text-xs font-bold hover:underline mt-3 mr-1"
+            className="text-xs font-bold hover:underline mr-1"
             style={{ color: 'var(--color-gold)' }}
           >
             ראה עבודות →

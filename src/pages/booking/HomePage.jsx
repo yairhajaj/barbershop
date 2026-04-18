@@ -15,6 +15,16 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useToast } from '../../components/ui/Toast'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
+
+function getServiceIcon(name = '') {
+  const n = name
+  if (n.includes('ילד') || n.includes('קטן') || n.includes('נוער')) return '👦'
+  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש')) return '🪒'
+  if (n.includes('צבע') || n.includes('צביעה') || n.includes('בלונד')) return '🎨'
+  if (n.includes('שמן') || n.includes('טיפול') || n.includes('מסכ')) return '💆'
+  if (n.includes('פייד') || n.includes('מוהוק') || n.includes('דגרד')) return '💈'
+  return '✂️'
+}
 import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
@@ -563,23 +573,47 @@ export function HomePage() {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col gap-2.5 booking-item-list">
+                <div className="flex flex-col gap-3">
                   {services.map((service, i) => (
                     <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                       <Link
                         to={serviceHref(service.id)}
-                        className="flex items-center justify-between p-4 rounded-2xl border-2 transition-all group"
-                        style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,122,0,0.1)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
+                        className="flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group"
+                        style={{
+                          background: 'var(--color-card)',
+                          border: '1px solid var(--color-border)',
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.transform = 'translateY(-2px)'
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,133,0,0.13)'
+                          e.currentTarget.style.borderColor = 'rgba(255,133,0,0.35)'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.04)'
+                          e.currentTarget.style.borderColor = 'var(--color-border)'
+                        }}
                       >
-                        <div>
-                          <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{service.name}</div>
-                          <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>⏱ {minutesToDisplay(service.duration_minutes)}</div>
+                        {/* Icon */}
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
+                          style={{ background: 'rgba(255,133,0,0.08)' }}
+                        >
+                          {getServiceIcon(service.name)}
                         </div>
-                        <div className="flex items-center gap-3">
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-black text-sm leading-tight" style={{ color: 'var(--color-text)' }}>{service.name}</div>
+                          <div className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-muted)' }}>⏱ {minutesToDisplay(service.duration_minutes)}</div>
+                        </div>
+                        {/* Price + arrow */}
+                        <div className="flex items-center gap-2.5 flex-shrink-0">
                           <span className="text-base font-black" style={{ color: 'var(--color-gold-text, var(--color-gold))' }}>{priceDisplay(service.price)}</span>
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'var(--color-gold-btn, var(--color-gold))', color: '#fff' }}>←</div>
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-transform duration-300 group-hover:scale-110"
+                            style={{ background: 'var(--color-gold-btn, var(--color-gold))', color: '#fff' }}
+                          >←</div>
                         </div>
                       </Link>
                     </motion.div>
