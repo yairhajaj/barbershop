@@ -518,7 +518,7 @@ function StaffPaymentsSection({ settings }) {
               ),
             },
             { key: 'count',   label: 'תורים',   render: m => m.count },
-            { key: 'revenue', label: 'הכנסות',  render: m => formatILS(m.revenue) },
+            { key: 'revenue', label: 'הכנסות שירותים',  render: m => formatILS(m.revenue) },
             {
               key: 'commission', label: 'עמלה',
               render: m => (
@@ -530,11 +530,12 @@ function StaffPaymentsSection({ settings }) {
               ),
             },
             { key: 'amount', label: 'לתשלום', render: m => (
-              <div>
-                <span style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(m.amount + m.productCommission)}</span>
+              <div className="space-y-1">
+                <div style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(m.amount)}</div>
                 {m.productCommission > 0 && (
-                  <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                    שירותים {formatILS(m.amount)} + מוצרים {formatILS(m.productCommission)}
+                  <div className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg"
+                    style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}>
+                    📦 {m.productCount} מוצרים · {formatILS(m.productCommission)}
                   </div>
                 )}
               </div>
@@ -555,19 +556,22 @@ function StaffPaymentsSection({ settings }) {
           ]}
           rows={rows}
           mobileRowRender={m => (
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
                 {m.photo_url ? <img src={m.photo_url} alt={m.name} className="w-full h-full object-cover" /> : m.name[0]}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate" style={{ color: 'var(--color-text)' }}>{m.name}</p>
                 <p className="text-sm" style={{ color: 'var(--color-muted)' }}>{m.count} תורים · {formatILS(m.revenue)}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1.5">
-                <span className="font-bold text-sm" style={{ color: 'var(--color-gold)' }}>{formatILS(m.amount + m.productCommission)}</span>
                 {m.productCommission > 0 && (
-                  <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>כולל מוצרים {formatILS(m.productCommission)}</span>
+                  <div className="inline-flex items-center gap-1 text-[10px] mt-1 px-2 py-1 rounded-lg"
+                    style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}>
+                    📦 {m.productCount} מוצרים · {formatILS(m.productCommission)}
+                  </div>
                 )}
+              </div>
+              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                <span className="font-bold text-sm" style={{ color: 'var(--color-gold)' }}>{formatILS(m.amount)}</span>
                 <button
                   onClick={() => handleMarkAllPaid(m.id)}
                   disabled={paying === m.id}
