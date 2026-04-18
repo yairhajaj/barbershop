@@ -1,32 +1,29 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
-export function useInvoices({ status, startDate, endDate, includeCancelled = false } = {}) {
-  const [invoices, setInvoices] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const fetchRef = useRef(null)
+export function useInvoices({ status, startDate, endDate, includeCancelled = false, branchId = null } = {}) {
+  const qc = useQueryClient()
 
-  useEffect(() => { fetchInvoices() }, [status, startDate, endDate, includeCancelled])
+  const query = useQuery({
+    queryKey: ['invoices', { status, startDate, endDate, includeCancelled, branchId }],
+    queryFn: async () => {
+      let q = supabase
+        .from('invoices')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (status)               q = q.eq('status', status)
+      if (startDate)            q = q.gte('created_at', startDate)
+      if (endDate)              q = q.lte('created_at', endDate)
+      if (!includeCancelled)    q = q.eq('is_cancelled', false)
+      if (branchId)             q = q.or(`branch_id.eq.${branchId},branch_id.is.null`)
+      const { data, error } = await q
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
 
-  async function fetchInvoices() {
-    setLoading(true)
-    let query = supabase
-      .from('invoices')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (status)    query = query.eq('status', status)
-    if (startDate) query = query.gte('created_at', startDate)
-    if (endDate)   query = query.lte('created_at', endDate)
-    if (!includeCancelled) query = query.eq('is_cancelled', false)
-
-    const { data, error } = await query
-    if (!error) setInvoices(data ?? [])
-    setLoading(false)
-  }
-  fetchRef.current = fetchInvoices
-
-  // Realtime subscription
+  // Realtime → invalidate
   useEffect(() => {
     const channelName = `invoices-realtime-${Date.now()}`
     let channel = null
@@ -34,106 +31,117 @@ export function useInvoices({ status, startDate, endDate, includeCancelled = fal
       channel = supabase
         .channel(channelName)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' },
-          () => { fetchRef.current?.() })
+          () => qc.invalidateQueries({ queryKey: ['invoices'] }))
         .subscribe()
     } catch (err) {
       console.warn('[useInvoices] realtime setup failed:', err)
     }
     return () => { if (channel) { try { supabase.removeChannel(channel) } catch {} } }
-  }, [])
+  }, [qc])
 
-  /** Generate next invoice number atomically via Postgres function */
   async function getNextInvoiceNumber() {
     const { data, error } = await supabase.rpc('next_invoice_number')
     if (error) throw error
     return data
   }
 
-  async function createInvoice(invoice) {
-    const invoiceNumber = await getNextInvoiceNumber()
-    const { data, error } = await supabase
-      .from('invoices')
-      .insert({ ...invoice, invoice_number: invoiceNumber })
-      .select()
-      .single()
-    if (error) throw error
-    await fetchInvoices()
-    return data
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['invoices'] })
+    qc.invalidateQueries({ queryKey: ['finance'] })
   }
 
-  async function updateInvoice(id, updates) {
-    const { error } = await supabase.from('invoices').update(updates).eq('id', id)
-    if (error) throw error
-    await fetchInvoices()
-  }
+  const createMut = useMutation({
+    mutationFn: async (invoice) => {
+      const invoiceNumber = await getNextInvoiceNumber()
+      const { data, error } = await supabase
+        .from('invoices')
+        .insert({ ...invoice, invoice_number: invoiceNumber })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidate,
+  })
+
+  const updateMut = useMutation({
+    mutationFn: async ({ id, updates }) => {
+      const { error } = await supabase.from('invoices').update(updates).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
 
   /**
    * Cancel an invoice (soft-delete) — required by Israeli tax law (הוראות ניהול ספרים).
    * Automatically creates a matching credit-note invoice with negative amounts if
    * the original was already sent/paid.
    */
-  async function cancelInvoice(id, reason = '') {
-    const { data: original, error: fetchErr } = await supabase
-      .from('invoices').select('*').eq('id', id).single()
-    if (fetchErr) throw fetchErr
-    if (original.is_cancelled) throw new Error('החשבונית כבר מבוטלת')
+  const cancelMut = useMutation({
+    mutationFn: async ({ id, reason = '' }) => {
+      const { data: original, error: fetchErr } = await supabase
+        .from('invoices').select('*').eq('id', id).single()
+      if (fetchErr) throw fetchErr
+      if (original.is_cancelled) throw new Error('החשבונית כבר מבוטלת')
 
-    const nowIso = new Date().toISOString()
+      const nowIso = new Date().toISOString()
 
-    const { error: updateErr } = await supabase
-      .from('invoices')
-      .update({ is_cancelled: true, cancelled_at: nowIso, cancellation_reason: reason || null })
-      .eq('id', id)
-    if (updateErr) throw updateErr
-
-    let creditNote = null
-    if (original.status !== 'draft') {
-      const invoiceNumber = await getNextInvoiceNumber()
-      const { data: cn, error: cnErr } = await supabase
+      const { error: updateErr } = await supabase
         .from('invoices')
-        .insert({
-          invoice_number: invoiceNumber,
-          appointment_id: original.appointment_id,
-          customer_name: original.customer_name,
-          customer_phone: original.customer_phone,
-          service_name: original.service_name,
-          staff_name: original.staff_name,
-          service_date: original.service_date,
-          amount_before_vat: -Number(original.amount_before_vat || 0),
-          vat_rate: original.vat_rate,
-          vat_amount: -Number(original.vat_amount || 0),
-          total_amount: -Number(original.total_amount || 0),
-          status: 'sent',
-          sent_at: nowIso,
-          notes: original.notes,
-          credit_note_for: id,
-        })
-        .select().single()
-      if (cnErr) throw cnErr
-      creditNote = cn
-    }
+        .update({ is_cancelled: true, cancelled_at: nowIso, cancellation_reason: reason || null })
+        .eq('id', id)
+      if (updateErr) throw updateErr
 
-    await fetchInvoices()
-    return { cancelled: { ...original, is_cancelled: true }, creditNote }
-  }
+      let creditNote = null
+      if (original.status !== 'draft') {
+        const invoiceNumber = await getNextInvoiceNumber()
+        const { data: cn, error: cnErr } = await supabase
+          .from('invoices')
+          .insert({
+            invoice_number: invoiceNumber,
+            appointment_id: original.appointment_id,
+            customer_name: original.customer_name,
+            customer_phone: original.customer_phone,
+            service_name: original.service_name,
+            staff_name: original.staff_name,
+            service_date: original.service_date,
+            amount_before_vat: -Number(original.amount_before_vat || 0),
+            vat_rate: original.vat_rate,
+            vat_amount: -Number(original.vat_amount || 0),
+            total_amount: -Number(original.total_amount || 0),
+            status: 'sent',
+            sent_at: nowIso,
+            notes: original.notes,
+            credit_note_for: id,
+          })
+          .select().single()
+        if (cnErr) throw cnErr
+        creditNote = cn
+      }
 
-  /** @deprecated Now performs soft-delete (cancellation). */
-  async function deleteInvoice(id) {
-    return cancelInvoice(id, 'מחיקה')
-  }
+      return { cancelled: { ...original, is_cancelled: true }, creditNote }
+    },
+    onSuccess: invalidate,
+  })
 
   async function markSent(id) {
-    await updateInvoice(id, { status: 'sent', sent_at: new Date().toISOString() })
+    return updateMut.mutateAsync({ id, updates: { status: 'sent', sent_at: new Date().toISOString() } })
   }
 
   async function markPaid(id) {
-    await updateInvoice(id, { status: 'paid', paid_at: new Date().toISOString() })
+    return updateMut.mutateAsync({ id, updates: { status: 'paid', paid_at: new Date().toISOString() } })
   }
 
   return {
-    invoices, loading, refetch: fetchInvoices,
-    createInvoice, updateInvoice,
-    cancelInvoice, deleteInvoice,
-    markSent, markPaid,
+    invoices: query.data ?? [],
+    loading: query.isLoading,
+    refetch: query.refetch,
+    createInvoice: createMut.mutateAsync,
+    updateInvoice: (id, updates) => updateMut.mutateAsync({ id, updates }),
+    cancelInvoice: (id, reason) => cancelMut.mutateAsync({ id, reason }),
+    /** @deprecated Now performs soft-delete (cancellation). */
+    deleteInvoice: (id) => cancelMut.mutateAsync({ id, reason: 'מחיקה' }),
+    markSent,
+    markPaid,
   }
 }

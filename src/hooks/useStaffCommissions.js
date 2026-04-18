@@ -1,65 +1,79 @@
-import { useEffect, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
-export function useStaffCommissions({ staffId, startDate, endDate, status } = {}) {
-  const [commissions, setCommissions] = useState([])
-  const [loading, setLoading]         = useState(true)
+export function useStaffCommissions({ staffId, startDate, endDate, status, branchId = null } = {}) {
+  const qc = useQueryClient()
 
-  useEffect(() => { fetchCommissions() }, [staffId, startDate, endDate, status])
+  const query = useQuery({
+    queryKey: ['staff_commissions', { staffId, startDate, endDate, status, branchId }],
+    queryFn: async () => {
+      let q = supabase
+        .from('staff_commissions')
+        .select('*, staff(id, name, photo_url)')
+        .order('date', { ascending: false })
+      if (staffId)   q = q.eq('staff_id', staffId)
+      if (status)    q = q.eq('status', status)
+      if (startDate) q = q.gte('date', startDate)
+      if (endDate)   q = q.lte('date', endDate)
+      if (branchId)  q = q.or(`branch_id.eq.${branchId},branch_id.is.null`)
+      const { data, error } = await q
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
 
-  async function fetchCommissions() {
-    setLoading(true)
-    let query = supabase
-      .from('staff_commissions')
-      .select('*, staff(id, name, photo_url)')
-      .order('date', { ascending: false })
-
-    if (staffId)   query = query.eq('staff_id', staffId)
-    if (status)    query = query.eq('status', status)
-    if (startDate) query = query.gte('date', startDate)
-    if (endDate)   query = query.lte('date', endDate)
-
-    const { data, error } = await query
-    if (!error) setCommissions(data ?? [])
-    setLoading(false)
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['staff_commissions'] })
+    qc.invalidateQueries({ queryKey: ['finance'] })
   }
 
-  async function createCommission(entry) {
-    const { data, error } = await supabase.from('staff_commissions').insert(entry).select().single()
-    if (error) throw error
-    await fetchCommissions()
-    return data
-  }
+  const createMut = useMutation({
+    mutationFn: async (entry) => {
+      const { data, error } = await supabase.from('staff_commissions').insert(entry).select().single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidate,
+  })
 
-  /** Mark a single commission as paid */
-  async function markPaid(id) {
-    const { error } = await supabase
-      .from('staff_commissions')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('id', id)
-    if (error) throw error
-    await fetchCommissions()
-  }
+  const markPaidMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase
+        .from('staff_commissions')
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
 
-  /** Mark all pending commissions for a staff member as paid */
-  async function markAllPaid(staffId) {
-    const { error } = await supabase
-      .from('staff_commissions')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('staff_id', staffId)
-      .eq('status', 'pending')
-    if (error) throw error
-    await fetchCommissions()
-  }
+  const markAllPaidMut = useMutation({
+    mutationFn: async (staffId) => {
+      const { error } = await supabase
+        .from('staff_commissions')
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
+        .eq('staff_id', staffId)
+        .eq('status', 'pending')
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
 
-  async function deleteCommission(id) {
-    const { error } = await supabase.from('staff_commissions').delete().eq('id', id)
-    if (error) throw error
-    await fetchCommissions()
-  }
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('staff_commissions').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
 
   return {
-    commissions, loading, refetch: fetchCommissions,
-    createCommission, markPaid, markAllPaid, deleteCommission,
+    commissions: query.data ?? [],
+    loading: query.isLoading,
+    refetch: query.refetch,
+    createCommission: createMut.mutateAsync,
+    markPaid: markPaidMut.mutateAsync,
+    markAllPaid: markAllPaidMut.mutateAsync,
+    deleteCommission: deleteMut.mutateAsync,
   }
 }

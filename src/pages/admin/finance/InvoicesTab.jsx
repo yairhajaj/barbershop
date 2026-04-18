@@ -28,7 +28,7 @@ export function InvoicesTab() {
   const showToast = useToast()
   const { settings } = useBusinessSettings()
   const [filter, setFilter] = useState('all')
-  const { invoices, loading, createInvoice, markPaid, deleteInvoice, markSent } = useInvoices({
+  const { invoices, loading, createInvoice, markPaid, cancelInvoice, markSent } = useInvoices({
     status: filter === 'all' ? undefined : filter,
   })
 
@@ -180,11 +180,21 @@ export function InvoicesTab() {
     }
   }
 
-  async function handleDelete(inv) {
-    if (!window.confirm(`למחוק את חשבונית ${inv.invoice_number}?`)) return
+  async function handleCancel(inv) {
+    const reason = window.prompt(
+      `ביטול חשבונית ${inv.invoice_number}.\n\n` +
+      `לפי החוק, לא ניתן למחוק חשבונית; במקום זאת תיווצר חשבונית זיכוי.\n\n` +
+      `סיבת הביטול:`
+    )
+    if (reason === null) return
     try {
-      await deleteInvoice(inv.id)
-      showToast({ message: 'חשבונית נמחקה', type: 'success' })
+      const { creditNote } = await cancelInvoice(inv.id, reason)
+      showToast({
+        message: creditNote
+          ? `החשבונית בוטלה. חשבונית זיכוי ${creditNote.invoice_number} נוצרה`
+          : 'החשבונית (טיוטה) בוטלה',
+        type: 'success',
+      })
     } catch (err) {
       showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
     }
@@ -306,13 +316,13 @@ export function InvoicesTab() {
                       ✅ שולמה
                     </button>
                   )}
-                  {inv.status === 'draft' && (
+                  {!inv.is_cancelled && !inv.credit_note_for && (
                     <button
-                      onClick={() => handleDelete(inv)}
+                      onClick={() => handleCancel(inv)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                       style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626' }}
                     >
-                      🗑️ מחק
+                      ❌ בטל
                     </button>
                   )}
                 </div>

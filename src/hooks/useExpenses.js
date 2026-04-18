@@ -1,76 +1,96 @@
-import { useEffect, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
-export function useExpenses({ startDate, endDate, categoryId } = {}) {
-  const [expenses, setExpenses]       = useState([])
-  const [categories, setCategories]   = useState([])
-  const [loading, setLoading]         = useState(true)
+export function useExpenses({ startDate, endDate, categoryId, branchId = null } = {}) {
+  const qc = useQueryClient()
 
-  useEffect(() => { fetchExpenses() }, [startDate, endDate, categoryId])
-  useEffect(() => { fetchCategories() }, [])
+  const expensesQuery = useQuery({
+    queryKey: ['expenses', { startDate, endDate, categoryId, branchId }],
+    queryFn: async () => {
+      let q = supabase
+        .from('expenses')
+        .select('*, expense_categories(id, name, icon)')
+        .order('date', { ascending: false })
+      if (startDate)  q = q.gte('date', startDate)
+      if (endDate)    q = q.lte('date', endDate)
+      if (categoryId) q = q.eq('category_id', categoryId)
+      if (branchId)   q = q.or(`branch_id.eq.${branchId},branch_id.is.null`)
+      const { data, error } = await q
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
 
-  async function fetchExpenses() {
-    setLoading(true)
-    let query = supabase
-      .from('expenses')
-      .select('*, expense_categories(id, name, icon)')
-      .order('date', { ascending: false })
+  const categoriesQuery = useQuery({
+    queryKey: ['expense-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order')
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
 
-    if (startDate) query = query.gte('date', startDate)
-    if (endDate)   query = query.lte('date', endDate)
-    if (categoryId) query = query.eq('category_id', categoryId)
-
-    const { data, error } = await query
-    if (!error) setExpenses(data ?? [])
-    setLoading(false)
+  const invalidateFinance = () => {
+    qc.invalidateQueries({ queryKey: ['expenses'] })
+    qc.invalidateQueries({ queryKey: ['finance'] })
   }
 
-  async function fetchCategories() {
-    const { data } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order')
-    setCategories(data ?? [])
-  }
+  const createMut = useMutation({
+    mutationFn: async (expense) => {
+      const { data, error } = await supabase.from('expenses').insert(expense).select().single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidateFinance,
+  })
 
-  async function createExpense(expense) {
-    const { data, error } = await supabase.from('expenses').insert(expense).select().single()
-    if (error) throw error
-    await fetchExpenses()
-    return data
-  }
+  const updateMut = useMutation({
+    mutationFn: async ({ id, updates }) => {
+      const { error } = await supabase.from('expenses').update(updates).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidateFinance,
+  })
 
-  async function updateExpense(id, updates) {
-    const { error } = await supabase.from('expenses').update(updates).eq('id', id)
-    if (error) throw error
-    await fetchExpenses()
-  }
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('expenses').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidateFinance,
+  })
 
-  async function deleteExpense(id) {
-    const { error } = await supabase.from('expenses').delete().eq('id', id)
-    if (error) throw error
-    await fetchExpenses()
-  }
+  const createCatMut = useMutation({
+    mutationFn: async (cat) => {
+      const { data, error } = await supabase.from('expense_categories').insert(cat).select().single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expense-categories'] }),
+  })
 
-  // Category management
-  async function createCategory(cat) {
-    const { data, error } = await supabase.from('expense_categories').insert(cat).select().single()
-    if (error) throw error
-    await fetchCategories()
-    return data
-  }
-
-  async function updateCategory(id, updates) {
-    const { error } = await supabase.from('expense_categories').update(updates).eq('id', id)
-    if (error) throw error
-    await fetchCategories()
-  }
+  const updateCatMut = useMutation({
+    mutationFn: async ({ id, updates }) => {
+      const { error } = await supabase.from('expense_categories').update(updates).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['expense-categories'] }),
+  })
 
   return {
-    expenses, categories, loading,
-    refetch: fetchExpenses, refetchCategories: fetchCategories,
-    createExpense, updateExpense, deleteExpense,
-    createCategory, updateCategory,
+    expenses: expensesQuery.data ?? [],
+    categories: categoriesQuery.data ?? [],
+    loading: expensesQuery.isLoading,
+    refetch: expensesQuery.refetch,
+    refetchCategories: categoriesQuery.refetch,
+    createExpense: createMut.mutateAsync,
+    updateExpense: (id, updates) => updateMut.mutateAsync({ id, updates }),
+    deleteExpense: deleteMut.mutateAsync,
+    createCategory: createCatMut.mutateAsync,
+    updateCategory: (id, updates) => updateCatMut.mutateAsync({ id, updates }),
   }
 }

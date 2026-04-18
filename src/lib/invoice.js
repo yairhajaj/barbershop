@@ -24,6 +24,8 @@ export function generateInvoiceHTML({
   paymentMethod,
   invoiceDate,
   logoUrl,
+  taxSoftwareRegNumber,
+  isCreditNote = false,
 }) {
   const invoiceNum     = invoiceNumber || `INV-${String(appointment.id).slice(0, 8).toUpperCase()}`
   const price          = Number(appointment.services?.price) || 0
@@ -31,7 +33,7 @@ export function generateInvoiceHTML({
   const rate           = vatRate / 100
   const priceBeforeVat = isPatur ? price : Math.round((price / (1 + rate)) * 100) / 100
   const vatAmount      = isPatur ? 0 : Math.round((price - priceBeforeVat) * 100) / 100
-  const docTitle       = isPatur ? 'קבלה' : 'חשבונית מס קבלה'
+  const docTitle       = isCreditNote ? 'חשבונית זיכוי' : (isPatur ? 'קבלה' : 'חשבונית מס קבלה')
   const businessTypeLabel = isPatur ? 'עוסק פטור' : 'עוסק מורשה'
   const serviceDate    = formatDate(appointment.start_at)
   const timeStr        = formatTime(appointment.start_at)
@@ -376,6 +378,7 @@ export function generateInvoiceHTML({
       ${footer ? `<div>${esc(footer)}</div>` : ''}
       <div>${[business.address, business.phone ? 'טל׳ ' + business.phone : '', business.email].filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>
       <div style="margin-top:3px">${esc(taxIdLine)}</div>
+      ${taxSoftwareRegNumber ? `<div style="margin-top:3px;font-size:10px;color:#888">מס׳ רישום תוכנה: ${esc(taxSoftwareRegNumber)}</div>` : ''}
     </div>
 
   </div>

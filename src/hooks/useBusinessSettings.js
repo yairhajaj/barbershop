@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS = {
   commission_type:          'percentage', // 'percentage' | 'fixed' | 'salary'
   commission_default_rate:  50,
   openai_api_key:           '',
+  tax_software_reg_number:  '',
   // Announcement
   announcement_enabled:    false,
   announcement_title:      '',
