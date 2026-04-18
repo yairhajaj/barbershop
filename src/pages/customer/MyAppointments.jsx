@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { addDays, startOfDay, isSameDay, addMinutes, isToday, isBefore } from 'date-fns'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAppointments } from '../../hooks/useAppointments'
+import { isWaitlistExpired, sweepExpiredWaitlist } from '../../hooks/useWaitlist'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useStaff } from '../../hooks/useStaff'
 import { useReviews } from '../../hooks/useReviews'
@@ -68,7 +69,9 @@ export function MyAppointments() {
       .eq('customer_id', user.id)
       .in('status', ['pending', 'notified'])
       .order('preferred_date', { ascending: true })
-    setWaitlistEntries(data ?? [])
+    // Sweep expired + filter locally so they move to history automatically
+    sweepExpiredWaitlist(data || [])
+    setWaitlistEntries((data ?? []).filter(e => !isWaitlistExpired(e)))
     setWaitlistLoading(false)
   }
 

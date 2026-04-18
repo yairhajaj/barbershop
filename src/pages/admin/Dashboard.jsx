@@ -1,66 +1,174 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { startOfDay, endOfDay, addDays, format } from 'date-fns'
+import { AnimatePresence, motion } from 'framer-motion'
+import { startOfDay, endOfDay, addDays } from 'date-fns'
+
 import { useAllAppointments } from '../../hooks/useAppointments'
 import { useStaff } from '../../hooks/useStaff'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useBranch } from '../../contexts/BranchContext'
-import { StatusBadge } from '../../components/ui/Badge'
-import { Modal } from '../../components/ui/Modal'
-import { Spinner } from '../../components/ui/Spinner'
-import { formatTime, formatDateFull } from '../../lib/utils'
+import { isWaitlistExpired, sweepExpiredWaitlist } from '../../hooks/useWaitlist'
+
 import { supabase } from '../../lib/supabase'
-import { useToast } from '../../components/ui/Toast'
-import { BUSINESS } from '../../config/business'
+import { formatDateFull } from '../../lib/utils'
+
+import { NextAppointmentHero } from '../../components/admin/dashboard/NextAppointmentHero'
+import { UpcomingAppointmentsList } from '../../components/admin/dashboard/UpcomingAppointmentsList'
+import { KpiStrip } from '../../components/admin/dashboard/KpiStrip'
+import { WalkInModal } from '../../components/admin/dashboard/WalkInModal'
+import { ActionInbox } from '../../components/admin/dashboard/ActionInbox'
 
 export function Dashboard() {
   const today = new Date()
-  const toast = useToast()
+  const navigate = useNavigate()
   const { currentBranch } = useBranch()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { settings, saveSettings } = useBusinessSettings()
 
-  // Waitlist
-  const [waitlistEntries, setWaitlistEntries] = useState([])
-  const [waitlistLoading, setWaitlistLoading] = useState(false)
-  const [togglingWaitlist, setTogglingWaitlist] = useState(false)
+  // Today + week appointments (realtime built in)
+  const { appointments: todayAppts, loading: loadingToday, refetch: refetchAppts } = useAllAppointments({
+    startDate: startOfDay(today),
+    endDate: endOfDay(today),
+    branchId: currentBranch?.id ?? null,
+  })
 
-  const waitlistEnabled = settings.waitlist_enabled ?? false
+  // ── State for action inbox + walk-in ──
+  const [walkInOpen, setWalkInOpen] = useState(false)
+  const [uninvoiced, setUninvoiced] = useState([])
+  const [openDebts, setOpenDebts] = useState([])
+  const [waitlistActive, setWaitlistActive] = useState([])
+  const [nowTick, setNowTick] = useState(Date.now())
 
+  // Tick every minute to re-filter waitlist expirations in-place
   useEffect(() => {
-    if (waitlistEnabled) loadWaitlist()
-  }, [waitlistEnabled])
+    const i = setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => clearInterval(i)
+  }, [])
 
-  async function loadWaitlist() {
-    setWaitlistLoading(true)
-    const { data } = await supabase
+  // ── Fetch action inbox data ──
+  const fetchInbox = useCallback(async () => {
+    // 1. Uninvoiced completed appointments
+    const { data: uninv } = await supabase
+      .from('appointments')
+      .select('id, start_at, services(name, price), profiles(name)')
+      .eq('status', 'completed')
+      .eq('invoice_sent', false)
+      .order('start_at', { ascending: false })
+      .limit(20)
+    setUninvoiced(uninv ?? [])
+
+    // 2. Open debts
+    const { data: debts } = await supabase
+      .from('customer_debts')
+      .select('id, amount, description, created_at, customer_id, profiles:customer_id(id, name, phone)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    setOpenDebts(debts ?? [])
+
+    // 3. Waitlist — pending only, filter expired
+    const { data: wl } = await supabase
       .from('waitlist')
       .select('*, profiles(name, phone), services(name)')
       .eq('status', 'pending')
       .order('preferred_date', { ascending: true })
-      .order('created_at',   { ascending: true })
-    setWaitlistEntries(data ?? [])
-    setWaitlistLoading(false)
-  }
+      .order('created_at', { ascending: true })
+    // Fire-and-forget DB sweep
+    sweepExpiredWaitlist(wl || [])
+    setWaitlistActive((wl || []).filter(e => !isWaitlistExpired(e)))
+  }, [])
 
-  async function toggleWaitlist() {
-    setTogglingWaitlist(true)
-    try {
-      await saveSettings({ waitlist_enabled: !waitlistEnabled })
-    } finally {
-      setTogglingWaitlist(false)
+  useEffect(() => { fetchInbox() }, [fetchInbox])
+
+  // Re-filter waitlist as the minute ticks over
+  useEffect(() => {
+    setWaitlistActive(prev => prev.filter(e => !isWaitlistExpired(e)))
+  }, [nowTick])
+
+  // ── Realtime subscriptions for inbox data ──
+  useEffect(() => {
+    const invoicesCh = supabase.channel(`dash-invoices-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, fetchInbox)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, fetchInbox)
+      .subscribe()
+    const debtsCh = supabase.channel(`dash-debts-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_debts' }, fetchInbox)
+      .subscribe()
+    const wlCh = supabase.channel(`dash-waitlist-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'waitlist' }, fetchInbox)
+      .subscribe()
+    return () => {
+      try { supabase.removeChannel(invoicesCh) } catch {}
+      try { supabase.removeChannel(debtsCh) } catch {}
+      try { supabase.removeChannel(wlCh) } catch {}
     }
-  }
+  }, [fetchInbox])
 
-  async function removeFromWaitlist(id) {
-    await supabase.from('waitlist').update({ status: 'removed' }).eq('id', id)
-    setWaitlistEntries(es => es.filter(e => e.id !== id))
-  }
+  // ── Derived: the "next" appointment + upcoming ──
+  const { nextApt, upcoming, stats } = useMemo(() => {
+    const now = Date.now()
+    const future = todayAppts
+      .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
+      .filter(a => new Date(a.start_at).getTime() > now - 30 * 60_000) // include "just started / late by 30 min"
+      .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
-  const navigate = useNavigate()
+    const [next, ...rest] = future
 
-  function handleSchedule(entry) {
+    // Today stats
+    const completed = todayAppts.filter(a => a.status === 'completed' && !a.no_show)
+    const revenuePaid = completed
+      .filter(a => a.payment_status === 'paid')
+      .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+    const revenueExpected = todayAppts
+      .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
+      .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+    const noShows = todayAppts.filter(a => a.no_show === true)
+    const totalToday = todayAppts.filter(a => a.status !== 'cancelled').length
+    const doneToday = completed.length
+
+    const debtsSum = openDebts.reduce((s, d) => s + Number(d.amount || 0), 0)
+
+    const stats = [
+      {
+        label: 'תורים היום',
+        value: `${doneToday}/${totalToday}`,
+        sub: 'הושלמו/סה"כ',
+        accent: 'var(--color-text)',
+      },
+      {
+        label: 'הכנסה בפועל',
+        value: `₪${revenuePaid.toLocaleString('he-IL')}`,
+        sub: 'שולם היום',
+        accent: '#16a34a',
+      },
+      {
+        label: 'צפוי היום',
+        value: `₪${revenueExpected.toLocaleString('he-IL')}`,
+        sub: `${future.length} תורים נותרו`,
+        accent: 'var(--color-gold)',
+      },
+      {
+        label: 'לא הגיעו',
+        value: String(noShows.length),
+        accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
+      },
+      {
+        label: 'חובות פתוחים',
+        value: `₪${debtsSum.toLocaleString('he-IL')}`,
+        sub: `${openDebts.length} לקוחות`,
+        accent: openDebts.length > 0 ? '#dc2626' : 'var(--color-muted)',
+      },
+      {
+        label: 'ממתינים',
+        value: String(waitlistActive.length),
+        accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
+      },
+    ]
+
+    return { nextApt: next, upcoming: rest, stats }
+  }, [todayAppts, openDebts, waitlistActive])
+
+  // ── Handle schedule from waitlist ──
+  function handleScheduleWaitlist(entry) {
     sessionStorage.setItem('waitlist_prefill', JSON.stringify({
       waitlistId:    entry.id,
       customerId:    entry.customer_id,
@@ -76,400 +184,181 @@ export function Dashboard() {
     navigate('/admin/appointments')
   }
 
-  const { appointments: todayAppts, loading: loadingToday, refetch } = useAllAppointments({
-    startDate: startOfDay(today),
-    endDate: endOfDay(today),
-    branchId: currentBranch?.id ?? null,
-  })
-
-  const { appointments: weekAppts } = useAllAppointments({
-    startDate: startOfDay(today),
-    endDate: endOfDay(addDays(today, 6)),
-    branchId: currentBranch?.id ?? null,
-  })
-
-  const confirmed  = todayAppts.filter(a => a.status === 'confirmed')
-  const completed  = todayAppts.filter(a => a.status === 'completed')
-  const revenue    = completed.reduce((sum, a) => sum + (Number(a.services?.price) || 0), 0)
-  const weekRevenue = weekAppts.filter(a => a.status === 'completed').reduce((sum, a) => sum + (Number(a.services?.price) || 0), 0)
-
-  async function markComplete(id) {
-    await supabase.from('appointments').update({ status: 'completed' }).eq('id', id)
-    await refetch()
-    toast({ message: 'תור סומן כהושלם', type: 'success' })
-  }
-
-
-  const stats = [
-    { label: 'תורים היום',    value: confirmed.length, icon: '📅', color: 'blue' },
-    { label: 'הושלמו',        value: completed.length, icon: '✓',  color: 'green' },
-    { label: 'הכנסה היום',    value: `₪${revenue}`,    icon: '₪',  color: 'amber' },
-    { label: 'הכנסה שבועית',  value: `₪${weekRevenue}`, icon: '📈', color: 'purple' },
-  ]
-
-  const colorMap = {
-    blue:   'bg-blue-50 text-blue-700',
-    green:  'bg-green-50 text-green-700',
-    amber:  'bg-amber-50 text-amber-700',
-    purple: 'bg-purple-50 text-purple-700',
-  }
+  const refreshAll = () => { refetchAppts(); fetchInbox() }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold">לוח בקרה</h1>
-          <p className="text-muted text-sm">{formatDateFull(today)}</p>
+          <h1 className="text-2xl font-black" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+            🎯 לוח בקרה
+          </h1>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+            {formatDateFull(today)}
+          </p>
         </div>
-        <Link to="/book/service" className="btn-primary text-sm px-4 py-2">+ קבע תור</Link>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className={`card p-5 ${colorMap[s.color].split(' ')[0]}`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">{s.icon}</span>
-              <span className={`text-2xl font-bold ${colorMap[s.color].split(' ')[1]}`}>{s.value}</span>
-            </div>
-            <p className="text-sm font-medium text-gray-600">{s.label}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Gap Closer Quick Settings */}
-      <GapCloserCard settings={settings} saveSettings={saveSettings} toast={toast} />
-
-      {/* Waitlist Section */}
-      <section className="card p-5 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-base">📋 רשימת המתנה</h2>
-            <p className="text-sm text-muted mt-0.5">
-              {waitlistEnabled
-                ? `${waitlistEntries.length} ממתינים · לקוחות יקבלו הודעה כשיתפנה תור`
-                : 'כבוי — לקוחות לא יוכלו להצטרף לרשימת המתנה'}
-            </p>
-          </div>
+        <div className="flex gap-2">
           <button
-            onClick={toggleWaitlist}
-            disabled={togglingWaitlist}
-            className="relative inline-flex w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0"
-            style={{ background: waitlistEnabled ? 'var(--color-gold)' : '#d1d5db' }}
-          >
-            <span
-              className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-              style={{ right: waitlistEnabled ? '2px' : 'calc(100% - 22px)' }}
-            />
+            onClick={() => setWalkInOpen(true)}
+            className="text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-all"
+            style={{ background: 'var(--color-gold)', color: '#fff' }}>
+            💰 תקבול מהיר
           </button>
+          <Link to="/book/service"
+            className="text-xs font-bold px-3 py-2 rounded-xl"
+            style={{ background: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
+            + תור
+          </Link>
         </div>
+      </div>
 
-        <AnimatePresence>
-          {waitlistEnabled && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
-                {waitlistLoading ? (
-                  <div className="flex justify-center py-6"><Spinner /></div>
-                ) : waitlistEntries.length === 0 ? (
-                  <div className="text-center py-6 text-sm" style={{ color: 'var(--color-muted)' }}>
-                    <div className="text-3xl mb-2">📭</div>
-                    אין ממתינים ברשימה כרגע
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {waitlistEntries.map(entry => {
-                      const dateStr  = entry.preferred_date
-                        ? format(new Date(entry.preferred_date + 'T12:00:00'), 'dd.MM')
-                        : '—'
-                      const timeStr  = `${entry.time_from?.slice(0,5) ?? ''} – ${entry.time_to?.slice(0,5) ?? ''}`
-                      return (
-                        <div
-                          key={entry.id}
-                          className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm"
-                          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
-                              style={{ background: 'var(--color-gold)', color: '#fff' }}
-                            >
-                              {entry.profiles?.name?.[0] ?? '?'}
-                            </div>
-                            <div>
-                              <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
-                                {entry.profiles?.name}
-                              </span>
-                              <span className="text-xs mr-2" style={{ color: 'var(--color-muted)' }}>
-                                {entry.profiles?.phone}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <div className="text-xs text-right hidden sm:block" style={{ color: 'var(--color-muted)' }}>
-                              <div>{dateStr} · {timeStr}</div>
-                              {entry.services?.name && <div>{entry.services.name}</div>}
-                            </div>
-                            <button
-                              onClick={() => handleSchedule(entry)}
-                              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all"
-                              style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}
-                              title="עבור לשיבוץ"
-                            >📅 שיבוץ</button>
-                            <button
-                              onClick={() => removeFromWaitlist(entry.id)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-opacity hover:opacity-60"
-                              style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}
-                              title="הסר מהרשימה"
-                            >✕</button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    <Link
-                      to="/admin/waitlist"
-                      className="text-xs font-bold text-center pt-1"
-                      style={{ color: 'var(--color-gold)' }}
-                    >
-                      הצג את כל הרשימה ←
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
+      {/* KPI strip */}
+      <KpiStrip stats={stats} />
 
-      {/* Today's Schedule + Staff */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">לוח יום — היום</h2>
-            <Link to="/admin/appointments" className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--color-gold)' }}>הצג הכל →</Link>
-          </div>
+      {/* Hero — next appointment */}
+      <NextAppointmentHero apt={nextApt} onChange={refreshAll} />
 
-          {loadingToday ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
-          ) : confirmed.length === 0 ? (
-            <div className="card p-8 text-center text-muted">
-              <div className="text-3xl mb-2">📭</div>
-              <p>אין תורים היום</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {confirmed.sort((a, b) => new Date(a.start_at) - new Date(b.start_at)).map(appt => (
-                <motion.div
-                  key={appt.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="card p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-12 text-center py-1 rounded-lg text-sm font-bold text-white"
-                        style={{ background: 'var(--color-gold)' }}
-                      >
-                        {formatTime(appt.start_at)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{appt.profiles?.name}</p>
-                        <p className="text-xs text-muted">{appt.services?.name} · {appt.staff?.name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={appt.status} />
-                      <button
-                        onClick={() => markComplete(appt.id)}
-                        className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-lg font-medium hover:bg-green-200 transition-colors"
-                      >
-                        הושלם
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* 3 upcoming */}
+      <UpcomingAppointmentsList appointments={upcoming} limit={3} />
 
-        {/* Staff */}
-        <div>
-          <h2 className="font-semibold text-lg mb-4">הספרים היום</h2>
-          <div className="flex flex-col gap-3">
-            {staff.map(member => {
-              const memberAppts = confirmed.filter(a => a.staff_id === member.id)
+      {/* Action inbox */}
+      <ActionInbox
+        uninvoiced={uninvoiced}
+        openDebts={openDebts}
+        debtsTotal={openDebts.reduce((s, d) => s + Number(d.amount || 0), 0)}
+        waitlist={waitlistActive}
+        onScheduleWaitlist={handleScheduleWaitlist}
+      />
+
+      {/* Gap Closer */}
+      <GapCloserCard settings={settings} saveSettings={saveSettings} />
+
+      {/* Staff compact row */}
+      {staff.length > 0 && (
+        <section className="mb-4">
+          <h2 className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
+            ✂️ הספרים היום
+          </h2>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {staff.map(m => {
+              const mine = todayAppts.filter(a => a.staff_id === m.id)
+              const done = mine.filter(a => a.status === 'completed').length
+              const total = mine.filter(a => a.status !== 'cancelled').length
+              const revenue = mine
+                .filter(a => a.status === 'completed' && a.payment_status === 'paid')
+                .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
               return (
-                <div key={member.id} className="card p-4 flex items-center gap-4">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-semibold"
-                    style={{ background: 'var(--color-gold)', color: 'white' }}
-                  >
-                    {member.name[0]}
+                <div key={m.id} className="flex-shrink-0 rounded-2xl p-3 min-w-[130px]"
+                  style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
+                      style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                      {m.name?.[0] || '?'}
+                    </div>
+                    <div className="text-xs font-bold truncate" style={{ color: 'var(--color-text)' }}>
+                      {m.name}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-xs text-muted">{memberAppts.length} תורים היום</p>
+                  <div className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
+                    {done}/{total} תורים · ₪{revenue.toLocaleString('he-IL')}
                   </div>
-                  <div className="w-2 h-2 rounded-full bg-green-400" />
                 </div>
               )
             })}
           </div>
-        </div>
-      </div>
+        </section>
+      )}
+
+      {/* Walk-in modal */}
+      <WalkInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} onSaved={refreshAll} />
     </div>
   )
 }
 
-/* ── Gap Closer Quick Card ─────────────────────────────────────────── */
+/* ── Gap Closer Quick Card (unchanged) ─────────────────────────── */
 const MODE_OPTIONS = [
-  { value: 'off',      label: 'כבוי',       icon: '⭕', desc: 'ללא פעולה אוטומטית' },
-  { value: 'approval', label: 'ידני',       icon: '👆', desc: 'אתה מאשר כל הצעה' },
-  { value: 'auto',     label: 'אוטומטי',    icon: '⚡', desc: 'שולח הודעות לבד' },
+  { value: 'off',      label: 'כבוי',    icon: '⭕' },
+  { value: 'approval', label: 'ידני',    icon: '👆' },
+  { value: 'auto',     label: 'אוטומטי', icon: '⚡' },
 ]
 
-function GapCloserCard({ settings, saveSettings, toast }) {
+function GapCloserCard({ settings, saveSettings }) {
   const mode = settings?.gap_closer_mode || 'off'
   const threshold = settings?.gap_closer_threshold_minutes || 30
   const advanceHours = settings?.gap_closer_advance_hours ?? 2
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState(false)
-  const [showInfo, setShowInfo] = useState(false)
 
   async function updateField(field, value) {
     setSaving(true)
-    try {
-      await saveSettings({ [field]: value })
-      toast({ message: 'נשמר ✓', type: 'success' })
-    } finally {
-      setSaving(false)
-    }
+    try { await saveSettings({ [field]: value }) }
+    finally { setSaving(false) }
   }
 
   const currentMode = MODE_OPTIONS.find(m => m.value === mode) || MODE_OPTIONS[0]
 
   return (
-    <section className="rounded-2xl p-5 mb-6" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
+    <section className="rounded-2xl p-4 mb-5"
+      style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">🧩</span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🧩</span>
           <div>
-            <h2 className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
-              Gap Closer
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all"
-                style={{ background: showInfo ? 'var(--color-gold)' : 'var(--color-border)', color: showInfo ? '#fff' : 'var(--color-muted)' }}
-              >?</button>
-            </h2>
-            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>מילוי חורים אוטומטי כשתור מתבטל</p>
+            <h2 className="font-black text-sm" style={{ color: 'var(--color-text)' }}>Gap Closer</h2>
+            <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
+              מצב: <strong style={{ color: mode !== 'off' ? 'var(--color-gold)' : 'var(--color-muted)' }}>
+                {currentMode.label}
+              </strong>
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Mode quick toggle */}
+        <div className="flex items-center gap-1.5">
           <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
             {MODE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
+              <button key={opt.value}
                 onClick={() => updateField('gap_closer_mode', opt.value)}
                 disabled={saving}
-                className="px-3 py-1.5 text-[11px] font-bold transition-all"
+                className="px-2 py-1.5 text-[10px] font-bold transition-all"
                 style={{
                   background: mode === opt.value ? 'var(--color-gold)' : 'transparent',
                   color: mode === opt.value ? '#fff' : 'var(--color-muted)',
-                }}
-                title={opt.desc}
-              >
-                {opt.icon} {opt.label}
+                }}>
+                {opt.icon}
               </button>
             ))}
           </div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs px-2 py-1 rounded-lg transition-all"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <button onClick={() => setExpanded(!expanded)}
+            className="text-xs px-1.5 py-1 rounded-lg"
+            style={{ color: 'var(--color-muted)' }}>
             {expanded ? '▲' : '⚙️'}
           </button>
         </div>
       </div>
 
-      {/* Status line */}
-      <div className="mt-3 flex items-center gap-4 text-[11px]" style={{ color: 'var(--color-muted)' }}>
-        <span>מצב: <strong style={{ color: mode !== 'off' ? 'var(--color-gold)' : 'var(--color-muted)' }}>{currentMode.label}</strong></span>
-        {mode !== 'off' && (
-          <>
-            <span>סף: <strong>{threshold} דק׳</strong></span>
-            <span>הפעלה: <strong>{advanceHours} שע׳ לפני</strong></span>
-          </>
-        )}
-      </div>
-
-      {/* Info tooltip */}
-      <AnimatePresence>
-        {showInfo && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 p-3 rounded-xl text-xs leading-relaxed" style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
-              <p className="font-bold mb-1">כשתור מתבטל, המערכת פועלת ב-3 שלבים:</p>
-              <p>1️⃣ שולחת הודעה ללקוחות ברשימת המתנה</p>
-              <p>2️⃣ מציעה ללקוחות עם תור מאוחר יותר להקדים</p>
-              <p>3️⃣ מאפשרת לשתף את החור בקבוצת וואטסאפ</p>
-              <p className="mt-1.5" style={{ color: 'var(--color-muted)' }}>
-                <strong>ידני</strong> = אתה מאשר כל שלב · <strong>אוטומטי</strong> = הכל קורה לבד
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Expanded settings */}
       <AnimatePresence>
         {expanded && mode !== 'off' && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-4 pt-4 grid grid-cols-2 gap-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="mt-3 pt-3 grid grid-cols-2 gap-3"
+              style={{ borderTop: '1px solid var(--color-border)' }}>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text)' }}>סף חור מינימלי (דקות)</label>
-                <input
-                  className="input w-full text-sm"
-                  type="number"
+                <label className="block text-[11px] font-bold mb-1" style={{ color: 'var(--color-text)' }}>
+                  סף חור (דק׳)
+                </label>
+                <input className="input w-full text-sm" type="number"
                   min={10} max={120} step={5}
                   value={threshold}
-                  onChange={e => updateField('gap_closer_threshold_minutes', parseInt(e.target.value) || 30)}
-                />
-                <p className="text-[10px] mt-1" style={{ color: 'var(--color-muted)' }}>חורים קטנים מ-{threshold} דק׳ לא יפעילו</p>
+                  onChange={e => updateField('gap_closer_threshold_minutes', parseInt(e.target.value) || 30)} />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text)' }}>שעות לפני החור להתחיל</label>
-                <input
-                  className="input w-full text-sm"
-                  type="number"
+                <label className="block text-[11px] font-bold mb-1" style={{ color: 'var(--color-text)' }}>
+                  התחל (שע׳ לפני)
+                </label>
+                <input className="input w-full text-sm" type="number"
                   min={0.5} max={12} step={0.5}
                   value={advanceHours}
-                  onChange={e => updateField('gap_closer_advance_hours', parseFloat(e.target.value) || 2)}
-                />
-                <p className="text-[10px] mt-1" style={{ color: 'var(--color-muted)' }}>לא ישלח הודעות מוקדם מדי</p>
+                  onChange={e => updateField('gap_closer_advance_hours', parseFloat(e.target.value) || 2)} />
               </div>
             </div>
           </motion.div>

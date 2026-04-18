@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { DashboardTab } from './finance/DashboardTab'
 import { IncomeTab } from './finance/IncomeTab'
@@ -7,6 +8,7 @@ import { InvoicesTab } from './finance/InvoicesTab'
 import { TaxReportTab } from './finance/TaxReportTab'
 import { SettingsTab } from './finance/SettingsTab'
 import { DebtsTab } from './finance/DebtsTab'
+import { AccountantTab } from './finance/AccountantTab'
 
 const TABS = [
   { key: 'dashboard', icon: '\u{1F4CA}', label: '\u05E1\u05D9\u05DB\u05D5\u05DD' },
@@ -15,11 +17,14 @@ const TABS = [
   { key: 'invoices',  icon: '\u{1F9FE}', label: '\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05D5\u05EA' },
   { key: 'debts',     icon: '💳', label: 'חובות' },
   { key: 'tax',       icon: '📊', label: 'דוח & רו״ח' },
+  { key: 'accountant',icon: '👨‍💼', label: 'רואה חשבון' },
   { key: 'settings',  icon: '\u2699\uFE0F', label: '\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA' },
 ]
 
 export function Finance() {
-  const [tab, setTab] = useState('dashboard')
+  const location = useLocation()
+  const initialTab = location.state?.tab || 'dashboard'
+  const [tab, setTab] = useState(initialTab)
 
   return (
     <div>
@@ -75,6 +80,7 @@ export function Finance() {
         {tab === 'invoices' && <InvoicesTab />}
         {tab === 'debts' && <DebtsTab />}
         {tab === 'tax' && <TaxReportTab />}
+        {tab === 'accountant' && <AccountantTab />}
         {tab === 'settings' && <SettingsTab />}
       </motion.div>
     </div>
