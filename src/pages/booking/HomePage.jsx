@@ -36,20 +36,6 @@ import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
-function useScrollReveal(deps = []) {
-  useEffect(() => {
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) e.target.classList.add('visible')
-      })
-    }, { threshold: 0.12 })
-    const timer = setTimeout(() => {
-      document.querySelectorAll('.v6-reveal').forEach(el => io.observe(el))
-    }, 100)
-    return () => { clearTimeout(timer); io.disconnect() }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
-}
 
 function FanGallery({ items }) {
   const stageRef = useRef(null)
@@ -271,8 +257,6 @@ export function HomePage() {
 
   const [portfolioMember, setPortfolioMember] = useState(null)
   const heroVideoRef = useRef(null)
-
-  useScrollReveal([servicesLoading, staffLoading, featuredProducts.length, galleryItems.length])
 
   // Hero parallax — fade + slide up as page scrolls
   useEffect(() => {
@@ -654,7 +638,7 @@ export function HomePage() {
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             <Link to={bookHref} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-gold)', textDecoration: 'none', letterSpacing: '0.01em' }}>כל השירותים ←</Link>
           </div>
-          <h2 className="v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</h2>
+          <motion.h2 initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</motion.h2>
 
           {servicesLoading ? (
             <div className="space-y-3 mt-4">
@@ -665,7 +649,7 @@ export function HomePage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
               {services.map((service, i) => (
-                <motion.div key={service.id} className={`v6-reveal v6-d${(i % 6) + 1}`} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
+                <motion.div key={service.id} initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: i * 0.07 }}>
                   <Link
                     to={serviceHref(service.id)}
                     className="group v6-svc-row"
@@ -717,7 +701,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מוצרים</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
-            <h2 className="px-5 v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</h2>
+            <motion.h2 className="px-5" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</motion.h2>
             <div
               style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', display: 'flex', gap: 12, padding: '14px 20px 8px', margin: '0 -0px' }}
               tabIndex={0} role="region" aria-label="מוצרים מומלצים"
@@ -725,8 +709,8 @@ export function HomePage() {
               {featuredProducts.map((product, i) => (
                 <motion.div
                   key={product.id}
-                  className={`v6-prod-card v6-reveal v6-d${(i % 6) + 1}`}
-                  initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                  className="v6-prod-card"
+                  initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: i * 0.07 }}
                   style={{
                     flexShrink: 0, width: 136,
                     background: isDark ? 'rgba(255,255,255,0.06)' : 'var(--color-card)',
@@ -767,7 +751,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>הצוות</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
-            <h2 className="px-5 v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</h2>
+            <motion.h2 className="px-5" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</motion.h2>
             <p className="px-5" style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 7, marginBottom: 6, lineHeight: 1.6 }}>לחץ על כרטיס לצפייה בעבודות</p>
             <div
               style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 20px 4px' }}
@@ -776,11 +760,11 @@ export function HomePage() {
               {staff.map((member, i) => (
                 <motion.div
                   key={member.id}
-                  className={`v6-team-card v6-reveal v6-d${(i % 2) + 1}`}
-                  initial={{ opacity: 0, y: 16 }}
+                  className="v6-team-card"
+                  initial={{ opacity: 0, y: 28 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07 }}
+                  viewport={{ once: true, amount: 0.15 }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: i * 0.07 }}
                   style={{
                     borderRadius: 18, overflow: 'hidden', cursor: 'pointer',
                     background: '#f0e8d8',
@@ -873,7 +857,7 @@ export function HomePage() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מצאו אותנו</span>
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
           </div>
-          <h2 className="v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</h2>
+          <motion.h2 initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</motion.h2>
 
           {/* Fan gallery */}
           {galleryItems.filter(g => g.type === 'image').length > 0 && (
@@ -886,7 +870,7 @@ export function HomePage() {
           )}
 
           {/* v6 location card */}
-          <div className="v6-loc-card">
+          <motion.div className="v6-loc-card" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
             <div className="v6-map-placeholder">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="1.5" strokeOpacity="0.3" strokeLinecap="round">
                 <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
@@ -948,7 +932,7 @@ export function HomePage() {
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Social buttons */}
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
@@ -979,14 +963,16 @@ export function HomePage() {
           </div>
 
           {/* Final CTA */}
-          <Link to={bookHref} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', marginTop: 16,
-            background: 'var(--color-gold)', color: '#fff',
-            fontWeight: 600, fontSize: 14, padding: '16px 28px', borderRadius: 9999,
-            boxShadow: '0 8px 32px var(--color-accent-glow)', textDecoration: 'none',
-          }}>
-            קבע תור עכשיו
-          </Link>
+          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+            <Link to={bookHref} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', marginTop: 16,
+              background: 'var(--color-gold)', color: '#fff',
+              fontWeight: 600, fontSize: 14, padding: '16px 28px', borderRadius: 9999,
+              boxShadow: '0 8px 32px var(--color-accent-glow)', textDecoration: 'none',
+            }}>
+              קבע תור עכשיו
+            </Link>
+          </motion.div>
         </section>
 
         {/* bottom padding for toolbar */}
