@@ -24,6 +24,12 @@
   --shadow-card: 0 2px 16px rgba(0,0,0,0.07);
   --shadow-elevated: 0 8px 32px rgba(0,0,0,0.13);
   --color-accent-glow: rgba(255,122,0,0.18);
+
+  /* ── Layered shadow system (v6 design) ── */
+  --sh-xs: 0 1px 4px rgba(0,0,0,.06);
+  --sh-sm: 0 2px 12px rgba(0,0,0,.07), 0 1px 0 rgba(255,255,255,.85) inset;
+  --sh-md: 0 4px 24px rgba(0,0,0,.09), 0 1px 0 rgba(255,255,255,.90) inset;
+  --sh-lg: 0 8px 40px rgba(0,0,0,.11), 0 2px 0 rgba(255,255,255,.80) inset;
 }
 
 /* ── BASE ────────────────────────────────────────────────────────── */

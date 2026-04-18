@@ -18,12 +18,19 @@ import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 
 function getServiceIcon(name = '') {
   const n = name
-  if (n.includes('ילד') || n.includes('קטן') || n.includes('נוער')) return '👦'
-  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש')) return '🪒'
-  if (n.includes('צבע') || n.includes('צביעה') || n.includes('בלונד')) return '🎨'
-  if (n.includes('שמן') || n.includes('טיפול') || n.includes('מסכ')) return '💆'
-  if (n.includes('פייד') || n.includes('מוהוק') || n.includes('דגרד')) return '💈'
-  return '✂️'
+  const p = { width:20, height:20, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:1.8, strokeLinecap:'round', strokeLinejoin:'round' }
+  if (n.includes('ילד') || n.includes('קטן') || n.includes('נוער'))
+    return <svg {...p}><circle cx="12" cy="6" r="3"/><path d="M12 9v7M9 12h6M9 21l3-5 3 5"/></svg>
+  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש'))
+    return <svg {...p}><rect x="8" y="3" width="8" height="5" rx="1"/><path d="M8 8l-2 13h12L16 8"/><line x1="10" y1="12" x2="14" y2="12"/><line x1="10" y1="15" x2="14" y2="15"/></svg>
+  if (n.includes('צבע') || n.includes('צביעה') || n.includes('בלונד'))
+    return <svg {...p}><path d="M12 22a7 7 0 007-7c0-2-1-3.9-3-5.5S13.5 5.5 13 3c-.5 2.5-2 4.9-4 6.5C7 11.1 5 13 5 15a7 7 0 007 7z"/></svg>
+  if (n.includes('שמן') || n.includes('טיפול') || n.includes('מסכ'))
+    return <svg {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+  if (n.includes('פייד') || n.includes('מוהוק') || n.includes('דגרד'))
+    return <svg {...p}><path d="M12 3C7 3 3 7.03 3 12s4 9 9 9 9-4.03 9-9"/><path d="M16 12a4 4 0 00-8 0"/><line x1="20" y1="3" x2="20" y2="9"/><line x1="17" y1="6" x2="23" y2="6"/></svg>
+  // Default — scissors
+  return <svg {...p}><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
 }
 import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
@@ -325,7 +332,7 @@ export function HomePage() {
             transition={{ delay: 0.3, duration: 0.6 }}
             className="flex flex-col sm:flex-row gap-3 justify-center items-center"
           >
-            <Link to={bookHref} className="btn-primary text-base px-8 py-3.5">✂ קבע תור עכשיו</Link>
+            <Link to={bookHref} className="btn-primary text-base px-8 py-3.5">קבע תור עכשיו</Link>
             {!user && (
               <Link to="/login" className="text-sm font-semibold px-6 py-3 rounded-full border border-white/30 text-white/80 hover:bg-white/10 transition-all">
                 כניסה / הרשמה
@@ -582,7 +589,7 @@ export function HomePage() {
                         style={{
                           background: 'var(--color-card)',
                           border: '1px solid var(--color-border)',
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                          boxShadow: 'var(--sh-sm)',
                         }}
                         onMouseEnter={e => {
                           e.currentTarget.style.transform = 'translateY(-2px)'
@@ -597,8 +604,8 @@ export function HomePage() {
                       >
                         {/* Icon */}
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
-                          style={{ background: 'rgba(255,133,0,0.08)' }}
+                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
+                          style={{ background: 'rgba(255,133,0,0.08)', color: 'var(--color-gold)', border: '1px solid rgba(255,133,0,0.14)' }}
                         >
                           {getServiceIcon(service.name)}
                         </div>
@@ -682,20 +689,31 @@ export function HomePage() {
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
-                className="flex-shrink-0 w-56 rounded-2xl overflow-hidden relative group"
-                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}
+                className="flex-shrink-0 w-44 rounded-2xl overflow-hidden relative group"
+                style={{
+                  boxShadow: 'var(--sh-sm)',
+                  background: 'var(--color-card)',
+                  border: '1px solid rgba(0,0,0,0.04)',
+                  transition: 'transform .38s cubic-bezier(.22,1,.36,1), box-shadow .38s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = 'var(--sh-lg)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--sh-sm)'; }}
               >
-                <div className="h-52 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.08), rgba(201,169,110,0.02))' }}>
+                {/* Image */}
+                <div className="h-52 overflow-hidden relative" style={{ background: 'linear-gradient(145deg,rgba(201,169,110,0.15),rgba(201,169,110,0.04))' }}>
                   {product.image_url
-                    ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     : <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-5xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.15 }}>H</span>
+                        <span className="text-5xl font-black" style={{ color: 'var(--color-gold)', opacity: 0.12 }}>H</span>
                       </div>
                   }
+                  {/* Bottom scrim */}
+                  <div className="absolute inset-x-0 bottom-0 h-10 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.18) 0%, transparent 100%)' }} />
                 </div>
-                <div className="absolute inset-x-0 bottom-0 p-4" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }}>
-                  <div className="font-bold text-sm text-white leading-tight">{product.name}</div>
-                  <div className="text-xs font-black mt-1" style={{ color: 'var(--color-gold)' }}>{priceDisplay(product.price)}</div>
+                {/* Caption — below image, clean */}
+                <div className="px-3 py-3">
+                  <div className="font-bold text-sm leading-tight mb-1" style={{ color: 'var(--color-text)' }}>{product.name}</div>
+                  <div className="font-black text-sm" style={{ color: 'var(--color-gold)' }}>{priceDisplay(product.price)}</div>
                 </div>
               </motion.div>
             ))}
