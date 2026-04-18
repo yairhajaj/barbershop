@@ -198,7 +198,7 @@ function WaitlistRow({ entry, index, onRemove, onSchedule }) {
         {entry.profiles?.phone && (
           <a
             href={`tel:${entry.profiles.phone}`}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all"
+            className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm transition-all"
             style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}
             title="חייג"
           >📞</a>
@@ -215,7 +215,7 @@ function WaitlistRow({ entry, index, onRemove, onSchedule }) {
             </button>
             <button
               onClick={onRemove}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all"
+              className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm transition-all"
               style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}
               title="הסר מהרשימה"
             >🗑</button>

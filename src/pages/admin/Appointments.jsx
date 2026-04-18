@@ -1933,7 +1933,7 @@ export function Appointments() {
                   </p>
                 </div>
                 <button onClick={() => setRescheduleOpen(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                  className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-lg"
                   style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>×</button>
               </div>
 
@@ -2100,7 +2100,7 @@ export function Appointments() {
                 <h2 className="text-base font-black" style={{ color: 'var(--color-text)' }}>🚫 חסימת שעות</h2>
                 <button
                   onClick={() => { setAddEventOpen(false); setEventForm(EMPTY_EVENT); setEventPreset(''); setEventPickerMode('from') }}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all"
+                  className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-lg transition-all"
                   style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}
                 >×</button>
               </div>
@@ -2430,7 +2430,7 @@ export function Appointments() {
                   )}
                 </div>
                 <button type="button" onClick={closeBook}
-                  className="w-8 h-8 flex items-center justify-center rounded-full text-xl flex-shrink-0"
+                  className="min-w-11 min-h-11 flex items-center justify-center rounded-full text-xl flex-shrink-0"
                   style={{ color: 'var(--color-muted)', background: 'var(--color-surface)' }}
                 >×</button>
               </div>

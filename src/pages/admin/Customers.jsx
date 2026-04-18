@@ -280,9 +280,9 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-          <a href={`tel:${customer.phone}`} className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>📞</a>
-          <a href={waLink} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(37,211,102,0.1)', color: '#25d366' }}>💬</a>
-          <button onClick={onBlock} className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ background: customer.is_blocked ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: customer.is_blocked ? '#16a34a' : '#dc2626' }}>
+          <a href={`tel:${customer.phone}`} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>📞</a>
+          <a href={waLink} target="_blank" rel="noopener noreferrer" className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(37,211,102,0.1)', color: '#25d366' }}>💬</a>
+          <button onClick={onBlock} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: customer.is_blocked ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: customer.is_blocked ? '#16a34a' : '#dc2626' }}>
             {customer.is_blocked ? '✅' : '🚫'}
           </button>
         </div>
