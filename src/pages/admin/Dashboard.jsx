@@ -129,38 +129,44 @@ export function Dashboard() {
 
     const stats = [
       {
-        label: 'תורים היום',
-        value: `${doneToday}/${totalToday}`,
-        sub: 'הושלמו/סה"כ',
-        accent: 'var(--color-text)',
-      },
-      {
         label: 'הכנסה בפועל',
         value: `₪${revenuePaid.toLocaleString('he-IL')}`,
         sub: 'שולם היום',
         accent: '#16a34a',
+        size: 'hero',
+      },
+      {
+        label: 'תורים היום',
+        value: `${doneToday}/${totalToday}`,
+        sub: 'הושלמו/סה"כ',
+        accent: 'var(--color-text)',
+        size: 'wide',
       },
       {
         label: 'צפוי היום',
         value: `₪${revenueExpected.toLocaleString('he-IL')}`,
         sub: `${future.length} תורים נותרו`,
         accent: 'var(--color-gold)',
-      },
-      {
-        label: 'לא הגיעו',
-        value: String(noShows.length),
-        accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
+        size: 'wide',
       },
       {
         label: 'חובות פתוחים',
         value: `₪${debtsSum.toLocaleString('he-IL')}`,
         sub: `${openDebts.length} לקוחות`,
         accent: openDebts.length > 0 ? '#dc2626' : 'var(--color-muted)',
+        size: 'wide',
+      },
+      {
+        label: 'לא הגיעו',
+        value: String(noShows.length),
+        accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
+        size: 'sm',
       },
       {
         label: 'ממתינים',
         value: String(waitlistActive.length),
         accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
+        size: 'sm',
       },
     ]
 
