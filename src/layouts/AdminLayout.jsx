@@ -396,8 +396,8 @@ export function AdminLayout({ children }) {
 
         {/* Page content — extra bottom padding on mobile for floating toolbar + safe area */}
         <main
-          className="flex-1 p-4 sm:p-6 lg:pb-6"
-          style={{ paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0px))' }}
+          className="flex-1 p-4 sm:p-6 lg:pb-6 overflow-x-hidden"
+          style={{ paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0px))', maxWidth: '100%' }}
         >
           {children}
         </main>
