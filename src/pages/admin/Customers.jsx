@@ -302,8 +302,9 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
 // ─────────────────────────────────────────────────────────────────────────────
 // Customer Modal
 // ─────────────────────────────────────────────────────────────────────────────
-function CustomerModal({ customer, history, historyLoading, onClose, onToggleBlock, onSaveToContacts, onBookAppointment, waLink }) {
+function CustomerModal({ customer, history, purchases, historyLoading, onClose, onToggleBlock, onSaveToContacts, onBookAppointment, waLink }) {
   const showToast = useToast()
+  const { settings } = useBusinessSettings()
   const { debts, totalPending, createDebt, markPaid, fetchDebts } = useCustomerDebts({ customerId: customer.id })
   const [debtOpen, setDebtOpen]       = useState(false)
   const [debtForm, setDebtForm]       = useState({ amount: '', description: '' })
@@ -337,6 +338,28 @@ function CustomerModal({ customer, history, historyLoading, onClose, onToggleBlo
     } catch (e) {
       showToast({ message: e.message, type: 'error' })
     }
+  }
+
+  function handlePrintInvoice(appt, inv) {
+    const apptObj = {
+      id: appt.id,
+      start_at: appt.start_at,
+      profiles: { name: customer.name, phone: customer.phone },
+      services: appt.services,
+      staff: appt.staff,
+    }
+    printInvoice({
+      appointment: apptObj,
+      business: BUSINESS,
+      footerText: settings?.invoice_footer_text,
+      vatRate: inv.vat_rate || settings?.vat_rate || 18,
+      businessType: settings?.business_type || 'osek_morsheh',
+      invoiceNumber: inv.invoice_number,
+      businessTaxId: settings?.business_tax_id,
+      paymentMethod: inv.notes,
+      invoiceDate: inv.created_at,
+      logoUrl: settings?.logo_url,
+    })
   }
 
   return (
@@ -497,21 +520,33 @@ function CustomerModal({ customer, history, historyLoading, onClose, onToggleBlo
               {history.map(appt => {
                 const st   = appt.start_at ? new Date(appt.start_at) : null
                 const meta = STATUS_COLORS[appt.status] ?? STATUS_COLORS.completed
+                const inv  = appt.invoices?.[0]
                 return (
-                  <div key={appt.id} className="flex items-center justify-between p-3 rounded-xl text-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold truncate" style={{ color: 'var(--color-text)' }}>{appt.services?.name ?? '—'}</div>
-                      <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                        {st ? `${formatDateShort(st)} · ${formatTime(st)}` : '—'}
-                        {appt.staff?.name ? ` · ${appt.staff.name}` : ''}
+                  <div key={appt.id} className="p-3 rounded-xl text-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold truncate" style={{ color: 'var(--color-text)' }}>{appt.services?.name ?? '—'}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                          {st ? `${formatDateShort(st)} · ${formatTime(st)}` : '—'}
+                          {appt.staff?.name ? ` · ${appt.staff.name}` : ''}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 mr-2">
+                        {appt.services?.price != null && (
+                          <span className="text-xs font-bold" style={{ color: 'var(--color-gold)' }}>₪{appt.services.price}</span>
+                        )}
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 mr-2">
-                      {appt.services?.price != null && (
-                        <span className="text-xs font-bold" style={{ color: 'var(--color-gold)' }}>₪{appt.services.price}</span>
-                      )}
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
-                    </div>
+                    {inv && (
+                      <button
+                        onClick={() => handlePrintInvoice(appt, inv)}
+                        className="mt-2 text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
+                        style={{ background: 'rgba(201,169,110,0.1)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}
+                      >
+                        🧾 חשבונית {inv.invoice_number}
+                      </button>
+                    )}
                   </div>
                 )
               })}
