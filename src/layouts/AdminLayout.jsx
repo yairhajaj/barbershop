@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useBranch } from '../contexts/BranchContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
 import { useAndroidBack } from '../hooks/useAndroidBack'
+import { useKeyboardAware } from '../hooks/useKeyboardAware'
 import { BUSINESS } from '../config/business'
 import { PageSpinner } from '../components/ui/Spinner'
 
@@ -172,6 +173,9 @@ export function AdminLayout({ children }) {
   // Android back button: close the "More" sheet instead of leaving the screen
   const handleAndroidBack = useCallback(() => { setSheetOpen(false) }, [])
   useAndroidBack(handleAndroidBack, sheetOpen)
+
+  // Scroll focused input into view when soft keyboard appears (iOS / Android)
+  useKeyboardAware()
 
   if (loading) return <PageSpinner />
   if (!user || profile?.role !== 'admin') return <Navigate to="/login" replace />
@@ -370,8 +374,11 @@ export function AdminLayout({ children }) {
           </div>
         </header>
 
-        {/* Page content — extra bottom padding on mobile for floating toolbar */}
-        <main className="flex-1 p-4 sm:p-6 pb-28 lg:pb-6">
+        {/* Page content — extra bottom padding on mobile for floating toolbar + safe area */}
+        <main
+          className="flex-1 p-4 sm:p-6 lg:pb-6"
+          style={{ paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0px))' }}
+        >
           {children}
         </main>
       </div>
