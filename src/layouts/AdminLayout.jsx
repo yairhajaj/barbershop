@@ -353,7 +353,7 @@ export function AdminLayout({ children }) {
       </AnimatePresence>
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
-      <div className="flex-1 lg:mr-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:mr-64 flex flex-col min-h-screen min-w-0 max-w-full">
         {/* Offline banner — sits above the top bar, slides in when offline */}
         <AnimatePresence>
           {!online && (
