@@ -169,6 +169,7 @@ export function Register() {
                 className="input"
                 type="text"
                 placeholder="ישראל ישראלי"
+                autoComplete="name"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 required

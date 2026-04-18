@@ -3347,7 +3347,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                 {entry.profiles?.phone && (
                   <a href={`https://wa.me/${entry.profiles.phone.replace(/\D/g,'').replace(/^0/,'972')}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="text-xs font-bold px-2 py-1.5 rounded-lg"
+                    className="min-w-11 min-h-11 flex items-center justify-center rounded-lg text-sm transition-all"
                     style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366' }}>
                     💬
                   </a>

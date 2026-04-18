@@ -27,6 +27,7 @@ const PAYMENT_LABELS = {
 
 export function Invoices() {
   const [tab, setTab] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const toast = useToast()
   const { settings } = useBusinessSettings()
   const { invoices, loading, markPaid, deleteInvoice } = useInvoices(
@@ -98,7 +99,18 @@ export function Invoices() {
     }
   }
 
-  const totalAmount = invoices.reduce((s, i) => s + (Number(i.total_amount) || 0), 0)
+  const filteredInvoices = searchQuery.trim()
+    ? invoices.filter(inv => {
+        const q = searchQuery.toLowerCase()
+        return (
+          inv.customer_name?.toLowerCase().includes(q) ||
+          inv.invoice_number?.toLowerCase().includes(q) ||
+          inv.service_date?.includes(searchQuery)
+        )
+      })
+    : invoices
+
+  const totalAmount = filteredInvoices.reduce((s, i) => s + (Number(i.total_amount) || 0), 0)
 
   return (
     <div>
@@ -129,17 +141,28 @@ export function Invoices() {
         ))}
       </div>
 
+      {/* Search */}
+      <div className="relative mb-4">
+        <span className="absolute top-1/2 -translate-y-1/2 right-3 text-base" style={{ color: 'var(--color-muted)' }}>🔍</span>
+        <input
+          className="input-field pr-9 w-full text-sm"
+          placeholder="חיפוש לפי שם לקוח, מספר חשבונית..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
-      ) : invoices.length === 0 ? (
+      ) : filteredInvoices.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--color-muted)' }}>
           <div className="text-5xl mb-3">🧾</div>
-          <p className="font-medium">אין חשבוניות</p>
-          <p className="text-sm mt-1">חשבוניות נוצרות אוטומטית ברגע שמסמנים תשלום מפרטי התור</p>
+          <p className="font-medium">{searchQuery ? 'לא נמצאו חשבוניות' : 'אין חשבוניות'}</p>
+          <p className="text-sm mt-1">{searchQuery ? 'נסה חיפוש אחר' : 'חשבוניות נוצרות אוטומטית ברגע שמסמנים תשלום מפרטי התור'}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {invoices.map(inv => {
+          {filteredInvoices.map(inv => {
             const badge = STATUS_BADGE[inv.status] || STATUS_BADGE.draft
             return (
               <div

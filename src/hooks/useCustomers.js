@@ -68,12 +68,20 @@ export function useCustomers({ search = '' } = {}) {
   })
 
   async function fetchHistory(customerId) {
-    const { data } = await supabase
-      .from('appointments')
-      .select('*, services(name, price), staff(name)')
-      .eq('customer_id', customerId)
-      .order('start_at', { ascending: false })
-    return data ?? []
+    const [{ data: appts }, { data: purchases }] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('*, services(name, price), staff(name), invoices!invoices_appointment_id_fkey(id, invoice_number, status, total_amount, vat_rate, notes, created_at, service_date)')
+        .eq('customer_id', customerId)
+        .order('start_at', { ascending: false }),
+      supabase
+        .from('manual_income')
+        .select('id, amount, date, payment_method, products(name, price)')
+        .eq('customer_id', customerId)
+        .not('product_id', 'is', null)
+        .order('date', { ascending: false }),
+    ])
+    return { appointments: appts ?? [], purchases: purchases ?? [] }
   }
 
   return {

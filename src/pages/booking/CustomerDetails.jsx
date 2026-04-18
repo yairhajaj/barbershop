@@ -150,6 +150,7 @@ export function CustomerDetails() {
             <input
               className={`input ${errors.name ? 'border-red-400' : ''}`}
               placeholder="ישראל ישראלי"
+              autoComplete="name"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             />

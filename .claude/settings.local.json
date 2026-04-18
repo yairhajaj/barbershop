@@ -84,7 +84,20 @@
       "Bash(git -C /c/Users/yairh/barbershop-app add src/pages/booking/SelectDateTime.jsx)",
       "Bash(git -C /c/Users/yairh/barbershop-app commit -m ' *)",
       "Bash(git -C /c/Users/yairh/barbershop-app push)",
-      "Bash(git -C /c/Users/yairh/barbershop-app log --oneline -3)"
+      "Bash(git -C /c/Users/yairh/barbershop-app log --oneline -3)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__find",
+      "mcp__Claude_in_Chrome__read_page",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "mcp__Claude_in_Chrome__form_input",
+      "WebFetch(domain:invoicedataextraction.com)",
+      "WebFetch(domain:www.kolzchut.org.il)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in {**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}.items\\(\\)]\")",
+      "Bash(npm i *)",
+      "WebFetch(domain:ixicgcjzgrqdysqlxgwr.supabase.co)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); ['@capacitor/app','@capacitor/status-bar','@capacitor/keyboard','@capacitor/haptics','@capacitor/splash-screen'].forEach\\(k=>console.log\\(k,p.dependencies[k]||p.devDependencies?.[k]||'missing'\\)\\)\")",
+      "Bash(gh run *)"
     ]
   }
 }

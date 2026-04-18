@@ -176,6 +176,56 @@ export function IncomeTab() {
     showToast({ message: 'CSV \u05D9\u05D5\u05E6\u05D0 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4', type: 'success' })
   }
 
+  // Breakdown: services from completed appointments, products from manual_income
+  const [serviceBreakdown, setServiceBreakdown] = useState([])
+  const [productBreakdown, setProductBreakdown] = useState([])
+  const [breakdownLoading, setBreakdownLoading] = useState(false)
+
+  useEffect(() => {
+    async function loadBreakdown() {
+      setBreakdownLoading(true)
+      const [{ data: apptData }, { data: prodData }] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('service_id, services(name, price)')
+          .eq('status', 'completed')
+          .gte('start_at', startDate + 'T00:00:00')
+          .lte('start_at', endDate + 'T23:59:59'),
+        supabase
+          .from('manual_income')
+          .select('product_id, amount, products(name)')
+          .not('product_id', 'is', null)
+          .gte('date', startDate)
+          .lte('date', endDate),
+      ])
+
+      // Group by service
+      const svcMap = {}
+      ;(apptData ?? []).forEach(a => {
+        if (!a.service_id || !a.services) return
+        const key = a.service_id
+        if (!svcMap[key]) svcMap[key] = { name: a.services.name, count: 0, total: 0 }
+        svcMap[key].count++
+        svcMap[key].total += Number(a.services.price ?? 0)
+      })
+      setServiceBreakdown(Object.values(svcMap).sort((a, b) => b.total - a.total))
+
+      // Group by product
+      const prdMap = {}
+      ;(prodData ?? []).forEach(p => {
+        if (!p.product_id) return
+        const key = p.product_id
+        if (!prdMap[key]) prdMap[key] = { name: p.products?.name ?? 'מוצר', count: 0, total: 0 }
+        prdMap[key].count++
+        prdMap[key].total += Number(p.amount ?? 0)
+      })
+      setProductBreakdown(Object.values(prdMap).sort((a, b) => b.total - a.total))
+
+      setBreakdownLoading(false)
+    }
+    loadBreakdown()
+  }, [startDate, endDate, branchId])
+
   const loading = manualLoading || paymentsLoading
 
   return (
@@ -316,6 +366,73 @@ export function IncomeTab() {
           })}
         </div>
       )}
+
+      {/* Breakdown: services + products */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Services */}
+        <div className="card p-4">
+          <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+            ✂️ פירוט לפי שירות
+          </h3>
+          {breakdownLoading ? (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--color-muted)' }}>טוען...</p>
+          ) : serviceBreakdown.length === 0 ? (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--color-muted)' }}>אין נתונים בתקופה זו</p>
+          ) : (() => {
+            const maxTotal = serviceBreakdown[0]?.total || 1
+            return (
+              <div className="flex flex-col gap-2">
+                {serviceBreakdown.map(s => (
+                  <div key={s.name}>
+                    <div className="flex justify-between text-xs mb-0.5">
+                      <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{s.name}</span>
+                      <span style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(s.total)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 rounded-full h-1.5" style={{ background: 'var(--color-surface)' }}>
+                        <div className="h-1.5 rounded-full" style={{ width: `${(s.total / maxTotal) * 100}%`, background: 'var(--color-gold)' }} />
+                      </div>
+                      <span className="text-[10px] w-8 text-left" style={{ color: 'var(--color-muted)' }}>×{s.count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* Products */}
+        <div className="card p-4">
+          <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+            📦 פירוט לפי מוצר
+          </h3>
+          {breakdownLoading ? (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--color-muted)' }}>טוען...</p>
+          ) : productBreakdown.length === 0 ? (
+            <p className="text-xs text-center py-4" style={{ color: 'var(--color-muted)' }}>אין מכירות מוצרים בתקופה זו</p>
+          ) : (() => {
+            const maxTotal = productBreakdown[0]?.total || 1
+            return (
+              <div className="flex flex-col gap-2">
+                {productBreakdown.map(p => (
+                  <div key={p.name}>
+                    <div className="flex justify-between text-xs mb-0.5">
+                      <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>{p.name}</span>
+                      <span style={{ color: '#16a34a', fontWeight: 700 }}>{formatILS(p.total)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 rounded-full h-1.5" style={{ background: 'var(--color-surface)' }}>
+                        <div className="h-1.5 rounded-full" style={{ width: `${(p.total / maxTotal) * 100}%`, background: '#16a34a' }} />
+                      </div>
+                      <span className="text-[10px] w-8 text-left" style={{ color: 'var(--color-muted)' }}>×{p.count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+      </div>
 
       {/* Add manual income modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={'\u05D4\u05D5\u05E1\u05E4\u05EA \u05D4\u05DB\u05E0\u05E1\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA'}>

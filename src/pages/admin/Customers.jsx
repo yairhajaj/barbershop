@@ -8,6 +8,9 @@ import { useToast } from '../../components/ui/Toast'
 import { useCustomers } from '../../hooks/useCustomers'
 import { useCustomerDebts } from '../../hooks/useCustomerDebts'
 import { formatDateFull, formatDateShort, formatTime } from '../../lib/utils'
+import { printInvoice } from '../../lib/invoice'
+import { BUSINESS } from '../../config/business'
+import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { supabase } from '../../lib/supabase'
 
 const STATUS_COLORS = {
@@ -25,6 +28,7 @@ export function Customers() {
   const [selectedCustomer, setSelected] = useState(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [history, setHistory]           = useState([])
+  const [purchases, setPurchases]       = useState([])
   const [addOpen, setAddOpen]           = useState(false)
   const debounceRef = useRef(null)
 
@@ -62,10 +66,12 @@ export function Customers() {
   async function openCustomer(customer) {
     setSelected(customer)
     setHistory([])
+    setPurchases([])
     setHistoryLoading(true)
     try {
-      const data = await fetchHistory(customer.id)
-      setHistory(data)
+      const { appointments, purchases: prods } = await fetchHistory(customer.id)
+      setHistory(appointments)
+      setPurchases(prods)
     } finally {
       setHistoryLoading(false)
     }
@@ -202,6 +208,7 @@ export function Customers() {
           <CustomerModal
             customer={selectedCustomer}
             history={history}
+            purchases={purchases}
             historyLoading={historyLoading}
             onClose={() => setSelected(null)}
             onToggleBlock={handleToggleBlock}

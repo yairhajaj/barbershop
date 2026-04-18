@@ -153,7 +153,9 @@ function QuickReceiptPanel() {
           date: format(new Date(), 'yyyy-MM-dd'),
           payment_method: payMethod,
           customer_name: selectedCustomer?.name ?? null,
+          customer_id: selectedCustomer?.id ?? null,
           service_id: selectedItem?.type === 'service' ? selectedItem.id : null,
+          product_id: selectedItem?.type === 'product' ? selectedItem.id : null,
           branch_id: branchId,
         }
         if (hasVat(settings?.business_type)) {
@@ -396,16 +398,17 @@ function StaffPaymentsSection({ settings }) {
   const [staffList, setStaffList]   = useState([])
   const [appts, setAppts]           = useState([])
   const [manualIncome, setManualIncome] = useState([])
+  const [productSales, setProductSales] = useState([])
   const [loadingData, setLoadingData] = useState(true)
   const [paying, setPaying]         = useState(null)
 
   useEffect(() => {
     async function load() {
       setLoadingData(true)
-      const [{ data: staffData }, { data: apptData }, { data: miData }] = await Promise.all([
+      const [{ data: staffData }, { data: apptData }, { data: miData }, { data: prodData }] = await Promise.all([
         supabase
           .from('staff')
-          .select('id, name, photo_url, commission_type, commission_rate, monthly_salary')
+          .select('id, name, photo_url, commission_type, commission_rate, monthly_salary, product_commission_type, product_commission_rate')
           .eq('is_active', true),
         supabase
           .from('appointments')
@@ -417,12 +420,21 @@ function StaffPaymentsSection({ settings }) {
         supabase
           .from('manual_income')
           .select('staff_id, amount, appointment_id')
+          .is('product_id', null)
+          .gte('date', monthStart)
+          .lte('date', monthEnd),
+        // Product sales this month
+        supabase
+          .from('manual_income')
+          .select('staff_id, amount, product_id')
+          .not('product_id', 'is', null)
           .gte('date', monthStart)
           .lte('date', monthEnd),
       ])
       setStaffList(staffData ?? [])
       setAppts(apptData ?? [])
       setManualIncome(miData ?? [])
+      setProductSales(prodData ?? [])
       setLoadingData(false)
     }
     load()
@@ -437,8 +449,6 @@ function StaffPaymentsSection({ settings }) {
       : (member.commission_rate ?? 0)
 
     const memberAppts = appts.filter(a => a.staff_id === member.id)
-    // Walk-in receipts attached to this staff — skip ones already tied to an
-    // appointment, since those appointments would double-count the revenue.
     const memberManual = manualIncome.filter(m => m.staff_id === member.id && !m.appointment_id)
     const count = memberAppts.length + memberManual.length
     const revenue =
@@ -454,7 +464,17 @@ function StaffPaymentsSection({ settings }) {
       amount = count * effectiveRate
     }
 
-    return { count, revenue, amount, effectiveType }
+    // Product sales commission
+    const memberProducts = productSales.filter(p => p.staff_id === member.id)
+    const productRevenue = memberProducts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+    const pct = member.product_commission_type
+    const prate = Number(member.product_commission_rate) || 0
+    const productCommission =
+      pct === 'percentage' ? productRevenue * (prate / 100)
+      : pct === 'fixed'   ? memberProducts.length * prate
+      : 0
+
+    return { count, revenue, amount, effectiveType, productRevenue, productCount: memberProducts.length, productCommission }
   }
 
   async function handleMarkAllPaid(staffId) {
@@ -509,7 +529,16 @@ function StaffPaymentsSection({ settings }) {
                 </span>
               ),
             },
-            { key: 'amount', label: 'לתשלום', render: m => <span style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(m.amount)}</span> },
+            { key: 'amount', label: 'לתשלום', render: m => (
+              <div>
+                <span style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(m.amount + m.productCommission)}</span>
+                {m.productCommission > 0 && (
+                  <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                    שירותים {formatILS(m.amount)} + מוצרים {formatILS(m.productCommission)}
+                  </div>
+                )}
+              </div>
+            ) },
             {
               key: 'action', label: '',
               render: m => (
@@ -535,7 +564,10 @@ function StaffPaymentsSection({ settings }) {
                 <p className="text-sm" style={{ color: 'var(--color-muted)' }}>{m.count} תורים · {formatILS(m.revenue)}</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <span className="font-bold text-sm" style={{ color: 'var(--color-gold)' }}>{formatILS(m.amount)}</span>
+                <span className="font-bold text-sm" style={{ color: 'var(--color-gold)' }}>{formatILS(m.amount + m.productCommission)}</span>
+                {m.productCommission > 0 && (
+                  <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>כולל מוצרים {formatILS(m.productCommission)}</span>
+                )}
                 <button
                   onClick={() => handleMarkAllPaid(m.id)}
                   disabled={paying === m.id}
