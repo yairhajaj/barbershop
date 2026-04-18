@@ -800,6 +800,49 @@ export function Staff() {
               )}
             </div>
 
+            {/* Product commission section */}
+            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <p className="text-sm font-bold">📦 עמלה על מוצרים</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'none', label: 'ללא' },
+                  { value: 'percentage', label: 'אחוזים %' },
+                  { value: 'fixed', label: 'קבוע ₪/מוצר' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEditMember(m => ({ ...m, product_commission_type: opt.value }))}
+                    className="px-3 py-2 rounded-xl text-xs font-medium border-2 transition-all text-center"
+                    style={{
+                      background: (editMember.product_commission_type ?? 'none') === opt.value ? 'var(--color-gold)' : 'var(--color-card)',
+                      borderColor: (editMember.product_commission_type ?? 'none') === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
+                      color: (editMember.product_commission_type ?? 'none') === opt.value ? '#fff' : 'var(--color-text)',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {(editMember.product_commission_type === 'percentage' || editMember.product_commission_type === 'fixed') && (
+                <div>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-muted)' }}>
+                    {editMember.product_commission_type === 'percentage' ? 'אחוז עמלה על מוצרים (%)' : 'סכום קבוע לכל מוצר (₪)'}
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step={editMember.product_commission_type === 'percentage' ? '0.1' : '1'}
+                    className="input w-40"
+                    value={editMember.product_commission_rate ?? ''}
+                    onChange={e => setEditMember(m => ({ ...m, product_commission_rate: e.target.value === '' ? null : Number(e.target.value) }))}
+                    placeholder={editMember.product_commission_type === 'percentage' ? 'לדוגמה: 10' : 'לדוגמה: 20'}
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pb-1">
               <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center">
                 {saving ? 'שומר...' : 'שמור'}

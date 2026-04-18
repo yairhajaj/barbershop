@@ -553,6 +553,27 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
             </div>
           )}
         </div>
+        {/* Product purchases */}
+        {purchases.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--color-muted)' }}>📦 מוצרים שנרכשו</h3>
+            <div className="flex flex-col gap-2">
+              {purchases.map(p => {
+                let dateStr = ''
+                try { dateStr = p.date ? formatDateShort(new Date(p.date)) : '—' } catch { dateStr = '—' }
+                return (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl text-sm" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold truncate" style={{ color: 'var(--color-text)' }}>{p.products?.name ?? 'מוצר'}</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{dateStr}</div>
+                    </div>
+                    <span className="font-bold text-sm flex-shrink-0" style={{ color: '#16a34a' }}>₪{Number(p.amount).toLocaleString('he-IL')}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add debt modal */}
