@@ -3124,8 +3124,8 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
     <>
     <div className="card overflow-hidden select-none" style={{ border: '1px solid var(--color-border)' }}>
 
-      {/* ── Column headers (sticky) ── */}
-      <div className="flex border-b sticky top-0 z-20"
+      {/* ── Column headers (sticky below AdminLayout top bar h-14=56px) ── */}
+      <div className="flex border-b sticky top-[56px] z-10"
         style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}>
         {/* time gutter */}
         <div className="flex-shrink-0 border-r" style={{ width: 52, borderColor: 'var(--color-border)' }} />
