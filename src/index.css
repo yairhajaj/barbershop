@@ -107,6 +107,17 @@
   --color-info:           #2563eb;
   --color-info-bg:        #eff6ff;
   --color-info-border:    #93c5fd;
+
+  /* rgba tint tokens — semi-transparent, works on any themed background */
+  --color-success-tint:   rgba(34,197,94,0.10);
+  --color-success-ring:   rgba(34,197,94,0.25);
+  --color-danger-tint:    rgba(239,68,68,0.10);
+  --color-danger-ring:    rgba(239,68,68,0.25);
+  --color-warning-tint:   rgba(245,158,11,0.10);
+  --color-warning-ring:   rgba(245,158,11,0.30);
+  --color-gold-tint:      rgba(201,169,110,0.10);
+  --color-gold-ring:      rgba(201,169,110,0.30);
+  --color-info-tint:      rgba(59,130,246,0.10);
 }
 
 /* ══════════════════════════════════════════════════════════════════

@@ -178,7 +178,7 @@ export function Appearance() {
 
       {/* Storage setup banner */}
       {bucketOk === false && (
-        <div className="rounded-2xl p-4" style={{ background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.4)' }}>
+        <div className="rounded-2xl p-4" style={{ background: 'var(--color-danger-tint)', border: '2px solid rgba(239,68,68,0.4)' }}>
           <p className="font-bold text-sm mb-2" style={{ color: '#dc2626' }}>⚠️ העלאת תמונות לא מוגדרת</p>
           <p className="text-sm mb-3" style={{ color: '#dc2626' }}>
             כדי להעלות תמונות מהמחשב, צריך ליצור Storage bucket ב-Supabase:
@@ -202,7 +202,7 @@ export function Appearance() {
           <motion.div
             initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
             className="flex items-center justify-between p-4 rounded-2xl border"
-            style={{ background: 'rgba(201,169,110,0.1)', borderColor: 'var(--color-gold)' }}
+            style={{ background: 'var(--color-gold-tint)', borderColor: 'var(--color-gold)' }}
           >
             <div>
               <p className="font-semibold text-sm" style={{ color: 'var(--color-gold)' }}>תצוגה מוקדמת פעילה</p>
@@ -237,7 +237,7 @@ export function Appearance() {
               className="px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all"
               style={{
                 borderColor: localHeroType === tab.id ? 'var(--color-gold)' : 'var(--color-border)',
-                background:  localHeroType === tab.id ? 'rgba(201,169,110,0.12)' : 'transparent',
+                background:  localHeroType === tab.id ? 'var(--color-gold-tint)' : 'transparent',
                 color: 'var(--color-text)',
               }}
             >
@@ -350,7 +350,7 @@ export function Appearance() {
             return (
               <button key={th.id} type="button" onClick={() => selectTheme(th.id)}
                 className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
-                style={{ borderColor: active ? 'var(--color-gold)' : 'var(--color-border)', background: active ? 'rgba(201,169,110,0.08)' : 'var(--color-card)' }}
+                style={{ borderColor: active ? 'var(--color-gold)' : 'var(--color-border)', background: active ? 'var(--color-gold-tint)' : 'var(--color-card)' }}
               >
                 <div className="flex gap-2 mb-3">
                   {th.preview.map((c, i) => (
@@ -379,7 +379,7 @@ export function Appearance() {
                 style={{
                   borderRadius: '1rem',
                   borderColor: active ? 'var(--color-gold)' : 'var(--color-border)',
-                  background: active ? 'rgba(201,169,110,0.08)' : 'var(--color-card)',
+                  background: active ? 'var(--color-gold-tint)' : 'var(--color-card)',
                   transform: active ? 'scale(1.02)' : 'scale(1)',
                   transition: 'all 0.2s ease',
                 }}
@@ -411,7 +411,7 @@ export function Appearance() {
           className="w-full p-4 rounded-2xl border-2 text-right transition-all"
           style={{
             borderColor: floating ? 'var(--color-gold)' : 'var(--color-border)',
-            background:  floating ? 'rgba(201,169,110,0.08)' : 'var(--color-card)',
+            background:  floating ? 'var(--color-gold-tint)' : 'var(--color-card)',
           }}
         >
           <div className="flex items-center gap-4">
@@ -457,7 +457,7 @@ export function Appearance() {
               className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
               style={{
                 borderColor: portfolioMode === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
-                background:  portfolioMode === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
+                background:  portfolioMode === opt.id ? 'var(--color-gold-tint)' : 'var(--color-card)',
               }}
             >
               <div className="text-3xl mb-2">{opt.icon}</div>
@@ -499,7 +499,7 @@ export function Appearance() {
               className="p-4 rounded-2xl border-2 text-right transition-all"
               style={{
                 borderColor: bookingFlow === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
-                background:  bookingFlow === opt.id ? 'rgba(201,169,110,0.1)' : 'var(--color-card)',
+                background:  bookingFlow === opt.id ? 'var(--color-gold-tint)' : 'var(--color-card)',
               }}
             >
               <div className="text-2xl mb-2">{opt.icon}</div>
@@ -657,7 +657,7 @@ function LayoutPreviewMini({ id }) {
       {[1, 2, 3].map(i => (
         <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(255,122,0,0.12)' }} />
+            <div className="w-5 h-5 rounded-full" style={{ background: 'var(--color-gold-tint)' }} />
             <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: 36 }} />
           </div>
           <div className="h-4 w-8" style={{ background: '#FF7A00', borderRadius: 8 }} />

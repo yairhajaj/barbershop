@@ -16,8 +16,8 @@ const STATUS_TABS = [
 ]
 
 const STATUS_BADGE = {
-  paid:  { label: 'שולמה',  bg: 'rgba(34,197,94,0.1)',   color: '#16a34a' },
-  sent:  { label: 'נשלחה',  bg: 'rgba(59,130,246,0.1)',  color: '#2563eb' },
+  paid:  { label: 'שולמה',  bg: 'var(--color-success-tint)',   color: '#16a34a' },
+  sent:  { label: 'נשלחה',  bg: 'var(--color-info-tint)',  color: '#2563eb' },
   draft: { label: 'טיוטה',  bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
 }
 
@@ -212,7 +212,7 @@ export function Invoices() {
                     <button
                       onClick={() => handleMarkPaid(inv)}
                       className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
-                      style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.3)' }}
+                      style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px solid var(--color-success-ring)' }}
                     >
                       ✓ שולמה
                     </button>
@@ -220,7 +220,7 @@ export function Invoices() {
                   <button
                     onClick={() => handleDelete(inv)}
                     className="py-2 px-3 rounded-xl text-xs font-bold transition-all"
-                    style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}
+                    style={{ background: 'var(--color-danger-tint)', color: '#dc2626', border: '1px solid var(--color-danger-ring)' }}
                   >
                     🗑
                   </button>

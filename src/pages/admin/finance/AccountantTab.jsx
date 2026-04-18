@@ -451,8 +451,8 @@ function ActionCard({ icon, title, description, busy, onClick, variant }) {
       disabled={busy}
       className="card p-4 text-right transition-all hover:scale-[1.01] disabled:opacity-60 disabled:cursor-wait"
       style={{
-        background: variant === 'tax' ? 'rgba(201,169,110,0.06)' : 'var(--color-card)',
-        border: `1px solid ${variant === 'tax' ? 'rgba(201,169,110,0.3)' : 'var(--color-border)'}`,
+        background: variant === 'tax' ? 'var(--color-gold-tint)' : 'var(--color-card)',
+        border: `1px solid ${variant === 'tax' ? 'var(--color-gold-ring)' : 'var(--color-border)'}`,
         cursor: busy ? 'wait' : 'pointer',
       }}
     >

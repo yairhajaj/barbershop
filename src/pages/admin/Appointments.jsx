@@ -13,6 +13,7 @@ import { useAllAppointments } from '../../hooks/useAppointments'
 import { useCustomerDebts } from '../../hooks/useCustomerDebts'
 import { useStaff } from '../../hooks/useStaff'
 import { useServices } from '../../hooks/useServices'
+import { useProducts } from '../../hooks/useProducts'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useBranch } from '../../contexts/BranchContext'
@@ -94,6 +95,8 @@ export function Appointments() {
   const [selectedAppt, setSelectedAppt] = useState(null)
   const [invoiceStep, setInvoiceStep] = useState(null)   // null | 'paying' | 'done'
   const [invoiceData, setInvoiceData] = useState(null)   // saved invoice record
+  const [invoiceProducts, setInvoiceProducts] = useState([]) // [{ product_id, name, unit_price, quantity, staff_id }]
+  const [showAddProduct, setShowAddProduct] = useState(false)
   const [gapAlert, setGapAlert] = useState(null)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
@@ -164,6 +167,7 @@ export function Appointments() {
   const { breaks: recurringBreaks } = useRecurringBreaks()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { services } = useServices({ activeOnly: false })
+  const { products } = useProducts({ activeOnly: true })
   const { settings, hours: businessHours, saveBusinessHours } = useBusinessSettings()
   const [hoursForm, setHoursForm] = useState([])
   const [savingHours, setSavingHours] = useState(false)
@@ -638,7 +642,7 @@ export function Appointments() {
 
   // Reset invoice state when modal closes
   useEffect(() => {
-    if (!selectedAppt) { setInvoiceStep(null); setInvoiceData(null) }
+    if (!selectedAppt) { setInvoiceStep(null); setInvoiceData(null); setInvoiceProducts([]); setShowAddProduct(false) }
   }, [selectedAppt])
 
   // Pay + auto-generate invoice in one click
@@ -651,18 +655,20 @@ export function Appointments() {
         .update({ payment_status: 'paid', cash_paid: method === 'cash' })
         .eq('id', appt.id)
 
-      // 2. Calculate VAT
+      // 2. Calculate VAT — across service + products
       const vatRate = settings?.vat_rate || 18
       const businessType = settings?.business_type || 'osek_morsheh'
-      const price = Number(appt.services?.price) || 0
       const isPatur = businessType === 'osek_patur'
-      const priceBeforeVat = isPatur ? price : Math.round(price / (1 + vatRate / 100))
-      const vatAmount = isPatur ? 0 : price - priceBeforeVat
+      const servicePrice = Number(appt.services?.price) || 0
+      const productsTotal = invoiceProducts.reduce((s, p) => s + Number(p.unit_price) * Number(p.quantity || 1), 0)
+      const price = servicePrice + productsTotal
+      const priceBeforeVat = isPatur ? price : Math.round((price / (1 + vatRate / 100)) * 100) / 100
+      const vatAmount = isPatur ? 0 : Math.round((price - priceBeforeVat) * 100) / 100
 
-      // 3. Record income
+      // 3. Record service income
       await supabase.from('manual_income').insert({
-        amount: price,
-        vat_amount: vatAmount,
+        amount: servicePrice,
+        vat_amount: isPatur ? 0 : Math.round((servicePrice - servicePrice / (1 + vatRate / 100)) * 100) / 100,
         description: appt.services?.name || 'תור',
         customer_name: appt.profiles?.name || '',
         staff_id: appt.staff_id,
@@ -677,12 +683,13 @@ export function Appointments() {
       if (numErr) throw numErr
 
       // 5. Save invoice to DB
+      const serviceNames = [appt.services?.name, ...invoiceProducts.map(p => p.name)].filter(Boolean).join(' + ')
       const { data: inv, error: invErr } = await supabase.from('invoices').insert({
         invoice_number: invoiceNum,
         appointment_id: appt.id,
         customer_name: appt.profiles?.name || '',
         customer_phone: appt.profiles?.phone || '',
-        service_name: appt.services?.name || '',
+        service_name: serviceNames,
         staff_name: appt.staff?.name || '',
         service_date: appt.start_at,
         amount_before_vat: priceBeforeVat,
@@ -695,7 +702,33 @@ export function Appointments() {
       }).select().single()
       if (invErr) throw invErr
 
-      setInvoiceData({ ...inv, paymentMethod: method, appointment: appt })
+      // 6. Save invoice_items (service + products)
+      const items = [
+        {
+          invoice_id: inv.id,
+          kind: 'service',
+          service_id: appt.service_id,
+          name: appt.services?.name || 'שירות',
+          quantity: 1,
+          unit_price: servicePrice,
+          line_total: servicePrice,
+          staff_id: appt.staff_id,
+        },
+        ...invoiceProducts.map(p => ({
+          invoice_id: inv.id,
+          kind: 'product',
+          product_id: p.product_id,
+          name: p.name,
+          quantity: Number(p.quantity || 1),
+          unit_price: Number(p.unit_price),
+          line_total: Number(p.unit_price) * Number(p.quantity || 1),
+          staff_id: p.staff_id || appt.staff_id,
+        })),
+      ]
+      const { error: itemsErr } = await supabase.from('invoice_items').insert(items)
+      if (itemsErr) console.warn('invoice_items insert failed:', itemsErr)
+
+      setInvoiceData({ ...inv, paymentMethod: method, appointment: appt, items })
       setInvoiceStep('done')
       await refetch()
       toast({ message: 'תשלום נרשם וחשבונית נוצרה ✓', type: 'success' })
@@ -717,12 +750,18 @@ export function Appointments() {
       paymentMethod: inv?.notes,
       invoiceDate: inv?.created_at,
       logoUrl: settings?.logo_url,
+      items: inv?.items,
     })
   }
 
   async function handlePrintExistingInvoice(appt) {
     const { data: inv } = await supabase.from('invoices').select('*').eq('appointment_id', appt.id).maybeSingle()
-    doPrintInvoice(appt, inv)
+    let items = undefined
+    if (inv?.id) {
+      const { data: rows } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('created_at', { ascending: true })
+      if (rows && rows.length > 0) items = rows
+    }
+    doPrintInvoice(appt, { ...(inv || {}), items })
   }
 
   function shareInvoiceWhatsApp(appt, inv, phone) {
@@ -1147,7 +1186,7 @@ export function Appointments() {
                 onClick={() => setView(v)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={view === v
-                  ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px rgba(255,133,0,0.25)' }
+                  ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px var(--color-gold-ring)' }
                   : { background: 'transparent', color: 'var(--color-muted)' }
                 }
                 onMouseEnter={e => { if (view !== v) e.currentTarget.style.color = 'var(--color-text)' }}
@@ -1196,7 +1235,7 @@ export function Appointments() {
                       onClick={() => setSlotMinutes(m)}
                       className="px-4 py-1.5 rounded-xl text-sm font-semibold transition-all"
                       style={slotMinutes === m
-                        ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px rgba(255,133,0,0.25)' }
+                        ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px var(--color-gold-ring)' }
                         : { background: 'transparent', color: 'var(--color-muted)' }
                       }
                     >
@@ -1245,7 +1284,7 @@ export function Appointments() {
                       onClick={() => setCalColumns(n)}
                       className="w-9 h-9 rounded-xl text-sm font-semibold transition-all"
                       style={calColumns === n
-                        ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px rgba(255,133,0,0.25)' }
+                        ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px var(--color-gold-ring)' }
                         : { background: 'transparent', color: 'var(--color-muted)' }
                       }
                     >
@@ -1428,7 +1467,7 @@ export function Appointments() {
           {/* Waiting indicator */}
           {gapAlert.waiting && gapAlert.activateAt && (
             <div className="text-xs mb-4 px-3 py-2.5 rounded-xl flex items-center gap-2"
-              style={{ background: 'rgba(201,169,110,0.08)', border: '1px solid var(--color-gold)', color: 'var(--color-gold)' }}>
+              style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold)', color: 'var(--color-gold)' }}>
               <span>⏰</span>
               <span>
                 החור רחוק — הצעות יישלחו בשעה {formatTime(gapAlert.activateAt)} ({Math.round((gapAlert.activateAt - new Date()) / 60000)} דק׳)
@@ -1571,7 +1610,7 @@ export function Appointments() {
         {selectedAppt && (
           <div className="space-y-4">
             {apptDebtTotal > 0 && (
-              <div className="text-center text-sm py-1.5 rounded-xl font-bold" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.25)' }}>
+              <div className="text-center text-sm py-1.5 rounded-xl font-bold" style={{ background: 'var(--color-danger-tint)', color: '#dc2626', border: '1.5px solid var(--color-danger-ring)' }}>
                 ⚠️ חוב: ₪{apptDebtTotal}
               </div>
             )}
@@ -1641,7 +1680,7 @@ export function Appointments() {
               <button
                 onClick={() => openReschedule(selectedAppt)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'rgba(255,122,0,0.08)', color: 'var(--color-gold)', border: '1.5px solid rgba(255,122,0,0.25)' }}
+                style={{ background: 'rgba(255,122,0,0.08)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}
               >
                 📅 שנה מועד התור
               </button>
@@ -1655,7 +1694,7 @@ export function Appointments() {
               if (invoiceStep === 'done' && invoiceData) {
                 return (
                   <div className="space-y-2">
-                    <div className="text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
+                    <div className="text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
                       ✅ שולם ב{PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod} · חשבונית {invoiceData.invoice_number}
                     </div>
                     <div className="flex gap-2">
@@ -1693,7 +1732,7 @@ export function Appointments() {
               if (isPaid) {
                 return (
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}>
+                    <div className="flex-1 text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
                       ✅ שולם
                     </div>
                     <button
@@ -1707,9 +1746,74 @@ export function Appointments() {
                 )
               }
 
-              // Not paid — show payment methods
+              // Not paid — show payment methods (+ optional products on invoice)
+              const servicePrice = Number(selectedAppt.services?.price) || 0
+              const productsTotal = invoiceProducts.reduce((s, p) => s + Number(p.unit_price) * Number(p.quantity || 1), 0)
+              const invoiceTotal = servicePrice + productsTotal
               return (
-                <div>
+                <div className="space-y-3">
+                  {/* Invoice line items preview */}
+                  <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-bold" style={{ color: 'var(--color-text)' }}>פרטי חשבונית</span>
+                      <span className="font-black" style={{ color: 'var(--color-gold)' }}>סה"כ ₪{invoiceTotal.toLocaleString('he-IL')}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-1" style={{ color: 'var(--color-muted)' }}>
+                      <span>{selectedAppt.services?.name || 'שירות'}</span>
+                      <span>₪{servicePrice.toLocaleString('he-IL')}</span>
+                    </div>
+                    {invoiceProducts.map((p, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-1 gap-2" style={{ color: 'var(--color-muted)' }}>
+                        <span className="flex-1 truncate">📦 {p.name} × {p.quantity}</span>
+                        <span>₪{(Number(p.unit_price) * Number(p.quantity || 1)).toLocaleString('he-IL')}</span>
+                        <button
+                          onClick={() => setInvoiceProducts(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-red-500 hover:text-red-700 px-1"
+                          title="הסר"
+                        >✕</button>
+                      </div>
+                    ))}
+
+                    {showAddProduct ? (
+                      <div className="mt-2 pt-2 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                        <select
+                          className="input-field w-full text-xs"
+                          defaultValue=""
+                          onChange={e => {
+                            const p = products.find(x => x.id === e.target.value)
+                            if (!p) return
+                            setInvoiceProducts(prev => [...prev, {
+                              product_id: p.id,
+                              name: p.name,
+                              unit_price: Number(p.price) || 0,
+                              quantity: 1,
+                              staff_id: selectedAppt.staff_id,
+                            }])
+                            setShowAddProduct(false)
+                          }}
+                        >
+                          <option value="" disabled>בחר מוצר...</option>
+                          {products.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} — ₪{p.price}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => setShowAddProduct(false)}
+                          className="w-full py-1.5 rounded-lg text-xs font-semibold"
+                          style={{ background: 'var(--color-card)', color: 'var(--color-muted)', border: '1px solid var(--color-border)' }}
+                        >ביטול</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowAddProduct(true)}
+                        className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold transition-all"
+                        style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px dashed rgba(34,197,94,0.4)' }}
+                      >
+                        ➕ הוסף מוצר לחשבונית
+                      </button>
+                    )}
+                  </div>
+
                   <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>בחר אמצעי תשלום להפקת חשבונית:</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
@@ -1724,7 +1828,7 @@ export function Appointments() {
                         whileTap={{ scale: 0.96 }}
                         onClick={() => handlePayAndInvoice(selectedAppt, key)}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-                        style={{ background: 'rgba(34,197,94,0.08)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.25)' }}
+                        style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}
                       >
                         {icon} {label}
                       </motion.button>
@@ -1745,7 +1849,7 @@ export function Appointments() {
                   setDebtModal(true)
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.3)' }}
+                style={{ background: 'var(--color-warning-tint)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}
               >
                 💳 הוסף חוב
               </motion.button>
@@ -1822,7 +1926,7 @@ export function Appointments() {
               }
             }}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm"
-            style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.35)' }}
+            style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}
           >
             שמור חוב
           </motion.button>
@@ -1844,7 +1948,7 @@ export function Appointments() {
                 toast({ message: 'חוב נשמר + לקוח נחסם ✓', type: 'success' })
               }}
               className="flex-1 py-2.5 rounded-xl font-bold text-sm"
-              style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}
+              style={{ background: 'var(--color-danger-tint)', color: '#dc2626', border: '1px solid var(--color-danger-ring)' }}
             >
               כן, חסום
             </button>
@@ -1969,7 +2073,7 @@ export function Appointments() {
                             background: active ? 'var(--color-gold)' : 'var(--color-surface)',
                             color:      active ? '#fff'              : 'var(--color-text)',
                             border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                            boxShadow:  active ? '0 2px 10px rgba(255,122,0,0.28)' : 'none',
+                            boxShadow:  active ? '0 2px 10px var(--color-gold-ring)' : 'none',
                           }}>
                           <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
                             style={{ background: active ? 'rgba(255,255,255,0.25)' : 'var(--color-gold)', color: '#fff' }}>
@@ -2033,7 +2137,7 @@ export function Appointments() {
                                 background: isActive  ? 'var(--color-gold)'             : isRec ? 'rgba(255,122,0,0.1)' : 'var(--color-surface)',
                                 color:      isActive  ? '#fff'                           : isRec ? 'var(--color-gold)'   : 'var(--color-text)',
                                 border:     `1.5px solid ${isActive ? 'var(--color-gold)' : isRec ? 'rgba(255,122,0,0.35)' : 'var(--color-border)'}`,
-                                boxShadow:  isActive  ? '0 2px 8px rgba(255,122,0,0.3)' : 'none',
+                                boxShadow:  isActive  ? '0 2px 8px var(--color-gold-ring)' : 'none',
                               }}>
                               {isRec && !isActive && <span className="mr-0.5">⭐</span>}{timeStr}
                             </button>
@@ -2300,9 +2404,9 @@ export function Appointments() {
                           }}
                           className="py-1.5 text-xs font-bold rounded-xl transition-all"
                           style={{
-                            background: isActive ? 'var(--color-gold)'          : inRange ? 'rgba(255,122,0,0.12)' : 'transparent',
+                            background: isActive ? 'var(--color-gold)'          : inRange ? 'var(--color-gold-tint)' : 'transparent',
                             color:      isActive ? '#fff'                        : inRange ? 'var(--color-gold)'    : disabled ? 'var(--color-border)' : 'var(--color-text)',
-                            border:     `1px solid ${isActive ? 'var(--color-gold)' : inRange ? 'rgba(255,122,0,0.3)' : 'transparent'}`,
+                            border:     `1px solid ${isActive ? 'var(--color-gold)' : inRange ? 'var(--color-gold-ring)' : 'transparent'}`,
                             opacity:    disabled ? 0.35 : 1,
                             cursor:     disabled ? 'not-allowed' : 'pointer',
                           }}
@@ -2446,7 +2550,7 @@ export function Appointments() {
                   <p className="text-[11px] font-bold mb-2 tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>👤 לקוח</p>
                   {bookForm.customerId ? (
                     <div className="flex items-center justify-between px-4 py-3 rounded-2xl"
-                      style={{ background: 'rgba(255,122,0,0.07)', border: '1.5px solid var(--color-gold)' }}>
+                      style={{ background: 'var(--color-gold-tint)', border: '1.5px solid var(--color-gold)' }}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0"
                           style={{ background: 'var(--color-gold)', color: '#fff' }}>
@@ -2524,7 +2628,7 @@ export function Appointments() {
                       const svc = services.find(s => s.id === bookForm.serviceId)
                       return svc ? (
                         <div className="flex items-center justify-between px-4 py-2.5 rounded-xl"
-                          style={{ background: 'rgba(255,122,0,0.07)', border: '1.5px solid var(--color-gold)' }}>
+                          style={{ background: 'var(--color-gold-tint)', border: '1.5px solid var(--color-gold)' }}>
                           <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>
                             {svc.name}
                             <span className="text-[10px] mr-1" style={{ opacity: 0.6 }}>· {svc.duration_minutes}ד׳</span>
@@ -2554,7 +2658,7 @@ export function Appointments() {
                               background: active ? 'var(--color-gold)' : 'var(--color-surface)',
                               color:      active ? '#fff'              : 'var(--color-text)',
                               border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                              boxShadow:  active ? '0 2px 10px rgba(255,122,0,0.28)' : 'none',
+                              boxShadow:  active ? '0 2px 10px var(--color-gold-ring)' : 'none',
                             }}
                           >
                             {s.name}
@@ -2583,7 +2687,7 @@ export function Appointments() {
                       const member = staff.find(s => s.id === bookForm.staffId)
                       return member ? (
                         <div className="flex items-center justify-between px-4 py-2.5 rounded-xl"
-                          style={{ background: 'rgba(255,122,0,0.07)', border: '1.5px solid var(--color-gold)' }}>
+                          style={{ background: 'var(--color-gold-tint)', border: '1.5px solid var(--color-gold)' }}>
                           <div className="flex items-center gap-2">
                             <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black"
                               style={{ background: 'var(--color-gold)', color: '#fff' }}>{member.name[0]}</span>
@@ -2614,7 +2718,7 @@ export function Appointments() {
                               background: active ? 'var(--color-gold)' : 'var(--color-surface)',
                               color:      active ? '#fff'              : 'var(--color-text)',
                               border:     `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                              boxShadow:  active ? '0 2px 10px rgba(255,122,0,0.28)' : 'none',
+                              boxShadow:  active ? '0 2px 10px var(--color-gold-ring)' : 'none',
                             }}
                           >
                             <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
@@ -2648,7 +2752,7 @@ export function Appointments() {
                               background:   active ? 'var(--color-gold)'                : 'var(--color-surface)',
                               borderColor:  active ? 'var(--color-gold)'                : 'var(--color-border)',
                               color:        active ? '#fff'                             : 'var(--color-text)',
-                              boxShadow:    active ? '0 2px 10px rgba(255,122,0,0.25)' : 'none',
+                              boxShadow:    active ? '0 2px 10px var(--color-gold-ring)' : 'none',
                               borderRadius: 'var(--radius-btn, 12px)',
                             }}
                           >
@@ -2713,7 +2817,7 @@ export function Appointments() {
                                       background: sel ? 'var(--color-gold)'       : 'rgba(255,122,0,0.15)',
                                       color:      sel ? '#fff'                    : 'var(--color-gold)',
                                       border:     `1.5px solid ${sel ? 'var(--color-gold)' : 'rgba(255,122,0,0.35)'}`,
-                                      boxShadow:  sel ? '0 2px 10px rgba(255,122,0,0.3)' : 'none',
+                                      boxShadow:  sel ? '0 2px 10px var(--color-gold-ring)' : 'none',
                                     }}
                                   >{t}</button>
                                 )
@@ -2740,7 +2844,7 @@ export function Appointments() {
                                       background: sel ? 'var(--color-gold)'   : 'var(--color-surface)',
                                       color:      sel ? '#fff'                : 'var(--color-text)',
                                       border:     `1.5px solid ${sel ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                                      boxShadow:  sel ? '0 2px 10px rgba(255,122,0,0.3)' : 'none',
+                                      boxShadow:  sel ? '0 2px 10px var(--color-gold-ring)' : 'none',
                                     }}
                                   >{t}</button>
                                 )
@@ -2821,7 +2925,7 @@ export function Appointments() {
             >
               <div className="px-5 pt-5 pb-4 space-y-3">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mx-auto"
-                  style={{ background: 'rgba(239,68,68,0.1)' }}>⚠️</div>
+                  style={{ background: 'var(--color-danger-tint)' }}>⚠️</div>
                 <h3 className="text-base font-black text-center" style={{ color: 'var(--color-text)' }}>
                   שינוי {bookChangeConfirm.type === 'service' ? 'שירות' : 'ספר'}
                 </h3>
@@ -3161,7 +3265,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   <button type="button"
                     onClick={() => setWaitlistModal({ date: day, entries: wlEntries })}
                     className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none hover:opacity-75"
-                    style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.3)' }}>
+                    style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}>
                     📋{wlCount}
                   </button>
                 )}
@@ -3342,7 +3446,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   <button type="button"
                     onClick={() => { setWaitlistModal(null); onScheduleWaitlist(entry) }}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold"
-                    style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}>
+                    style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}>
                     📅 שיבוץ
                   </button>
                 )}

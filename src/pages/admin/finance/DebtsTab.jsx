@@ -172,7 +172,7 @@ export function DebtsTab() {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{debt.profiles?.name || '—'}</span>
                     {debt.profiles?.is_blocked && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>חסום</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: 'var(--color-danger-tint)', color: '#dc2626' }}>חסום</span>
                     )}
                   </div>
                   <p className="text-xs" style={{ color: 'var(--color-muted)' }}>{debt.profiles?.phone}</p>
@@ -196,7 +196,7 @@ export function DebtsTab() {
                   <button
                     onClick={() => openPayModal(debt)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold"
-                    style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.3)' }}
+                    style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px solid var(--color-success-ring)' }}
                   >
                     ✓ שולם
                   </button>
@@ -204,7 +204,7 @@ export function DebtsTab() {
                     <button
                       onClick={() => handleUnblock(debt.profiles.id, debt.id)}
                       className="flex-1 py-2 rounded-xl text-xs font-bold"
-                      style={{ background: 'rgba(59,130,246,0.1)', color: '#2563eb', border: '1px solid rgba(59,130,246,0.3)' }}
+                      style={{ background: 'var(--color-info-tint)', color: '#2563eb', border: '1px solid rgba(59,130,246,0.3)' }}
                     >
                       🔓 הסר חסימה
                     </button>
@@ -212,7 +212,7 @@ export function DebtsTab() {
                   <button
                     onClick={() => handleDelete(debt)}
                     className="py-2 px-3 rounded-xl text-xs font-bold"
-                    style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}
+                    style={{ background: 'var(--color-danger-tint)', color: '#dc2626', border: '1px solid var(--color-danger-ring)' }}
                   >
                     🗑
                   </button>

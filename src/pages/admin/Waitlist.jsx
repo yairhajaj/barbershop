@@ -11,10 +11,10 @@ import { formatDateShort } from '../../lib/utils'
 const STATUS_META = {
   pending:  { label: 'ממתין',   color: '#ca8a04', bg: 'rgba(234,179,8,0.1)' },
   notified: { label: 'הופנה',   color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
-  booked:   { label: 'הוזמן',   color: '#16a34a', bg: 'rgba(34,197,94,0.1)' },
+  booked:   { label: 'הוזמן',   color: '#16a34a', bg: 'var(--color-success-tint)' },
   declined: { label: 'סירב',    color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
   expired:  { label: 'פג תוקף', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' },
-  removed:  { label: 'הוסר',    color: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
+  removed:  { label: 'הוסר',    color: '#ef4444', bg: 'var(--color-danger-tint)' },
 }
 
 const STATUS_TABS = [
@@ -199,7 +199,7 @@ function WaitlistRow({ entry, index, onRemove, onSchedule }) {
           <a
             href={`tel:${entry.profiles.phone}`}
             className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm transition-all"
-            style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}
+            style={{ background: 'var(--color-success-tint)', color: '#16a34a' }}
             title="חייג"
           >📞</a>
         )}
@@ -208,7 +208,7 @@ function WaitlistRow({ entry, index, onRemove, onSchedule }) {
             <button
               onClick={onSchedule}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all"
-              style={{ background: 'rgba(255,122,0,0.12)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.25)' }}
+              style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}
               title="עבור לשיבוץ ידני"
             >
               📅 שיבוץ
@@ -216,7 +216,7 @@ function WaitlistRow({ entry, index, onRemove, onSchedule }) {
             <button
               onClick={onRemove}
               className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm transition-all"
-              style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}
+              style={{ background: 'var(--color-danger-tint)', color: '#dc2626' }}
               title="הסר מהרשימה"
             >🗑</button>
           </>

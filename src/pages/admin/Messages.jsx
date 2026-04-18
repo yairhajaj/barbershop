@@ -391,7 +391,7 @@ export function Messages() {
             },
           ].map(ch => (
             <label key={ch.key} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors"
-              style={{ border: `2px solid ${ch.state ? 'var(--color-gold)' : 'var(--color-border)'}`, background: ch.state ? 'rgba(201,169,110,0.06)' : 'transparent' }}>
+              style={{ border: `2px solid ${ch.state ? 'var(--color-gold)' : 'var(--color-border)'}`, background: ch.state ? 'var(--color-gold-tint)' : 'transparent' }}>
               <input type="checkbox" className="sr-only" checked={ch.state} onChange={e => ch.set(e.target.checked)} />
               <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
                 style={{ background: ch.state ? 'var(--color-gold)' : 'var(--color-border)', border: ch.state ? 'none' : '2px solid var(--color-border)' }}>
@@ -477,7 +477,7 @@ export function Messages() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl p-4 text-sm"
-            style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}
+            style={{ background: 'var(--color-success-tint)', border: '1px solid rgba(34,197,94,0.2)' }}
           >
             <p className="font-bold mb-1" style={{ color: '#16a34a' }}>✓ נשלח בהצלחה!</p>
             {lastResult.pushTotal > 0 && (

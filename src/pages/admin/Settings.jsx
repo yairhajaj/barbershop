@@ -99,7 +99,7 @@ export function Settings() {
                     className="py-2 px-3 rounded-xl text-sm font-medium border-2 transition-all"
                     style={{
                       borderColor: form.cancellation_fee_type === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
-                      background: form.cancellation_fee_type === opt.value ? 'rgba(201,169,110,0.1)' : 'transparent',
+                      background: form.cancellation_fee_type === opt.value ? 'var(--color-gold-tint)' : 'transparent',
                       color: form.cancellation_fee_type === opt.value ? 'var(--color-gold)' : 'var(--color-muted)',
                     }}
                   >
@@ -128,7 +128,7 @@ export function Settings() {
 
             {/* Preview */}
             <div className="rounded-xl p-3 text-sm"
-              style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid rgba(201,169,110,0.2)' }}>
+              style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid var(--color-gold-ring)' }}>
               <p className="font-medium mb-1" style={{ color: 'var(--color-gold)' }}>תצוגה מוקדמת — כך יראה ללקוח:</p>
               <p style={{ color: 'var(--color-muted)' }}>
                 {`ניתן לבטל עד ${form.cancellation_hours} שעות לפני התור. `}
@@ -318,7 +318,7 @@ export function Settings() {
                       className="px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all"
                       style={{
                         borderColor: form.reminder_channel === ch.key ? 'var(--color-gold)' : 'var(--color-border)',
-                        background: form.reminder_channel === ch.key ? 'rgba(201,169,110,0.1)' : 'transparent',
+                        background: form.reminder_channel === ch.key ? 'var(--color-gold-tint)' : 'transparent',
                         color: form.reminder_channel === ch.key ? 'var(--color-gold)' : 'var(--color-muted)',
                       }}>
                       {ch.label}
@@ -522,7 +522,7 @@ export function Settings() {
                 key={opt.value}
                 className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
                 style={{
-                  background: form.gap_closer_mode === opt.value ? 'rgba(201,169,110,0.08)' : 'transparent',
+                  background: form.gap_closer_mode === opt.value ? 'var(--color-gold-tint)' : 'transparent',
                   border: `2px solid ${form.gap_closer_mode === opt.value ? 'var(--color-gold)' : 'var(--color-border)'}`,
                 }}
               >

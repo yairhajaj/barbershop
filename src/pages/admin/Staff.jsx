@@ -339,7 +339,7 @@ export function Staff() {
                   )}
                   <span
                     className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                    style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}
+                    style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)' }}
                   >
                     {members.length} ספרים
                   </span>
@@ -563,7 +563,7 @@ export function Staff() {
                 onClick={() => toggleStaffBranch(movingStaff.id, branch.id)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-right"
                 style={{
-                  background: assigned ? 'rgba(201,169,110,0.12)' : 'var(--color-surface)',
+                  background: assigned ? 'var(--color-gold-tint)' : 'var(--color-surface)',
                   color: 'var(--color-text)',
                   border: '1.5px solid ' + (assigned ? 'var(--color-gold)' : 'var(--color-border)'),
                 }}

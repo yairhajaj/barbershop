@@ -10,8 +10,8 @@ import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
 const STATUS_LABELS = {
-  paid:     { label: 'שולם',  color: '#16a34a', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)' },
-  pending:  { label: 'ממתין', color: '#d97706', bg: 'rgba(217,119,6,0.08)',   border: 'rgba(217,119,6,0.2)' },
+  paid:     { label: 'שולם',  color: '#16a34a', bg: 'var(--color-success-tint)',   border: 'var(--color-success-ring)' },
+  pending:  { label: 'ממתין', color: '#d97706', bg: 'var(--color-warning-tint)',   border: 'rgba(217,119,6,0.2)' },
   failed:   { label: 'נכשל',  color: '#dc2626', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.2)' },
   refunded: { label: 'הוחזר', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.2)' },
 }
@@ -212,7 +212,7 @@ export function Payments() {
                     onClick={() => setGlobalMode(opt.value)}
                     className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
                     style={{
-                      background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
+                      background: active ? 'var(--color-gold-tint)' : 'transparent',
                       border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
                     }}
                   >
@@ -297,7 +297,7 @@ export function Payments() {
           )}
 
           {/* Priority legend */}
-          <div className="rounded-2xl p-4 text-xs" style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)' }}>
+          <div className="rounded-2xl p-4 text-xs" style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold-ring)' }}>
             <p className="font-bold mb-2" style={{ color: 'var(--color-gold)' }}>💡 סדר עדיפויות</p>
             <p style={{ color: 'var(--color-muted)' }}>
               <strong>שירות</strong> &gt; <strong>סניף</strong> &gt; <strong>גלובלי</strong> — הספציפי תמיד מנצח

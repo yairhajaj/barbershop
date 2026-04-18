@@ -153,13 +153,13 @@ export function Dashboard() {
         value: `₪${debtsSum.toLocaleString('he-IL')}`,
         sub: `${openDebts.length} לקוחות`,
         accent: openDebts.length > 0 ? '#dc2626' : 'var(--color-muted)',
-        tint: openDebts.length > 0 ? 'rgba(220,38,38,0.06)' : undefined,
+        tint: openDebts.length > 0 ? 'var(--color-danger-tint)' : undefined,
       },
       {
         label: 'לא הגיעו',
         value: String(noShows.length),
         accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
-        tint: noShows.length > 0 ? 'rgba(220,38,38,0.06)' : undefined,
+        tint: noShows.length > 0 ? 'var(--color-danger-tint)' : undefined,
       },
       {
         label: 'ממתינים',

@@ -149,7 +149,7 @@ export function Products() {
                     onClick={() => toggleField(product.id, 'is_active', !product.is_active)}
                     className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all"
                     style={{
-                      background: product.is_active ? 'rgba(34,197,94,0.1)' : 'rgba(0,0,0,0.05)',
+                      background: product.is_active ? 'var(--color-success-tint)' : 'rgba(0,0,0,0.05)',
                       borderColor: product.is_active ? '#22c55e' : 'var(--color-border)',
                       color: product.is_active ? '#16a34a' : 'var(--color-muted)',
                     }}
@@ -181,7 +181,7 @@ export function Products() {
                   <button
                     onClick={() => handleDelete(product.id)}
                     className="text-xs py-1.5 px-3 rounded-lg font-medium transition-all"
-                    style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}
+                    style={{ background: 'var(--color-danger-tint)', color: '#ef4444' }}
                   >
                     ✕
                   </button>

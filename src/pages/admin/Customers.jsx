@@ -12,12 +12,13 @@ import { printInvoice } from '../../lib/invoice'
 import { BUSINESS } from '../../config/business'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { supabase } from '../../lib/supabase'
+import { WalkInModal } from '../../components/admin/dashboard/WalkInModal'
 
 const STATUS_COLORS = {
-  confirmed:          { bg: 'rgba(34,197,94,0.1)',   color: '#16a34a', label: '✅ אושר' },
+  confirmed:          { bg: 'var(--color-success-tint)',   color: '#16a34a', label: '✅ אושר' },
   pending_reschedule: { bg: 'rgba(234,179,8,0.1)',   color: '#ca8a04', label: '🕐 ממתין' },
-  cancelled:          { bg: 'rgba(239,68,68,0.08)',  color: '#dc2626', label: '❌ בוטל' },
-  no_show:            { bg: 'rgba(239,68,68,0.08)',  color: '#dc2626', label: '🚫 לא הגיע' },
+  cancelled:          { bg: 'var(--color-danger-tint)',  color: '#dc2626', label: '❌ בוטל' },
+  no_show:            { bg: 'var(--color-danger-tint)',  color: '#dc2626', label: '🚫 לא הגיע' },
   completed:          { bg: 'rgba(107,114,128,0.1)', color: '#6b7280', label: '☑ הושלם' },
 }
 
@@ -30,6 +31,7 @@ export function Customers() {
   const [history, setHistory]           = useState([])
   const [purchases, setPurchases]       = useState([])
   const [addOpen, setAddOpen]           = useState(false)
+  const [sellOpen, setSellOpen]         = useState(false)
   const debounceRef = useRef(null)
 
   useEffect(() => {
@@ -214,6 +216,7 @@ export function Customers() {
             onToggleBlock={handleToggleBlock}
             onSaveToContacts={() => saveToContacts(selectedCustomer)}
             onBookAppointment={() => handleBookForCustomer(selectedCustomer)}
+            onSellProduct={() => setSellOpen(true)}
             waLink={waLink(selectedCustomer.phone)}
           />
         )}
@@ -226,6 +229,20 @@ export function Customers() {
           onAdded={() => { refetch(); setAddOpen(false) }}
         />
       )}
+
+      {/* Sell Product to Customer */}
+      <WalkInModal
+        open={sellOpen}
+        onClose={() => setSellOpen(false)}
+        onSaved={() => {
+          setSellOpen(false)
+          if (selectedCustomer) {
+            fetchHistory(selectedCustomer.id).then(({ purchases: prods }) => setPurchases(prods ?? []))
+          }
+          showToast({ message: 'מכירת מוצר נרשמה ✓', type: 'success' })
+        }}
+        initialCustomer={selectedCustomer}
+      />
     </div>
   )
 }
@@ -244,10 +261,10 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
       className="rounded-2xl p-4 cursor-pointer transition-all"
       style={{
         background: customer.is_blocked ? 'rgba(239,68,68,0.04)' : 'var(--color-card)',
-        border: `1px solid ${customer.is_blocked ? 'rgba(239,68,68,0.2)' : 'var(--color-border)'}`,
+        border: `1px solid ${customer.is_blocked ? 'var(--color-danger-ring)' : 'var(--color-border)'}`,
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = customer.is_blocked ? 'rgba(239,68,68,0.2)' : 'var(--color-border)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = customer.is_blocked ? 'var(--color-danger-ring)' : 'var(--color-border)' }}
     >
       <div className="flex items-center gap-3">
         <div
@@ -261,10 +278,10 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-sm truncate" style={{ color: 'var(--color-text)' }}>{customer.name}</span>
             {customer.is_blocked && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>חסום</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-danger-tint)', color: '#dc2626' }}>חסום</span>
             )}
             {pendingDebt > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>חוב ₪{pendingDebt}</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-danger-tint)', color: '#dc2626' }}>חוב ₪{pendingDebt}</span>
             )}
           </div>
           <div className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--color-muted)' }}>
@@ -288,9 +305,9 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-          <a href={`tel:${customer.phone}`} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>📞</a>
+          <a href={`tel:${customer.phone}`} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'var(--color-success-tint)', color: '#16a34a' }}>📞</a>
           <a href={waLink} target="_blank" rel="noopener noreferrer" className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(37,211,102,0.1)', color: '#25d366' }}>💬</a>
-          <button onClick={onBlock} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: customer.is_blocked ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: customer.is_blocked ? '#16a34a' : '#dc2626' }}>
+          <button onClick={onBlock} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: customer.is_blocked ? 'var(--color-success-tint)' : 'var(--color-danger-tint)', color: customer.is_blocked ? '#16a34a' : '#dc2626' }}>
             {customer.is_blocked ? '✅' : '🚫'}
           </button>
         </div>
@@ -302,7 +319,7 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
 // ─────────────────────────────────────────────────────────────────────────────
 // Customer Modal
 // ─────────────────────────────────────────────────────────────────────────────
-function CustomerModal({ customer, history, purchases, historyLoading, onClose, onToggleBlock, onSaveToContacts, onBookAppointment, waLink }) {
+function CustomerModal({ customer, history, purchases, historyLoading, onClose, onToggleBlock, onSaveToContacts, onBookAppointment, onSellProduct, waLink }) {
   const showToast = useToast()
   const { settings } = useBusinessSettings()
   const { debts, totalPending, createDebt, markPaid, fetchDebts } = useCustomerDebts({ customerId: customer.id })
@@ -370,11 +387,11 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
-              style={customer.is_blocked ? { background: 'rgba(239,68,68,0.1)', color: '#dc2626' } : { background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>
+              style={customer.is_blocked ? { background: 'var(--color-danger-tint)', color: '#dc2626' } : { background: 'var(--color-success-tint)', color: '#16a34a' }}>
               {customer.is_blocked ? '🚫 חסום' : '✅ פעיל'}
             </span>
             {totalPending > 0 && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'var(--color-danger-tint)', color: '#dc2626' }}>
                 💳 חוב ₪{totalPending}
               </span>
             )}
@@ -386,18 +403,27 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
         </div>
 
         {/* Action buttons */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onBookAppointment}
             className="py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5"
-            style={{ background: 'rgba(201,169,110,0.1)', color: 'var(--color-gold)', border: '1.5px solid rgba(201,169,110,0.3)' }}
+            style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}
           >
             📅 קבע תור
           </button>
+          {onSellProduct && (
+            <button
+              onClick={onSellProduct}
+              className="py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5"
+              style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}
+            >
+              📦 מכור מוצר
+            </button>
+          )}
           <button
             onClick={() => setDebtOpen(true)}
             className="py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5"
-            style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.3)' }}
+            style={{ background: 'var(--color-warning-tint)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}
           >
             💳 הוסף חוב
           </button>
@@ -405,8 +431,8 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
             onClick={() => setBlockConfirm(true)}
             className="py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5"
             style={customer.is_blocked
-              ? { background: 'rgba(34,197,94,0.08)', color: '#16a34a', border: '1.5px solid rgba(34,197,94,0.3)' }
-              : { background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.2)' }
+              ? { background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }
+              : { background: 'var(--color-danger-tint)', color: '#dc2626', border: '1.5px solid var(--color-danger-ring)' }
             }
           >
             {customer.is_blocked ? '✅ בטל חסימה' : '🚫 חסום'}
@@ -460,7 +486,7 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>חובות פתוחים</h3>
             {pendingDebts.length > 0 && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-danger-tint)', color: '#dc2626' }}>
                 ₪{totalPending} סה"כ
               </span>
             )}
@@ -542,7 +568,7 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
                       <button
                         onClick={() => handlePrintInvoice(appt, inv)}
                         className="mt-2 text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
-                        style={{ background: 'rgba(201,169,110,0.1)', color: 'var(--color-gold)', border: '1px solid rgba(201,169,110,0.3)' }}
+                        style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}
                       >
                         🧾 חשבונית {inv.invoice_number}
                       </button>
@@ -591,7 +617,7 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
                 className="w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }} placeholder="סיבת החוב..." />
             </div>
             <button onClick={handleSaveDebt} disabled={debtSaving || !debtForm.amount}
-              className="w-full py-2.5 rounded-xl font-bold text-sm" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.35)' }}>
+              className="w-full py-2.5 rounded-xl font-bold text-sm" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}>
               {debtSaving ? 'שומר...' : 'שמור חוב'}
             </button>
           </div>

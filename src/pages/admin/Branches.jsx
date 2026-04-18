@@ -192,7 +192,7 @@ export function Branches() {
                     <button
                       onClick={() => setDeleteConfirm(branch)}
                       className="px-3 py-1.5 rounded-lg text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
-                      style={{ border: '1px solid rgba(239,68,68,0.3)' }}
+                      style={{ border: '1px solid var(--color-danger-ring)' }}
                     >
                       הסתר
                     </button>
@@ -304,7 +304,7 @@ export function Branches() {
                     className="py-2 px-3 text-xs rounded-xl border font-medium transition-all text-right"
                     style={{
                       borderColor: (form.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
-                      background:  (form.payment_mode ?? 'inherit') === opt.value ? 'rgba(201,169,110,0.1)' : 'var(--color-surface)',
+                      background:  (form.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold-tint)' : 'var(--color-surface)',
                       color:       (form.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-muted)',
                     }}
                   >

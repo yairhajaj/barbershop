@@ -11,8 +11,8 @@ const EMPTY = { name: '', description: '', duration_minutes: 30, price: '', is_a
 
 const PAYMENT_MODE_LABELS = {
   inherit:  null,           // don't show badge
-  required: { label: '🔒 תשלום חובה',    color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
-  optional: { label: '🤝 תשלום אופציונלי', color: '#d97706', bg: 'rgba(217,119,6,0.08)' },
+  required: { label: '🔒 תשלום חובה',    color: '#16a34a', bg: 'var(--color-success-tint)' },
+  optional: { label: '🤝 תשלום אופציונלי', color: '#d97706', bg: 'var(--color-warning-tint)' },
   disabled: { label: '🚫 ללא תשלום',      color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
 }
 
@@ -215,7 +215,7 @@ export function Services() {
                       className="py-2 px-3 text-xs rounded-lg border-2 font-medium transition-colors text-right"
                       style={{
                         borderColor: (editService.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-border)',
-                        background:  (editService.payment_mode ?? 'inherit') === opt.value ? 'rgba(201,169,110,0.1)' : 'transparent',
+                        background:  (editService.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold-tint)' : 'transparent',
                         color:       (editService.payment_mode ?? 'inherit') === opt.value ? 'var(--color-gold)' : 'var(--color-muted)',
                       }}
                     >

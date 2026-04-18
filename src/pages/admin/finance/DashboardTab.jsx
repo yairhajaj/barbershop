@@ -8,6 +8,7 @@ import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useStaffCommissions } from '../../../hooks/useStaffCommissions'
 import { useServices } from '../../../hooks/useServices'
+import { useStaff } from '../../../hooks/useStaff'
 import { formatILS, calcVat, hasVat, PAYMENT_METHODS } from '../../../lib/finance'
 import { Spinner } from '../../../components/ui/Spinner'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
@@ -15,6 +16,7 @@ import { useToast } from '../../../components/ui/Toast'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
+import { fetchProductSales } from '../../../hooks/useProductSales'
 
 // ─────────────────────────────────────────────
 // Quick Receipt Panel
@@ -25,6 +27,7 @@ function QuickReceiptPanel() {
   const branchId = currentBranch?.id ?? null
   const { settings } = useBusinessSettings()
   const { services } = useServices({ activeOnly: true })
+  const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const showToast = useToast()
   const qc = useQueryClient()
 
@@ -38,6 +41,7 @@ function QuickReceiptPanel() {
   const [description, setDescription] = useState('')
   const [payMethod, setPayMethod] = useState('cash')
   const [isDebt, setIsDebt] = useState(false)
+  const [staffId, setStaffId] = useState('')
 
   // customer
   const [customerMode, setCustomerMode] = useState('walkin') // 'walkin' | 'search'
@@ -66,6 +70,10 @@ function QuickReceiptPanel() {
     }
     load()
   }, [services])
+
+  useEffect(() => {
+    if (!staffId && staff.length > 0) setStaffId(staff[0].id)
+  }, [staff, staffId])
 
   // load active products
   useEffect(() => {
@@ -120,6 +128,7 @@ function QuickReceiptPanel() {
     setCustomerMode('walkin')
     setIsDebt(false)
     setPayMethod('cash')
+    // keep staffId so next entry defaults to same staff
   }
 
   async function handleSubmit() {
@@ -133,6 +142,10 @@ function QuickReceiptPanel() {
     }
     if (isDebt && !selectedCustomer) {
       showToast({ message: 'לחוב נדרש לקוח רשום', type: 'error' })
+      return
+    }
+    if (selectedItem?.type === 'product' && !staffId) {
+      showToast({ message: 'יש לבחור עובד שמכר את המוצר (לחישוב עמלה)', type: 'error' })
       return
     }
     setSaving(true)
@@ -158,6 +171,7 @@ function QuickReceiptPanel() {
           customer_id: selectedCustomer?.id ?? null,
           service_id: selectedItem?.type === 'service' ? selectedItem.id : null,
           product_id: selectedItem?.type === 'product' ? selectedItem.id : null,
+          staff_id: staffId || null,
           branch_id: branchId,
         }
         if (hasVat(settings?.business_type)) {
@@ -208,7 +222,7 @@ function QuickReceiptPanel() {
                 className="text-xs px-3 py-2 rounded-xl font-medium transition-all border"
                 style={
                   selectedItem?.id === svc.id && selectedItem?.type === 'service'
-                    ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'rgba(201,169,110,0.12)' }
+                    ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
                     : { borderColor: 'var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)' }
                 }
               >
@@ -243,7 +257,7 @@ function QuickReceiptPanel() {
                 className="w-full text-right px-3 py-2 rounded-lg text-sm flex justify-between items-center transition-colors"
                 style={
                   selectedItem?.id === p.id && selectedItem?.type === 'product'
-                    ? { background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }
+                    ? { background: 'var(--color-gold-tint)', color: 'var(--color-gold)' }
                     : { color: 'var(--color-text)' }
                 }
               >
@@ -286,7 +300,7 @@ function QuickReceiptPanel() {
             onClick={() => { setCustomerMode('walkin'); setSelectedCustomer(null); setCustomerSearch(''); setIsDebt(false) }}
             className="text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
             style={customerMode === 'walkin'
-              ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'rgba(201,169,110,0.12)' }
+              ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
               : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}
           >
             🚶 מזדמן
@@ -295,7 +309,7 @@ function QuickReceiptPanel() {
             onClick={() => setCustomerMode('search')}
             className="text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
             style={customerMode === 'search'
-              ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'rgba(201,169,110,0.12)' }
+              ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
               : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}
           >
             🔍 לקוח רשום
@@ -348,7 +362,7 @@ function QuickReceiptPanel() {
                 onClick={() => setPayMethod(m.k)}
                 className="text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
                 style={payMethod === m.k
-                  ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'rgba(201,169,110,0.12)' }
+                  ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
                   : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}
               >
                 {m.label}
@@ -357,6 +371,23 @@ function QuickReceiptPanel() {
           </div>
         </div>
       )}
+
+      {/* Staff selector — required for product sales to attribute commissions */}
+      <div>
+        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-muted)' }}>
+          עובד שביצע/מכר {selectedItem?.type === 'product' && <span style={{ color: '#dc2626' }}>*</span>}
+        </label>
+        <select
+          value={staffId}
+          onChange={e => setStaffId(e.target.value)}
+          className="input-field w-full text-sm"
+        >
+          <option value="">— ללא —</option>
+          {staff.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Debt toggle — only when existing customer is selected */}
       {customerMode === 'search' && selectedCustomer && (
@@ -408,7 +439,7 @@ function StaffPaymentsSection({ settings }) {
   useEffect(() => {
     async function load() {
       setLoadingData(true)
-      const [{ data: staffData }, { data: apptData }, { data: miData }, { data: prodData }] = await Promise.all([
+      const [{ data: staffData }, { data: apptData }, { data: miData }, prodSalesData] = await Promise.all([
         supabase
           .from('staff')
           .select('id, name, photo_url, commission_type, commission_rate, monthly_salary, product_commission_type, product_commission_rate')
@@ -426,18 +457,16 @@ function StaffPaymentsSection({ settings }) {
           .is('product_id', null)
           .gte('date', monthStart)
           .lte('date', monthEnd),
-        // Product sales this month
-        supabase
-          .from('manual_income')
-          .select('staff_id, amount, product_id')
-          .not('product_id', 'is', null)
-          .gte('date', monthStart)
-          .lte('date', monthEnd),
+        // Unified product sales: manual_income (product_id) + invoice_items (kind=product)
+        fetchProductSales({ from: monthStart, to: monthEnd }).catch(err => {
+          console.warn('fetchProductSales failed:', err)
+          return []
+        }),
       ])
       setStaffList(staffData ?? [])
       setAppts(apptData ?? [])
       setManualIncome(miData ?? [])
-      setProductSales(prodData ?? [])
+      setProductSales(Array.isArray(prodSalesData) ? prodSalesData : (prodSalesData?.data ?? []))
       setLoadingData(false)
     }
     load()
@@ -467,17 +496,18 @@ function StaffPaymentsSection({ settings }) {
       amount = count * effectiveRate
     }
 
-    // Product sales commission
+    // Product sales commission — unified from manual_income + invoice_items
     const memberProducts = productSales.filter(p => p.staff_id === member.id)
     const productRevenue = memberProducts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+    const productUnits = memberProducts.reduce((sum, p) => sum + (Number(p.quantity) || 1), 0)
     const pct = member.product_commission_type
     const prate = Number(member.product_commission_rate) || 0
     const productCommission =
       pct === 'percentage' ? productRevenue * (prate / 100)
-      : pct === 'fixed'   ? memberProducts.length * prate
+      : pct === 'fixed'   ? productUnits * prate
       : 0
 
-    return { count, revenue, amount, effectiveType, productRevenue, productCount: memberProducts.length, productCommission }
+    return { count, revenue, amount, effectiveType, productRevenue, productCount: productUnits, productCommission }
   }
 
   async function handleMarkAllPaid(staffId) {
@@ -513,7 +543,7 @@ function StaffPaymentsSection({ settings }) {
               key: 'name', label: 'ספר',
               render: m => (
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
+                  <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold" style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)' }}>
                     {m.photo_url ? <img src={m.photo_url} alt={m.name} className="w-full h-full object-cover" /> : m.name[0]}
                   </div>
                   <span className="font-medium whitespace-nowrap" style={{ color: 'var(--color-text)' }}>{m.name}</span>
@@ -537,7 +567,7 @@ function StaffPaymentsSection({ settings }) {
                 <div style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(m.amount)}</div>
                 {m.productCommission > 0 && (
                   <div className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg"
-                    style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}>
+                    style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px solid var(--color-success-ring)' }}>
                     📦 {m.productCount} מוצרים · {formatILS(m.productCommission)}
                   </div>
                 )}
@@ -550,7 +580,7 @@ function StaffPaymentsSection({ settings }) {
                   onClick={() => handleMarkAllPaid(m.id)}
                   disabled={paying === m.id}
                   className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap"
-                  style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
+                  style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
                 >
                   {paying === m.id ? '...' : '💳 שולם'}
                 </button>
@@ -560,7 +590,7 @@ function StaffPaymentsSection({ settings }) {
           rows={rows}
           mobileRowRender={m => (
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
+              <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold" style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)' }}>
                 {m.photo_url ? <img src={m.photo_url} alt={m.name} className="w-full h-full object-cover" /> : m.name[0]}
               </div>
               <div className="flex-1 min-w-0">
@@ -568,7 +598,7 @@ function StaffPaymentsSection({ settings }) {
                 <p className="text-sm" style={{ color: 'var(--color-muted)' }}>{m.count} תורים · {formatILS(m.revenue)}</p>
                 {m.productCommission > 0 && (
                   <div className="inline-flex items-center gap-1 text-[10px] mt-1 px-2 py-1 rounded-lg"
-                    style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}>
+                    style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px solid var(--color-success-ring)' }}>
                     📦 {m.productCount} מוצרים · {formatILS(m.productCommission)}
                   </div>
                 )}
@@ -579,7 +609,7 @@ function StaffPaymentsSection({ settings }) {
                   onClick={() => handleMarkAllPaid(m.id)}
                   disabled={paying === m.id}
                   className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                  style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
+                  style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
                 >
                   {paying === m.id ? '...' : '💳 שולם'}
                 </button>

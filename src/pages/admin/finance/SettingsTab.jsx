@@ -252,7 +252,7 @@ export function SettingsTab() {
                 onClick={() => setBusinessType(bt.value)}
                 className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
                 style={{
-                  background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
+                  background: active ? 'var(--color-gold-tint)' : 'transparent',
                   border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
                 }}
               >
@@ -447,7 +447,7 @@ export function SettingsTab() {
                   }}
                   className="w-full flex items-start gap-3 p-3 rounded-xl text-right transition-all"
                   style={{
-                    background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
+                    background: active ? 'var(--color-gold-tint)' : 'transparent',
                     border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
                     opacity: isBlocked ? 0.5 : 1,
                     cursor: isBlocked ? 'not-allowed' : 'pointer',
@@ -542,7 +542,7 @@ export function SettingsTab() {
 
         {/* Priority legend — only when payment on */}
         {paymentEnabled && (
-          <div className="rounded-xl p-3 text-xs" style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.2)' }}>
+          <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold-ring)' }}>
             <p className="font-bold mb-1" style={{ color: 'var(--color-gold)' }}>סדר עדיפויות</p>
             <p style={{ color: 'var(--color-muted)' }}>
               <strong>שירות</strong> &gt; <strong>סניף</strong> &gt; <strong>גלובלי</strong> — הספציפי תמיד מנצח
@@ -576,7 +576,7 @@ export function SettingsTab() {
                 onClick={() => setCommissionType(ct.value)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl text-right transition-all"
                 style={{
-                  background: active ? 'rgba(201,169,110,0.1)' : 'transparent',
+                  background: active ? 'var(--color-gold-tint)' : 'transparent',
                   border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
                 }}
               >

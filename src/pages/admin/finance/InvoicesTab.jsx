@@ -23,7 +23,7 @@ const STATUS_FILTERS = [
 const STATUS_STYLES = {
   draft: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)', label: 'טיוטה' },
   sent:  { color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   border: 'rgba(37,99,235,0.2)',   label: 'נשלחה' },
-  paid:  { color: '#16a34a', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)',   label: 'שולמה' },
+  paid:  { color: '#16a34a', bg: 'var(--color-success-tint)',   border: 'var(--color-success-ring)',   label: 'שולמה' },
 }
 
 export function InvoicesTab() {
@@ -315,7 +315,7 @@ export function InvoicesTab() {
                     <button
                       onClick={() => handleMarkPaid(inv)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', color: '#16a34a' }}
+                      style={{ background: 'var(--color-success-tint)', border: '1px solid var(--color-success-ring)', color: '#16a34a' }}
                     >
                       ✅ שולמה
                     </button>
@@ -324,7 +324,7 @@ export function InvoicesTab() {
                     <button
                       onClick={() => handleCancel(inv)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626' }}
+                      style={{ background: 'var(--color-danger-tint)', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626' }}
                     >
                       ❌ בטל
                     </button>
@@ -388,7 +388,7 @@ export function InvoicesTab() {
                     key={apt.id}
                     className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors"
                     style={{
-                      background: selected[apt.id] ? 'rgba(201,169,110,0.08)' : 'var(--color-surface)',
+                      background: selected[apt.id] ? 'var(--color-gold-tint)' : 'var(--color-surface)',
                       border: `1px solid ${selected[apt.id] ? 'var(--color-gold)' : 'var(--color-border)'}`,
                     }}
                   >

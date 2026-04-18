@@ -5,6 +5,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
 import { useManualIncome } from '../../../hooks/useManualIncome'
+import { fetchProductSales } from '../../../hooks/useProductSales'
 import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useStaff } from '../../../hooks/useStaff'
@@ -15,12 +16,12 @@ import { useToast } from '../../../components/ui/Toast'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 
 const METHOD_BADGE_COLORS = {
-  cash:     { bg: 'rgba(22,163,74,0.08)',  color: '#16a34a', border: 'rgba(22,163,74,0.2)' },
+  cash:     { bg: 'var(--color-success-tint)',  color: '#16a34a', border: 'var(--color-success-ring)' },
   credit:   { bg: 'rgba(37,99,235,0.08)',  color: '#2563eb', border: 'rgba(37,99,235,0.2)' },
   bit:      { bg: 'rgba(249,115,22,0.08)', color: '#f97316', border: 'rgba(249,115,22,0.2)' },
   paybox:   { bg: 'rgba(168,85,247,0.08)', color: '#a855f7', border: 'rgba(168,85,247,0.2)' },
   transfer: { bg: 'rgba(124,58,237,0.08)', color: '#7c3aed', border: 'rgba(124,58,237,0.2)' },
-  check:    { bg: 'rgba(217,119,6,0.08)',  color: '#d97706', border: 'rgba(217,119,6,0.2)' },
+  check:    { bg: 'var(--color-warning-tint)',  color: '#d97706', border: 'rgba(217,119,6,0.2)' },
   grow:     { bg: 'rgba(14,165,233,0.08)', color: '#0ea5e9', border: 'rgba(14,165,233,0.2)' },
 }
 
@@ -186,19 +187,14 @@ export function IncomeTab() {
   useEffect(() => {
     async function loadBreakdown() {
       setBreakdownLoading(true)
-      const [{ data: apptData }, { data: prodData }] = await Promise.all([
+      const [{ data: apptData }, prodSales] = await Promise.all([
         supabase
           .from('appointments')
           .select('service_id, services(name, price)')
           .eq('status', 'completed')
           .gte('start_at', startDate + 'T00:00:00')
           .lte('start_at', endDate + 'T23:59:59'),
-        supabase
-          .from('manual_income')
-          .select('product_id, amount, products(name)')
-          .not('product_id', 'is', null)
-          .gte('date', startDate)
-          .lte('date', endDate),
+        fetchProductSales({ from: startDate, to: endDate }).catch(() => []),
       ])
 
       // Group by service
@@ -212,13 +208,13 @@ export function IncomeTab() {
       })
       setServiceBreakdown(Object.values(svcMap).sort((a, b) => b.total - a.total))
 
-      // Group by product
+      // Group by product (unified manual_income + invoice_items)
       const prdMap = {}
-      ;(prodData ?? []).forEach(p => {
+      ;(prodSales ?? []).forEach(p => {
         if (!p.product_id) return
         const key = p.product_id
-        if (!prdMap[key]) prdMap[key] = { name: p.products?.name ?? 'מוצר', count: 0, total: 0 }
-        prdMap[key].count++
+        if (!prdMap[key]) prdMap[key] = { name: p.product_name ?? 'מוצר', count: 0, total: 0 }
+        prdMap[key].count += Number(p.quantity || 1)
         prdMap[key].total += Number(p.amount ?? 0)
       })
       setProductBreakdown(Object.values(prdMap).sort((a, b) => b.total - a.total))
