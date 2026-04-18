@@ -11,6 +11,7 @@ import { useReviews } from '../../hooks/useReviews'
 import { StatusBadge } from '../../components/ui/Badge'
 import { Spinner } from '../../components/ui/Spinner'
 import { useToast } from '../../components/ui/Toast'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { supabase } from '../../lib/supabase'
 import { useTheme } from '../../contexts/ThemeContext'
 import {
@@ -24,6 +25,7 @@ export function MyAppointments() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const confirm = useConfirm()
   const { isDark } = useTheme()
   const { settings, hours } = useBusinessSettings()
   const { staff } = useStaff({ activeOnly: true })
@@ -153,9 +155,11 @@ export function MyAppointments() {
       toast({ message: `לא ניתן לבטל פחות מ-${settings.cancellation_hours} שעות לפני התור.`, type: 'error' })
       return
     }
-    const choice = window.confirm('לבטל את כל התורים הקבועים העתידיים?\n\nלחץ אישור לביטול הכל, או ביטול לביטול תור זה בלבד.')
+    const wantsCancel = await confirm({ title: 'ביטול תור קבוע', description: 'האם אתה בטוח שברצונך לבטל את התור?', variant: 'destructive', confirmLabel: 'כן, בטל' })
+    if (!wantsCancel) return
+    const cancelAll = await confirm({ title: 'ביטול סדרה קבועה', description: 'האם לבטל את כל התורים הקבועים העתידיים בסדרה זו?', variant: 'destructive', confirmLabel: 'בטל את כולם', cancelLabel: 'בטל תור זה בלבד' })
     try {
-      if (choice) {
+      if (cancelAll) {
         await cancelRecurringGroup(appt.recurring_group_id, 'customer')
         toast({ message: 'כל התורים הקבועים בוטלו', type: 'success' })
       } else {
