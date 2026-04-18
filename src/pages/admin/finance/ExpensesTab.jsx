@@ -346,7 +346,7 @@ export function ExpensesTab() {
                         disabled={deleting === expense.id}
                         className="text-xs px-2 py-1 rounded-lg transition-colors"
                         style={{
-                          border: '1px solid rgba(220,38,38,0.3)',
+                          border: '1px solid var(--color-danger-ring)',
                           color: '#dc2626',
                         }}
                       >

@@ -18,7 +18,7 @@ const STATUS_TABS = [
 const STATUS_BADGE = {
   paid:  { label: 'שולמה',  bg: 'var(--color-success-tint)',   color: '#16a34a' },
   sent:  { label: 'נשלחה',  bg: 'var(--color-info-tint)',  color: '#2563eb' },
-  draft: { label: 'טיוטה',  bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
+  draft: { label: 'טיוטה',  bg: 'var(--color-gray-ring)', color: '#6b7280' },
 }
 
 const PAYMENT_LABELS = {

@@ -337,7 +337,7 @@ export function Messages() {
               style={{
                 background: filterTab === tab.key ? 'var(--color-card)' : 'transparent',
                 color: filterTab === tab.key ? 'var(--color-text)' : 'var(--color-muted)',
-                boxShadow: filterTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                boxShadow: filterTab === tab.key ? '0 1px 4px var(--color-shadow-sm)' : 'none',
               }}
             >{tab.label}</button>
           ))}
@@ -477,7 +477,7 @@ export function Messages() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl p-4 text-sm"
-            style={{ background: 'var(--color-success-tint)', border: '1px solid rgba(34,197,94,0.2)' }}
+            style={{ background: 'var(--color-success-tint)', border: '1px solid var(--color-success-ring)' }}
           >
             <p className="font-bold mb-1" style={{ color: '#16a34a' }}>✓ נשלח בהצלחה!</p>
             {lastResult.pushTotal > 0 && (

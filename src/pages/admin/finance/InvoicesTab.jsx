@@ -21,8 +21,8 @@ const STATUS_FILTERS = [
 ]
 
 const STATUS_STYLES = {
-  draft: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)', label: 'טיוטה' },
-  sent:  { color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   border: 'rgba(37,99,235,0.2)',   label: 'נשלחה' },
+  draft: { color: '#6b7280', bg: 'var(--color-gray-tint)', border: 'var(--color-gray-ring)', label: 'טיוטה' },
+  sent:  { color: '#2563eb', bg: 'var(--color-blue-tint)',   border: 'var(--color-blue-ring)',   label: 'נשלחה' },
   paid:  { color: '#16a34a', bg: 'var(--color-success-tint)',   border: 'var(--color-success-ring)',   label: 'שולמה' },
 }
 
@@ -324,7 +324,7 @@ export function InvoicesTab() {
                     <button
                       onClick={() => handleCancel(inv)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      style={{ background: 'var(--color-danger-tint)', border: '1px solid rgba(220,38,38,0.15)', color: '#dc2626' }}
+                      style={{ background: 'var(--color-danger-tint)', border: '1px solid var(--color-danger-tint)', color: '#dc2626' }}
                     >
                       ❌ בטל
                     </button>

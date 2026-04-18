@@ -11,9 +11,9 @@ import { he } from 'date-fns/locale/he'
 
 const STATUS_LABELS = {
   paid:     { label: 'שולם',  color: '#16a34a', bg: 'var(--color-success-tint)',   border: 'var(--color-success-ring)' },
-  pending:  { label: 'ממתין', color: '#d97706', bg: 'var(--color-warning-tint)',   border: 'rgba(217,119,6,0.2)' },
-  failed:   { label: 'נכשל',  color: '#dc2626', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.2)' },
-  refunded: { label: 'הוחזר', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.2)' },
+  pending:  { label: 'ממתין', color: '#d97706', bg: 'var(--color-warning-tint)',   border: 'var(--color-warning-ring)' },
+  failed:   { label: 'נכשל',  color: '#dc2626', bg: 'var(--color-danger-tint)',   border: 'var(--color-danger-ring)' },
+  refunded: { label: 'הוחזר', color: '#7c3aed', bg: 'var(--color-purple-tint)', border: 'var(--color-purple-ring)' },
 }
 
 const GLOBAL_MODE_OPTS = [
@@ -419,7 +419,7 @@ export function Payments() {
                           onClick={() => handleRefund(payment)}
                           disabled={refunding === payment.id}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                          style={{ border: '1px solid rgba(124,58,237,0.3)', color: '#7c3aed' }}
+                          style={{ border: '1px solid var(--color-purple-ring)', color: '#7c3aed' }}
                         >
                           {refunding === payment.id ? <Spinner size="xs" /> : 'החזר'}
                         </button>

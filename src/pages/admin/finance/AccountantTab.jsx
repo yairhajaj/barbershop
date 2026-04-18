@@ -351,7 +351,7 @@ export function AccountantTab() {
           {/* Validation warnings */}
           {!ofValidation.valid && (
             <div className="p-3 rounded-xl text-xs space-y-1"
-              style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}>
+              style={{ background: 'var(--color-danger-tint)', border: '1px solid var(--color-danger-ring)', color: '#dc2626' }}>
               <p className="font-semibold">⚠️ חסרות הגדרות חובה להפקת OPENFRMT:</p>
               <ul className="list-disc pr-4 space-y-0.5">
                 {ofValidation.errors.map((e, i) => <li key={i}>{e}</li>)}
@@ -361,7 +361,7 @@ export function AccountantTab() {
           )}
           {ofValidation.valid && ofValidation.warnings.length > 0 && (
             <div className="p-3 rounded-xl text-xs space-y-1"
-              style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', color: '#a16207' }}>
+              style={{ background: 'var(--color-warning-tint)', border: '1px solid var(--color-warning-ring)', color: '#a16207' }}>
               {ofValidation.warnings.map((w, i) => <p key={i}>⚠️ {w}</p>)}
             </div>
           )}
@@ -389,7 +389,7 @@ export function AccountantTab() {
       {/* OPENFRMT summary dialog (Instruction 24/2004 §5.4) */}
       {openfrmtDialog && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.6)' }}
+          style={{ background: 'var(--color-overlay-lg)' }}
           onClick={() => setOpenfrmtDialog(null)}>
           <div className="card p-6 max-w-md w-full space-y-4"
             style={{ background: 'var(--color-card)', border: '1px solid var(--color-gold)' }}
@@ -409,7 +409,7 @@ export function AccountantTab() {
               </ul>
             </div>
             <div className="text-xs p-3 rounded-xl"
-              style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-muted)' }}>
+              style={{ background: 'var(--color-blue-tint)', color: 'var(--color-muted)' }}>
               ℹ️ לפי סעיף 5.4 להוראת מקצוע 24/2004 — יש לשמור את ה-Primary ID ואת דוח ההפקה (סעיף 2.6) לתיעוד.
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -434,7 +434,7 @@ export function AccountantTab() {
       )}
 
       {/* Legal notice */}
-      <div className="card p-3" style={{ background: 'rgba(59,130,246,0.04)', border: '1px solid rgba(59,130,246,0.2)' }}>
+      <div className="card p-3" style={{ background: 'var(--color-blue-tint)', border: '1px solid var(--color-blue-ring)' }}>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted)' }}>
           ℹ️ <b>לתשומת לבך:</b> הדוחות ל-רשות המיסים (OPENFRMT, PCN874) מופקים לפי המפרט הרשמי, אך באחריותך לאמת אותם בסימולטור הממשלתי לפני הגשה.
           לצורך SaaS מסחרי — יש לרשום את התוכנה ברשות המיסים ולקבל "מספר רישום תוכנה".

@@ -162,7 +162,7 @@ export function DebtsTab() {
               className="rounded-2xl p-4"
               style={{
                 background: 'var(--color-card)',
-                border: `1px solid ${debt.status === 'paid' ? 'rgba(34,197,94,0.2)' : 'var(--color-border)'}`,
+                border: `1px solid ${debt.status === 'paid' ? 'var(--color-success-ring)' : 'var(--color-border)'}`,
                 boxShadow: 'var(--shadow-card)',
                 opacity: debt.status === 'paid' ? 0.75 : 1,
               }}
@@ -204,7 +204,7 @@ export function DebtsTab() {
                     <button
                       onClick={() => handleUnblock(debt.profiles.id, debt.id)}
                       className="flex-1 py-2 rounded-xl text-xs font-bold"
-                      style={{ background: 'var(--color-info-tint)', color: '#2563eb', border: '1px solid rgba(59,130,246,0.3)' }}
+                      style={{ background: 'var(--color-info-tint)', color: '#2563eb', border: '1px solid var(--color-blue-ring)' }}
                     >
                       🔓 הסר חסימה
                     </button>

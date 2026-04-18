@@ -354,7 +354,7 @@ export function Appearance() {
               >
                 <div className="flex gap-2 mb-3">
                   {th.preview.map((c, i) => (
-                    <div key={i} className="w-7 h-7 rounded-full shadow-inner" style={{ background: c, border: '2px solid rgba(255,255,255,0.1)' }} />
+                    <div key={i} className="w-7 h-7 rounded-full shadow-inner" style={{ background: c, border: '2px solid var(--color-white-10)' }} />
                   ))}
                 </div>
                 <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{th.name}</div>
@@ -385,7 +385,7 @@ export function Appearance() {
                 }}
               >
                 {/* Visual preview of the style */}
-                <div className="w-full h-28 overflow-hidden mb-3" style={{ borderRadius: '0.5rem', background: 'rgba(0,0,0,0.04)', border: '1px solid var(--color-border)' }}>
+                <div className="w-full h-28 overflow-hidden mb-3" style={{ borderRadius: '0.5rem', background: 'var(--color-shadow-xs)', border: '1px solid var(--color-border)' }}>
                   <LayoutPreviewMini id={lay.id} />
                 </div>
                 <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-text)' }}>{lay.name}</div>
@@ -508,7 +508,7 @@ export function Appearance() {
               <div className="flex flex-wrap gap-1">
                 {opt.steps.map((s, i) => (
                   <span key={i} className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--color-muted)' }}>
+                    style={{ background: 'var(--color-shadow-xs)', color: 'var(--color-muted)' }}>
                     {s}
                   </span>
                 ))}
@@ -526,7 +526,7 @@ export function Appearance() {
         <h2 className="font-semibold text-lg mb-1">גלריית העסק</h2>
         <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>תמונות וסרטונים שמוצגים בדף הבית</p>
 
-        <div className="rounded-2xl p-4 mb-5 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--color-border)' }}>
+        <div className="rounded-2xl p-4 mb-5 space-y-3" style={{ background: 'var(--color-white-05)', border: '1px solid var(--color-border)' }}>
           <p className="text-sm font-semibold">הוסף פריט חדש</p>
 
           {/* Option 1: paste URL */}
@@ -598,7 +598,7 @@ export function Appearance() {
             {items.map((item, i) => (
               <motion.div key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.04 }}
                 className="relative group rounded-xl overflow-hidden aspect-square"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
+                style={{ background: 'var(--color-white-05)' }}
               >
                 {item.type === 'video'
                   ? <video src={item.url} className="w-full h-full object-cover" muted />
@@ -649,13 +649,13 @@ function LayoutPreviewMini({ id }) {
   if (id === 'modern') return (
     <div className="w-full h-full flex flex-col p-2 gap-1.5 overflow-hidden" style={{ background: '#f2f2f7' }}>
       {/* Floating navbar card */}
-      <div className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 10, boxShadow: '0 1px 5px rgba(0,0,0,0.08)' }}>
+      <div className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 10, boxShadow: '0 1px 5px var(--color-shadow-sm)' }}>
         <div className="w-4 h-4 rounded-full" style={{ background: '#FF7A00' }} />
         <div className="px-2 py-0.5" style={{ background: '#FF7A00', borderRadius: 8, fontSize: 5, color: '#fff' }}>קבע תור</div>
       </div>
       {/* Floating cards */}
       {[1, 2, 3].map(i => (
-        <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+        <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-white" style={{ borderRadius: 12, boxShadow: '0 2px 8px var(--color-shadow-xs)' }}>
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-5 rounded-full" style={{ background: 'var(--color-gold-tint)' }} />
             <div className="h-1.5 bg-gray-200 rounded-full" style={{ width: 36 }} />
@@ -671,14 +671,14 @@ function LayoutPreviewMini({ id }) {
     <div className="w-full h-full flex flex-col p-2 gap-1.5 overflow-hidden"
       style={{ background: 'linear-gradient(160deg,#667eea 0%,#764ba2 100%)' }}>
       <div className="flex items-center justify-between px-2.5 py-1.5"
-        style={{ background: 'rgba(255,255,255,0.65)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.7)' }}>
+        style={{ background: 'rgba(255,255,255,0.65)', borderRadius: 14, border: '1px solid var(--color-white-70)' }}>
         <div className="w-4 h-4 rounded-full" style={{ background: '#FF8500' }} />
         <div className="px-2 py-0.5 rounded-full text-white" style={{ background: '#FF8500', fontSize: 5, fontWeight: 700 }}>הזמן</div>
       </div>
       {[1, 2, 3].map(i => (
         <div key={i} className="flex items-center justify-between px-2.5 py-1.5"
-          style={{ background: 'rgba(255,255,255,0.28)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.55)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}>
-          <div className="h-1.5 rounded-full" style={{ width: '52%', background: 'rgba(0,0,0,0.4)' }} />
+          style={{ background: 'var(--color-white-25)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.55)', boxShadow: 'inset 0 1px 0 var(--color-white-70)' }}>
+          <div className="h-1.5 rounded-full" style={{ width: '52%', background: 'var(--color-overlay-sm)' }} />
           <div className="h-4 rounded-full" style={{ width: 28, background: '#FF8500' }} />
         </div>
       ))}
@@ -689,15 +689,15 @@ function LayoutPreviewMini({ id }) {
   if (id === 'beauty') return (
     <div className="w-full h-full flex flex-col p-2 gap-2 overflow-hidden" style={{ background: '#fdf8f6' }}>
       <div className="flex items-center justify-between px-2.5 py-1.5"
-        style={{ background: 'rgba(253,248,246,0.95)', borderRadius: 20, border: '1px solid rgba(212,98,122,0.12)' }}>
+        style={{ background: 'rgba(253,248,246,0.95)', borderRadius: 20, border: '1px solid var(--color-pink-tint)' }}>
         <div className="w-4 h-4 rounded-full" style={{ background: '#d4627a' }} />
         <div className="px-2 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#d4627a,#b84d63)', fontSize: 5, fontWeight: 700 }}>הזמן</div>
       </div>
       {[1, 2, 3].map(i => (
         <div key={i} className="flex items-center justify-between px-2.5 py-1.5"
-          style={{ background: '#fffcfb', borderRadius: 20, border: '1px solid rgba(212,98,122,0.1)', boxShadow: '0 2px 10px rgba(212,98,122,0.06)' }}>
+          style={{ background: '#fffcfb', borderRadius: 20, border: '1px solid var(--color-pink-tint)', boxShadow: '0 2px 10px var(--color-pink-tint)' }}>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full" style={{ background: 'rgba(212,98,122,0.1)' }} />
+            <div className="w-5 h-5 rounded-full" style={{ background: 'var(--color-pink-tint)' }} />
             <div className="h-1.5 rounded-full" style={{ width: 32, background: '#fce4ea' }} />
           </div>
           <div className="h-4 rounded-full" style={{ width: 24, background: 'linear-gradient(135deg,#d4627a,#b84d63)' }} />
@@ -711,9 +711,9 @@ function LayoutPreviewMini({ id }) {
     <div className="w-full h-full flex flex-col p-2 gap-2 overflow-hidden" style={{ background: '#0a0a0a' }}>
       {/* Glass navbar */}
       <div className="flex items-center justify-between px-2.5 py-1.5" style={{
-        background: 'rgba(255,255,255,0.06)',
+        background: 'var(--color-white-05)',
         borderRadius: 14,
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '1px solid var(--color-white-10)',
       }}>
         <div className="w-5 h-5 rounded-full" style={{ background: '#c9a96e', boxShadow: '0 0 8px rgba(201,169,110,0.6)' }} />
         <div className="px-2 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg,#c9a96e,#a8843a)', fontSize: 5, color: '#000', fontWeight: 700 }}>BOOK</div>
@@ -721,12 +721,12 @@ function LayoutPreviewMini({ id }) {
       {/* Glass items */}
       {[1, 2, 3].map(i => (
         <div key={i} className="flex items-center justify-between px-2.5 py-1.5" style={{
-          background: 'rgba(255,255,255,0.05)',
+          background: 'var(--color-white-05)',
           borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          border: '1px solid var(--color-white-10)',
+          boxShadow: '0 4px 16px var(--color-overlay-sm)',
         }}>
-          <div className="h-1.5 rounded-full" style={{ width: '48%', background: 'rgba(255,255,255,0.25)' }} />
+          <div className="h-1.5 rounded-full" style={{ width: '48%', background: 'var(--color-white-25)' }} />
           <div className="h-4 rounded-full" style={{ width: 28, background: 'linear-gradient(135deg,#c9a96e,#a8843a)' }} />
         </div>
       ))}

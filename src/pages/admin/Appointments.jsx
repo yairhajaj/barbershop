@@ -1316,7 +1316,7 @@ export function Appointments() {
                                   className="w-7 h-7 rounded-full transition-all hover:scale-110 flex items-center justify-center flex-shrink-0"
                                   style={{
                                     backgroundColor: color,
-                                    boxShadow: isSelected ? `0 0 0 3px #fff, 0 0 0 5px ${color}` : '0 1px 3px rgba(0,0,0,0.2)',
+                                    boxShadow: isSelected ? `0 0 0 3px #fff, 0 0 0 5px ${color}` : '0 1px 3px var(--color-shadow-lg)',
                                     transform: isSelected ? 'scale(1.15)' : undefined,
                                   }}
                                 >
@@ -1680,7 +1680,7 @@ export function Appointments() {
               <button
                 onClick={() => openReschedule(selectedAppt)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'rgba(255,122,0,0.08)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}
+                style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}
               >
                 📅 שנה מועד התור
               </button>
@@ -1807,7 +1807,7 @@ export function Appointments() {
                       <button
                         onClick={() => setShowAddProduct(true)}
                         className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px dashed rgba(34,197,94,0.4)' }}
+                        style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px dashed var(--color-success-ring)' }}
                       >
                         ➕ הוסף מוצר לחשבונית
                       </button>
@@ -1926,7 +1926,7 @@ export function Appointments() {
               }
             }}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm"
-            style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}
+            style={{ background: 'var(--color-warning-tint)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}
           >
             שמור חוב
           </motion.button>
@@ -2016,14 +2016,14 @@ export function Appointments() {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'var(--color-overlay-md)', backdropFilter: 'blur(2px)' }}
             onClick={e => e.target === e.currentTarget && setRescheduleOpen(false)}
           >
             <motion.div
               initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
-              style={{ background: 'var(--color-card)', maxHeight: '92vh', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px rgba(0,0,0,0.2)' }}
+              style={{ background: 'var(--color-card)', maxHeight: '92vh', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px var(--color-shadow-lg)' }}
               onClick={e => e.stopPropagation()}
             >
               {/* Drag handle */}
@@ -2076,7 +2076,7 @@ export function Appointments() {
                             boxShadow:  active ? '0 2px 10px var(--color-gold-ring)' : 'none',
                           }}>
                           <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
-                            style={{ background: active ? 'rgba(255,255,255,0.25)' : 'var(--color-gold)', color: '#fff' }}>
+                            style={{ background: active ? 'var(--color-white-25)' : 'var(--color-gold)', color: '#fff' }}>
                             {s.name[0]}
                           </span>
                           {s.name}
@@ -2134,9 +2134,9 @@ export function Appointments() {
                               onClick={() => setRescheduleSlot(slot)}
                               className="py-2 rounded-xl text-xs font-bold transition-all"
                               style={{
-                                background: isActive  ? 'var(--color-gold)'             : isRec ? 'rgba(255,122,0,0.1)' : 'var(--color-surface)',
+                                background: isActive  ? 'var(--color-gold)'             : isRec ? 'var(--color-gold-tint)' : 'var(--color-surface)',
                                 color:      isActive  ? '#fff'                           : isRec ? 'var(--color-gold)'   : 'var(--color-text)',
-                                border:     `1.5px solid ${isActive ? 'var(--color-gold)' : isRec ? 'rgba(255,122,0,0.35)' : 'var(--color-border)'}`,
+                                border:     `1.5px solid ${isActive ? 'var(--color-gold)' : isRec ? 'var(--color-gold-ring)' : 'var(--color-border)'}`,
                                 boxShadow:  isActive  ? '0 2px 8px var(--color-gold-ring)' : 'none',
                               }}>
                               {isRec && !isActive && <span className="mr-0.5">⭐</span>}{timeStr}
@@ -2180,7 +2180,7 @@ export function Appointments() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'var(--color-overlay-md)', backdropFilter: 'blur(2px)' }}
             onClick={e => { if (e.target === e.currentTarget) { setAddEventOpen(false); setEventForm(EMPTY_EVENT); setEventPreset(''); setEventPickerMode('from') } }}
           >
             <motion.div
@@ -2193,7 +2193,7 @@ export function Appointments() {
                 background:  'var(--color-card)',
                 maxHeight:   '92vh',
                 border:      '1px solid var(--color-border)',
-                boxShadow:   '0 -8px 40px rgba(0,0,0,0.2)',
+                boxShadow:   '0 -8px 40px var(--color-shadow-lg)',
               }}
               onClick={e => e.stopPropagation()}
             >
@@ -2287,7 +2287,7 @@ export function Appointments() {
                         >
                           <span
                             className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
-                            style={{ background: 'rgba(255,255,255,0.25)', color: active ? '#fff' : 'var(--color-gold)', border: active ? 'none' : '1px solid var(--color-gold)' }}
+                            style={{ background: 'var(--color-white-25)', color: active ? '#fff' : 'var(--color-gold)', border: active ? 'none' : '1px solid var(--color-gold)' }}
                           >{s.name?.[0]}</span>
                           <span>{s.name}</span>
                           {active && <span className="text-[10px]">✓</span>}
@@ -2361,7 +2361,7 @@ export function Appointments() {
                           background:  eventPickerMode === tab.key ? 'var(--color-gold)'              : 'var(--color-surface)',
                           color:       eventPickerMode === tab.key ? '#fff'                            : 'var(--color-text)',
                           border:      `2px solid ${eventPickerMode === tab.key ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                          boxShadow:   eventPickerMode === tab.key ? '0 2px 12px rgba(255,122,0,0.2)'  : 'none',
+                          boxShadow:   eventPickerMode === tab.key ? '0 2px 12px var(--color-gold-ring)'  : 'none',
                         }}
                       >
                         <span className="text-[10px] font-semibold mb-0.5" style={{ opacity: 0.8 }}>{tab.label}</span>
@@ -2496,7 +2496,7 @@ export function Appointments() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'var(--color-overlay-md)', backdropFilter: 'blur(2px)' }}
             onClick={e => e.target === e.currentTarget && closeBook()}
           >
             <motion.form
@@ -2510,7 +2510,7 @@ export function Appointments() {
                 background:  'var(--color-card)',
                 maxHeight:   '92vh',
                 border:      '1px solid var(--color-border)',
-                boxShadow:   '0 -8px 40px rgba(0,0,0,0.2)',
+                boxShadow:   '0 -8px 40px var(--color-shadow-lg)',
               }}
               onClick={e => e.stopPropagation()}
             >
@@ -2722,7 +2722,7 @@ export function Appointments() {
                             }}
                           >
                             <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
-                              style={{ background: active ? 'rgba(255,255,255,0.25)' : 'var(--color-gold)', color: '#fff' }}>
+                              style={{ background: active ? 'var(--color-white-25)' : 'var(--color-gold)', color: '#fff' }}>
                               {s.name[0]}
                             </span>
                             {s.name}
@@ -2801,7 +2801,7 @@ export function Appointments() {
                       <div className="space-y-3">
                         {/* Recommended */}
                         {bookSlotsRecommended.size > 0 && (
-                          <div className="rounded-2xl p-3" style={{ background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.2)' }}>
+                          <div className="rounded-2xl p-3" style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold-ring)' }}>
                             <p className="text-[10px] font-bold mb-2" style={{ color: 'var(--color-gold)' }}>
                               ⭐ מומלצות — ממזערות חורים ביומן
                             </p>
@@ -2814,9 +2814,9 @@ export function Appointments() {
                                     onClick={() => setBookForm(f => ({ ...f, startTime: t }))}
                                     className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
                                     style={{
-                                      background: sel ? 'var(--color-gold)'       : 'rgba(255,122,0,0.15)',
+                                      background: sel ? 'var(--color-gold)'       : 'var(--color-gold-tint)',
                                       color:      sel ? '#fff'                    : 'var(--color-gold)',
-                                      border:     `1.5px solid ${sel ? 'var(--color-gold)' : 'rgba(255,122,0,0.35)'}`,
+                                      border:     `1.5px solid ${sel ? 'var(--color-gold)' : 'var(--color-gold-ring)'}`,
                                       boxShadow:  sel ? '0 2px 10px var(--color-gold-ring)' : 'none',
                                     }}
                                   >{t}</button>
@@ -2913,7 +2913,7 @@ export function Appointments() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] flex items-center justify-center p-6"
-            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'var(--color-overlay-lg)', backdropFilter: 'blur(2px)' }}
           >
             <motion.div
               initial={{ scale: 0.88, opacity: 0 }}
@@ -2921,7 +2921,7 @@ export function Appointments() {
               exit={{    scale: 0.88, opacity: 0 }}
               transition={{ type: 'spring', damping: 24, stiffness: 300 }}
               className="w-full max-w-sm rounded-3xl overflow-hidden"
-              style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+              style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: '0 20px 60px var(--color-shadow-lg)' }}
             >
               <div className="px-5 pt-5 pb-4 space-y-3">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mx-auto"
@@ -3245,7 +3245,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
           return (
             <div key={day.toISOString()}
               className="flex-1 py-2 px-1 text-center border-r last:border-0 min-w-0"
-              style={{ background: isNow ? 'rgba(255,133,0,0.07)' : undefined, borderColor: 'var(--color-border)' }}>
+              style={{ background: isNow ? 'var(--color-gold-tint)' : undefined, borderColor: 'var(--color-border)' }}>
               <div className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-muted)' }}>
                 {format(day, 'EEE', { locale: he })}
@@ -3265,7 +3265,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   <button type="button"
                     onClick={() => setWaitlistModal({ date: day, entries: wlEntries })}
                     className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none hover:opacity-75"
-                    style={{ background: 'rgba(255,122,0,0.15)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}>
+                    style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}>
                     📋{wlCount}
                   </button>
                 )}
@@ -3308,7 +3308,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                 className="flex-1 relative border-r last:border-0 min-w-0"
                 style={{
                   height: TOTAL_H,
-                  background: isNow ? 'rgba(255,133,0,0.015)' : 'transparent',
+                  background: isNow ? 'var(--color-gold-tint)' : 'transparent',
                   borderColor: 'var(--color-border)',
                 }}>
 
@@ -3354,8 +3354,8 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   const showDur     = height >= SLOT_PX * 3     // ≥ 45 min
                   const isGroupAppt = appt.notes?.includes('קבוצה של')
                   const wkStatusBorder = appt.no_show ? undefined
-                    : appt.status === 'pending'   ? 'rgba(251,191,36,0.95)'
-                    : appt.status === 'confirmed' ? 'rgba(34,197,94,0.95)'
+                    : appt.status === 'pending'   ? 'var(--color-warning-solid)'
+                    : appt.status === 'confirmed' ? 'var(--color-success-solid)'
                     : undefined
 
                   return (
@@ -3374,7 +3374,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                           borderRadius: 5,
                           overflow:     'hidden',
                           padding:      '2px 5px',
-                          boxShadow:    '0 1px 4px rgba(0,0,0,0.22)',
+                          boxShadow:    '0 1px 4px var(--color-shadow-xl)',
                           fontSize:     10,
                           fontWeight:   700,
                           lineHeight:   1.25,
@@ -3398,7 +3398,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                           type="button"
                           onClick={e => { e.stopPropagation(); onReschedule(appt) }}
                           className="absolute bottom-0.5 left-0.5"
-                          style={{ fontSize: 7, background: 'rgba(0,0,0,0.28)', color: 'rgba(255,255,255,0.85)', borderRadius: 2, padding: '1px 3px', lineHeight: 1, zIndex: 15, border: 'none', cursor: 'pointer' }}
+                          style={{ fontSize: 7, background: 'var(--color-shadow-lg)', color: 'rgba(255,255,255,0.85)', borderRadius: 2, padding: '1px 3px', lineHeight: 1, zIndex: 15, border: 'none', cursor: 'pointer' }}
                           title="שנה מועד"
                         >
                           📅
@@ -3454,7 +3454,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   <a href={`https://wa.me/${entry.profiles.phone.replace(/\D/g,'').replace(/^0/,'972')}`}
                     target="_blank" rel="noopener noreferrer"
                     className="min-w-11 min-h-11 flex items-center justify-center rounded-lg text-sm transition-all"
-                    style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366' }}>
+                    style={{ background: 'var(--color-success-tint)', color: '#25d366' }}>
                     💬
                   </a>
                 )}
@@ -3726,7 +3726,7 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
         top,
         height,
         borderTop,
-        backgroundColor: isOver ? 'rgba(201,169,110,0.14)' : 'transparent',
+        backgroundColor: isOver ? 'var(--color-gold-tint)' : 'transparent',
       }}
       onClick={onEmptyClick}
     />
@@ -3763,8 +3763,8 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
 
   const isNoShow = appt.no_show
   const statusBorderColor = isNoShow ? undefined
-    : appt.status === 'pending'   ? 'rgba(251,191,36,0.95)'
-    : appt.status === 'confirmed' ? 'rgba(34,197,94,0.95)'
+    : appt.status === 'pending'   ? 'var(--color-warning-solid)'
+    : appt.status === 'confirmed' ? 'var(--color-success-solid)'
     : undefined
 
   const style = {
@@ -3781,11 +3781,11 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
     cursor: isDragging ? 'grabbing' : 'grab',
     overflow: 'hidden',
     userSelect: 'none',
-    boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.22)' : '0 1px 4px rgba(0,0,0,0.14)',
+    boxShadow: isDragging ? '0 8px 24px var(--color-shadow-xl)' : '0 1px 4px var(--color-shadow-md)',
     transition: isDragging ? 'none' : 'box-shadow 0.15s',
     borderRight: statusBorderColor ? `3px solid ${statusBorderColor}` : undefined,
     backgroundImage: isNoShow
-      ? 'repeating-linear-gradient(45deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 3px, transparent 3px, transparent 9px)'
+      ? 'repeating-linear-gradient(45deg, var(--color-shadow-sm), var(--color-shadow-sm) 3px, transparent 3px, transparent 9px)'
       : undefined,
   }
 
@@ -3794,7 +3794,7 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
       {/* Drag grip hint */}
       {height >= 24 && (
         <div className="absolute top-0.5 left-1 pointer-events-none select-none"
-          style={{ fontSize: 8, lineHeight: 1, color: 'rgba(255,255,255,0.35)', letterSpacing: 1 }}>
+          style={{ fontSize: 8, lineHeight: 1, color: 'var(--color-white-25)', letterSpacing: 1 }}>
           ⠿
         </div>
       )}

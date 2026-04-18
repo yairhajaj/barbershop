@@ -139,14 +139,14 @@ export function Dashboard() {
         value: `₪${revenuePaid.toLocaleString('he-IL')}`,
         sub: 'שולם היום',
         accent: '#16a34a',
-        tint: 'rgba(22,163,74,0.06)',
+        tint: 'var(--color-success-tint)',
       },
       {
         label: 'צפוי היום',
         value: `₪${revenueExpected.toLocaleString('he-IL')}`,
         sub: `${future.length} תורים נותרו`,
         accent: 'var(--color-gold)',
-        tint: 'rgba(255,133,0,0.06)',
+        tint: 'var(--color-gold-tint)',
       },
       {
         label: 'חובות פתוחים',
@@ -165,7 +165,7 @@ export function Dashboard() {
         label: 'ממתינים',
         value: String(waitlistActive.length),
         accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
-        tint: waitlistActive.length > 0 ? 'rgba(255,133,0,0.06)' : undefined,
+        tint: waitlistActive.length > 0 ? 'var(--color-gold-tint)' : undefined,
       },
     ]
 

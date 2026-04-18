@@ -951,7 +951,7 @@ function PortfolioModal({ member, onClose, toast }) {
   return (
     <Modal open={true} onClose={onClose} title={`פורטפוליו — ${member.name}`} size="lg">
       <div className="space-y-5 max-h-[75vh] overflow-y-auto">
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid var(--color-border)' }}>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--color-shadow-xs)', border: '1px solid var(--color-border)' }}>
           <p className="text-sm font-semibold">הוסף תמונות</p>
           <ImageUpload value={null} onUrls={handleUploadedUrls} folder="portfolio" label="העלאת תמונות (ניתן לבחור כמה)" multiple={true} />
           <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-muted)' }}>

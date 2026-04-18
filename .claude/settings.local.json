@@ -97,7 +97,24 @@
       "Bash(npm i *)",
       "WebFetch(domain:ixicgcjzgrqdysqlxgwr.supabase.co)",
       "Bash(node -e \"const p=require\\('./package.json'\\); ['@capacitor/app','@capacitor/status-bar','@capacitor/keyboard','@capacitor/haptics','@capacitor/splash-screen'].forEach\\(k=>console.log\\(k,p.dependencies[k]||p.devDependencies?.[k]||'missing'\\)\\)\")",
-      "Bash(gh run *)"
+      "Bash(gh run *)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\tax-authority\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\clients\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\operator\")",
+      "Bash(cp \"C:\\\\Users\\\\yairh\\\\barbershop-app\\\\tax-authority-submission\\\\01-application.html\" \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\tax-authority\\\\\" && cp \"C:\\\\Users\\\\yairh\\\\barbershop-app\\\\tax-authority-submission\\\\02-cover-letter.html\" \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\tax-authority\\\\\")",
+      "Bash(cp \"C:\\\\Users\\\\yairh\\\\barbershop-app\\\\tax-authority-submission\\\\03-compliance-declaration.html\" \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\tax-authority\\\\\" && cp \"C:\\\\Users\\\\yairh\\\\barbershop-app\\\\tax-authority-submission\\\\04-software-use-notification.html\" \"C:\\\\Users\\\\yairh\\\\saas-platform\\\\tax-authority\\\\\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(sed -i \"s/rgba\\(201,169,110,0\\\\.1\\)/var\\(--color-gold-tint\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(201,169,110,0\\\\.12\\)/var\\(--color-gold-tint\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(201,169,110,0\\\\.08\\)/var\\(--color-gold-tint\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(201,169,110,0\\\\.06\\)/var\\(--color-gold-tint\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(201,169,110,0\\\\.3\\)/var\\(--color-gold-ring\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(255,122,0,0\\\\.12\\)/var\\(--color-gold-tint\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(255,122,0,0\\\\.07\\)/var\\(--color-gold-tint\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(255,122,0,0\\\\.25\\)/var\\(--color-gold-ring\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(255,122,0,0\\\\.28\\)/var\\(--color-gold-ring\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(sed -i \"s/rgba\\(255,122,0,0\\\\.3\\)/var\\(--color-gold-ring\\)/g\" src/pages/admin/*.jsx src/pages/admin/finance/*.jsx)",
+      "Bash(xargs sed *)"
     ]
   }
 }

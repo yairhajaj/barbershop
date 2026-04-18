@@ -13,7 +13,7 @@ const PAYMENT_MODE_LABELS = {
   inherit:  null,           // don't show badge
   required: { label: '🔒 תשלום חובה',    color: '#16a34a', bg: 'var(--color-success-tint)' },
   optional: { label: '🤝 תשלום אופציונלי', color: '#d97706', bg: 'var(--color-warning-tint)' },
-  disabled: { label: '🚫 ללא תשלום',      color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+  disabled: { label: '🚫 ללא תשלום',      color: '#6b7280', bg: 'var(--color-gray-tint)' },
 }
 
 export function Services() {
@@ -81,7 +81,7 @@ export function Services() {
                     </span>
                   )}
                   {service.booking_type === 'by_request' && (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(255,133,0,0.12)', color: 'var(--color-primary)' }}>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--color-gold-tint)', color: 'var(--color-primary)' }}>
                       📞 בתיאום בלבד
                     </span>
                   )}
@@ -178,7 +178,7 @@ export function Services() {
                       className="flex-1 py-2 px-3 text-sm rounded-lg border-2 font-medium transition-colors"
                       style={{
                         borderColor: editService.booking_type === opt.value ? 'var(--color-primary)' : 'var(--color-border)',
-                        background: editService.booking_type === opt.value ? 'rgba(255,133,0,0.08)' : 'transparent',
+                        background: editService.booking_type === opt.value ? 'var(--color-gold-tint)' : 'transparent',
                         color: editService.booking_type === opt.value ? 'var(--color-primary)' : 'var(--color-muted)',
                       }}
                     >

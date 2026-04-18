@@ -463,7 +463,7 @@ export function SettingsTab() {
                     <div className="flex items-center gap-1.5">
                       <span>{opt.icon}</span>
                       <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>{opt.label}</span>
-                      {isBlocked && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>דרוש API Key</span>}
+                      {isBlocked && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--color-danger-tint)', color: '#ef4444' }}>דרוש API Key</span>}
                     </div>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{opt.desc}</p>
                   </div>

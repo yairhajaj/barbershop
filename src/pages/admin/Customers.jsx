@@ -16,10 +16,10 @@ import { WalkInModal } from '../../components/admin/dashboard/WalkInModal'
 
 const STATUS_COLORS = {
   confirmed:          { bg: 'var(--color-success-tint)',   color: '#16a34a', label: '✅ אושר' },
-  pending_reschedule: { bg: 'rgba(234,179,8,0.1)',   color: '#ca8a04', label: '🕐 ממתין' },
+  pending_reschedule: { bg: 'var(--color-warning-tint)',   color: '#ca8a04', label: '🕐 ממתין' },
   cancelled:          { bg: 'var(--color-danger-tint)',  color: '#dc2626', label: '❌ בוטל' },
   no_show:            { bg: 'var(--color-danger-tint)',  color: '#dc2626', label: '🚫 לא הגיע' },
-  completed:          { bg: 'rgba(107,114,128,0.1)', color: '#6b7280', label: '☑ הושלם' },
+  completed:          { bg: 'var(--color-gray-ring)', color: '#6b7280', label: '☑ הושלם' },
 }
 
 export function Customers() {
@@ -260,7 +260,7 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
       onClick={onOpen}
       className="rounded-2xl p-4 cursor-pointer transition-all"
       style={{
-        background: customer.is_blocked ? 'rgba(239,68,68,0.04)' : 'var(--color-card)',
+        background: customer.is_blocked ? 'var(--color-danger-tint)' : 'var(--color-card)',
         border: `1px solid ${customer.is_blocked ? 'var(--color-danger-ring)' : 'var(--color-border)'}`,
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)' }}
@@ -269,7 +269,7 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
       <div className="flex items-center gap-3">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-base font-black flex-shrink-0"
-          style={{ background: customer.is_blocked ? 'rgba(239,68,68,0.12)' : 'var(--color-gold)', color: customer.is_blocked ? '#dc2626' : '#fff' }}
+          style={{ background: customer.is_blocked ? 'var(--color-danger-tint)' : 'var(--color-gold)', color: customer.is_blocked ? '#dc2626' : '#fff' }}
         >
           {customer.name?.[0] ?? '?'}
         </div>
@@ -306,7 +306,7 @@ function CustomerRow({ customer, index, onOpen, onBlock, waLink, pendingDebt = 0
 
         <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
           <a href={`tel:${customer.phone}`} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'var(--color-success-tint)', color: '#16a34a' }}>📞</a>
-          <a href={waLink} target="_blank" rel="noopener noreferrer" className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'rgba(37,211,102,0.1)', color: '#25d366' }}>💬</a>
+          <a href={waLink} target="_blank" rel="noopener noreferrer" className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: 'var(--color-success-tint)', color: '#25d366' }}>💬</a>
           <button onClick={onBlock} className="min-w-11 min-h-11 rounded-full flex items-center justify-center text-sm" style={{ background: customer.is_blocked ? 'var(--color-success-tint)' : 'var(--color-danger-tint)', color: customer.is_blocked ? '#16a34a' : '#dc2626' }}>
             {customer.is_blocked ? '✅' : '🚫'}
           </button>
@@ -492,13 +492,13 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
             )}
           </div>
           {pendingDebts.length === 0 ? (
-            <div className="text-center py-3 rounded-xl text-sm" style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)', color: '#16a34a' }}>
+            <div className="text-center py-3 rounded-xl text-sm" style={{ background: 'var(--color-success-tint)', border: '1px solid var(--color-success-tint)', color: '#16a34a' }}>
               ✓ אין חובות פתוחים
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {pendingDebts.map(d => (
-                <div key={d.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
+                <div key={d.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: 'var(--color-danger-tint)', border: '1px solid var(--color-danger-tint)' }}>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>{d.description || 'חוב'}</div>
                     <div className="text-[11px] mt-0.5" style={{ color: 'var(--color-muted)' }}>{formatDateShort(new Date(d.created_at))}</div>
@@ -508,7 +508,7 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
                     <button
                       onClick={() => handleMarkPaid(d.id)}
                       className="text-[11px] font-bold px-2 py-1 rounded-lg"
-                      style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}
+                      style={{ background: 'var(--color-success-tint)', color: '#16a34a' }}
                     >
                       שולם ✓
                     </button>
@@ -521,7 +521,7 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
 
         {/* No-show callout */}
         {noShows.length > 0 && (
-          <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)' }}>
+          <div className="rounded-xl px-4 py-3" style={{ background: 'var(--color-danger-tint)', border: '1px solid var(--color-danger-tint)' }}>
             <div className="text-sm font-bold" style={{ color: '#dc2626' }}>🚫 לא הגיע {noShows.length} פעמים</div>
             <div className="text-xs mt-1.5 flex flex-col gap-1" style={{ color: '#dc2626', opacity: 0.8 }}>
               {noShows.slice(0, 3).map(a => (
@@ -617,7 +617,7 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
                 className="w-full rounded-xl px-3 py-2.5 text-sm" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }} placeholder="סיבת החוב..." />
             </div>
             <button onClick={handleSaveDebt} disabled={debtSaving || !debtForm.amount}
-              className="w-full py-2.5 rounded-xl font-bold text-sm" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}>
+              className="w-full py-2.5 rounded-xl font-bold text-sm" style={{ background: 'var(--color-warning-tint)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}>
               {debtSaving ? 'שומר...' : 'שמור חוב'}
             </button>
           </div>

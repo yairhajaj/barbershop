@@ -17,12 +17,12 @@ import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 
 const METHOD_BADGE_COLORS = {
   cash:     { bg: 'var(--color-success-tint)',  color: '#16a34a', border: 'var(--color-success-ring)' },
-  credit:   { bg: 'rgba(37,99,235,0.08)',  color: '#2563eb', border: 'rgba(37,99,235,0.2)' },
-  bit:      { bg: 'rgba(249,115,22,0.08)', color: '#f97316', border: 'rgba(249,115,22,0.2)' },
-  paybox:   { bg: 'rgba(168,85,247,0.08)', color: '#a855f7', border: 'rgba(168,85,247,0.2)' },
-  transfer: { bg: 'rgba(124,58,237,0.08)', color: '#7c3aed', border: 'rgba(124,58,237,0.2)' },
-  check:    { bg: 'var(--color-warning-tint)',  color: '#d97706', border: 'rgba(217,119,6,0.2)' },
-  grow:     { bg: 'rgba(14,165,233,0.08)', color: '#0ea5e9', border: 'rgba(14,165,233,0.2)' },
+  credit:   { bg: 'var(--color-blue-tint)',  color: '#2563eb', border: 'var(--color-blue-ring)' },
+  bit:      { bg: 'var(--color-warning-tint)', color: '#f97316', border: 'var(--color-warning-ring)' },
+  paybox:   { bg: 'var(--color-purple-tint)', color: '#a855f7', border: 'var(--color-purple-ring)' },
+  transfer: { bg: 'var(--color-purple-tint)', color: '#7c3aed', border: 'var(--color-purple-ring)' },
+  check:    { bg: 'var(--color-warning-tint)',  color: '#d97706', border: 'var(--color-warning-ring)' },
+  grow:     { bg: 'var(--color-blue-tint)', color: '#0ea5e9', border: 'var(--color-blue-ring)' },
 }
 
 export function IncomeTab() {

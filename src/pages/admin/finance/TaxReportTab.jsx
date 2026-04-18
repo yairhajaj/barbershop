@@ -313,7 +313,7 @@ export function TaxReportTab() {
 
           {/* VAT section — only for osek morsheh / company */}
           {showVat && (
-            <div className="card p-4" style={{ border: '1px solid var(--color-gold-ring)', background: 'rgba(201,169,110,0.04)' }}>
+            <div className="card p-4" style={{ border: '1px solid var(--color-gold-ring)', background: 'var(--color-gold-tint)' }}>
               <p className="font-bold text-sm mb-3" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
                 🧾 דוח מע"מ
               </p>

@@ -149,7 +149,7 @@ export function Products() {
                     onClick={() => toggleField(product.id, 'is_active', !product.is_active)}
                     className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all"
                     style={{
-                      background: product.is_active ? 'var(--color-success-tint)' : 'rgba(0,0,0,0.05)',
+                      background: product.is_active ? 'var(--color-success-tint)' : 'var(--color-shadow-xs)',
                       borderColor: product.is_active ? '#22c55e' : 'var(--color-border)',
                       color: product.is_active ? '#16a34a' : 'var(--color-muted)',
                     }}
@@ -160,7 +160,7 @@ export function Products() {
                     onClick={() => toggleField(product.id, 'is_featured', !product.is_featured)}
                     className="text-xs px-2.5 py-1 rounded-full font-semibold border transition-all"
                     style={{
-                      background: product.is_featured ? 'rgba(251,191,36,0.15)' : 'rgba(0,0,0,0.05)',
+                      background: product.is_featured ? 'var(--color-warning-tint)' : 'var(--color-shadow-xs)',
                       borderColor: product.is_featured ? '#FBBF24' : 'var(--color-border)',
                       color: product.is_featured ? '#B45309' : 'var(--color-muted)',
                     }}

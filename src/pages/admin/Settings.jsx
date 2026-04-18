@@ -128,7 +128,7 @@ export function Settings() {
 
             {/* Preview */}
             <div className="rounded-xl p-3 text-sm"
-              style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid var(--color-gold-ring)' }}>
+              style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold-ring)' }}>
               <p className="font-medium mb-1" style={{ color: 'var(--color-gold)' }}>תצוגה מוקדמת — כך יראה ללקוח:</p>
               <p style={{ color: 'var(--color-muted)' }}>
                 {`ניתן לבטל עד ${form.cancellation_hours} שעות לפני התור. `}
@@ -296,7 +296,7 @@ export function Settings() {
               <span className="text-sm font-medium">הפעל תזכורות אוטומטיות</span>
               <div className="relative" onClick={() => setForm(f => ({ ...f, reminder_enabled: !f.reminder_enabled }))}>
                 <div className="w-11 h-6 rounded-full transition-all duration-200"
-                  style={{ background: form.reminder_enabled ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                  style={{ background: form.reminder_enabled ? 'var(--color-gold)' : 'var(--color-shadow-md)' }}>
                   <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
                     style={{ right: form.reminder_enabled ? '2px' : 'calc(100% - 22px)' }} />
                 </div>
@@ -344,7 +344,7 @@ export function Settings() {
                 <label className="flex items-center gap-2 flex-1 cursor-pointer">
                   <div className="relative" onClick={() => setForm(f => ({ ...f, reminder_2_enabled: !f.reminder_2_enabled }))}>
                     <div className="w-9 h-5 rounded-full transition-all"
-                      style={{ background: form.reminder_2_enabled ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                      style={{ background: form.reminder_2_enabled ? 'var(--color-gold)' : 'var(--color-shadow-md)' }}>
                       <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
                         style={{ right: form.reminder_2_enabled ? '2px' : 'calc(100% - 18px)' }} />
                     </div>
@@ -367,7 +367,7 @@ export function Settings() {
                 <label className="flex items-center gap-2 flex-1 cursor-pointer">
                   <div className="relative" onClick={() => setForm(f => ({ ...f, reminder_3_enabled: !f.reminder_3_enabled }))}>
                     <div className="w-9 h-5 rounded-full transition-all"
-                      style={{ background: form.reminder_3_enabled ? 'var(--color-gold)' : 'rgba(0,0,0,0.12)' }}>
+                      style={{ background: form.reminder_3_enabled ? 'var(--color-gold)' : 'var(--color-shadow-md)' }}>
                       <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
                         style={{ right: form.reminder_3_enabled ? '2px' : 'calc(100% - 18px)' }} />
                     </div>
@@ -410,7 +410,7 @@ export function Settings() {
             <div className="mt-5 space-y-5">
 
               {/* ── Step 1: Grow account ── */}
-              <div className="rounded-2xl p-4" style={{ background: 'rgba(201,169,110,0.07)', border: '1px solid rgba(201,169,110,0.25)' }}>
+              <div className="rounded-2xl p-4" style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold-ring)' }}>
                 <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-gold)' }}>שלב 1 — פתח חשבון Grow</p>
                 <p className="text-xs text-muted mb-3">ההרשמה חינמית. תומך ב-Bit, Apple Pay, Google Pay, PayBox. הכסף מגיע ישירות לחשבון הבנק שלך.</p>
                 <a
@@ -466,10 +466,10 @@ export function Settings() {
                 className="rounded-2xl p-4"
                 style={{
                   background: settings?.grow_api_key && settings?.grow_user_id && settings?.grow_page_code
-                    ? 'rgba(22,163,74,0.06)'
+                    ? 'var(--color-success-tint)'
                     : 'var(--color-surface)',
                   border: `1px solid ${settings?.grow_api_key && settings?.grow_user_id && settings?.grow_page_code
-                    ? 'rgba(22,163,74,0.25)'
+                    ? 'var(--color-success-ring)'
                     : 'var(--color-border)'}`,
                 }}
               >
@@ -686,7 +686,7 @@ function Toggle({ checked, onChange }) {
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className="relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 focus:outline-none"
-      style={{ background: checked ? 'var(--color-gold)' : 'rgba(0,0,0,0.15)' }}
+      style={{ background: checked ? 'var(--color-gold)' : 'var(--color-shadow-md)' }}
     >
       <span
         className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200"

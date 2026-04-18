@@ -9,11 +9,11 @@ import { supabase } from '../../lib/supabase'
 import { formatDateShort } from '../../lib/utils'
 
 const STATUS_META = {
-  pending:  { label: 'ממתין',   color: '#ca8a04', bg: 'rgba(234,179,8,0.1)' },
-  notified: { label: 'הופנה',   color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
+  pending:  { label: 'ממתין',   color: '#ca8a04', bg: 'var(--color-warning-tint)' },
+  notified: { label: 'הופנה',   color: '#2563eb', bg: 'var(--color-blue-tint)' },
   booked:   { label: 'הוזמן',   color: '#16a34a', bg: 'var(--color-success-tint)' },
-  declined: { label: 'סירב',    color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
-  expired:  { label: 'פג תוקף', color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' },
+  declined: { label: 'סירב',    color: '#6b7280', bg: 'var(--color-gray-ring)' },
+  expired:  { label: 'פג תוקף', color: '#9ca3af', bg: 'var(--color-gray-ring)' },
   removed:  { label: 'הוסר',    color: '#ef4444', bg: 'var(--color-danger-tint)' },
 }
 
