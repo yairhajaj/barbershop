@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>מכתב מלווה — רישום תוכנה</title>
+<style>
+  @page { size: A4; margin: 2cm; }
+  body { font-family: 'David', 'Arial Hebrew', Arial, sans-serif; font-size: 11pt; line-height: 1.8; color: #000; max-width: 18cm; margin: 40px auto; padding: 0 20px; }
+  h1 { font-size: 16pt; }
+  p { margin: 10px 0; text-align: justify; }
+  .header { margin-bottom: 40px; }
+  .addr { margin: 5px 0; }
+  .sig { margin-top: 60px; }
+  .sig-line { display: inline-block; border-top: 1px solid #000; min-width: 250px; padding-top: 5px; margin-top: 30px; }
+  .noprint { position: fixed; top: 10px; left: 10px; background: #c9a96e; color: #fff; padding: 10px 20px; border: 0; border-radius: 6px; cursor: pointer; font-size: 12pt; }
+  @media print { .noprint { display: none; } body { margin: 0; } }
+</style>
+</head>
+<body>
+<button class="noprint" onclick="window.print()">🖨 הדפס / שמור כ-PDF</button>
+
+<div class="header">
+  <div class="addr"><strong>אל:</strong></div>
+  <div class="addr">רשות המיסים בישראל</div>
+  <div class="addr">אגף מע״מ ומיסוי מקרקעין</div>
+  <div class="addr">המחלקה למערכות מידע חשבונאיות</div>
+  <div class="addr">דרך בר-יהודה 5, ירושלים</div>
+</div>
+
+<p style="text-align:left;">תאריך: ______________</p>
+
+<h1>הנדון: בקשה לרישום תוכנת "Barbershop Booking" לניהול ספרי חשבונות</h1>
+
+<p>שלום רב,</p>
+
+<p>הריני להגיש בזאת בקשה לרישום תוכנה שפיתחתי עבור עסקי שירות קטנים בישראל,
+בהתאם להוראת מקצוע 24/2004 של רשות המיסים, לצורך קבלת מספר רישום תוכנה בן 8 ספרות
+שיאפשר לעסקים המשתמשים בתוכנה להפיק קובץ אחיד (OPENFRMT) תקין.</p>
+
+<p><strong>אודות התוכנה:</strong> "Barbershop Booking" היא מערכת תוכנה מלאה לניהול עסק שירות —
+הזמנת תורים, ניהול לקוחות, הפקת חשבוניות מס-קבלה, תשלומים דיגיטליים (באמצעות Grow / מי-שלום),
+ניהול הוצאות, מעקב עמלות לעובדים, והפקת דוחות למס הכנסה ולמע״מ.</p>
+
+<p><strong>עמידה במפרטי רשות המיסים:</strong> התוכנה מפיקה קבצים בפורמט מבנה אחיד גרסה 1.31,
+כולל כל רשומות החובה (A000, A100, C100, D110, D120, M100, Z900) באורך וסדר שדות לפי המפרט.
+כל מסמך מקבל מזהה ראשי (Primary ID) בן 15 ספרות, והתוכנה שומרת את המזהה לצורך תיעוד.</p>
+
+<p><strong>עמידה בהוראת 24/2004:</strong> התוכנה מבצעת את כל הנדרש —</p>
+<ul>
+  <li>סעיף 2.6 — דוח הפקה לכל ייצוא קבצים לרשות המיסים, הניתן להדפסה ולשמירה.</li>
+  <li>סעיף 18ב(ב) — הודעה על שימוש בתוכנה (תוגש לאחר קבלת מספר הרישום).</li>
+  <li>סעיף 18ב(ג)(1) — בקשה ושמירה של הסכמת לקוח לקבלת מסמכים ממוחשבים.</li>
+  <li>סעיף 25(ו) — גיבויים רבעוניים של הנתונים בצורה מוצפנת.</li>
+  <li>סעיף 5.4 — שמירת Primary ID ודוח ההפקה במסד הנתונים לצורך אודיט.</li>
+</ul>
+
+<p><strong>עמידה בהוראת ניהול ספרים 36:</strong> התוכנה שומרת רצף מספרי חשבוניות ומונעת מחיקה של מסמך שהופק —
+ביטול נעשה אך ורק באמצעות הפקת חשבונית זיכוי.</p>
+
+<p>אני עומד/ת לרשות הרשות לכל בירור, הדגמה, או הגשה של קבצי דוגמה נוספים.</p>
+
+<p>בהצלחה ותודה רבה על הבחינה,</p>
+
+<div class="sig">
+  <div class="sig-line">חתימה + שם מלא + ת.ז.</div>
+</div>
+
+<p style="margin-top:30px;font-size:10pt;color:#666;">
+<strong>מצורפים:</strong> טופס בקשה לרישום (נספח 1) · הצהרת עמידה בדרישות (נספח 2) ·
+דוגמת קובץ אחיד (INI.TXT + BKMVDATA.zip) · צילומי מסך · קישור לאפליקציה.
+</p>
+</body>
+</html>

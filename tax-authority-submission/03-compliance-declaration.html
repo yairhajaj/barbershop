@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>הצהרת עמידה — הוראת מקצוע 24/2004</title>
+<style>
+  @page { size: A4; margin: 2cm; }
+  body { font-family: 'David', 'Arial Hebrew', Arial, sans-serif; font-size: 11pt; line-height: 1.7; color: #000; max-width: 18cm; margin: 40px auto; padding: 0 20px; }
+  h1 { font-size: 16pt; border-bottom: 2px solid #000; padding-bottom: 8px; }
+  h2 { font-size: 12pt; color: #333; margin-top: 25px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #666; padding: 7px 10px; text-align: right; vertical-align: top; }
+  th { background: #f0f0f0; width: 15%; text-align: center; }
+  td:first-child { width: 8%; text-align: center; font-weight: bold; }
+  .sig { margin-top: 50px; }
+  .sig-line { display: inline-block; border-top: 1px solid #000; min-width: 220px; padding-top: 5px; margin-top: 30px; margin-left: 20px; }
+  .noprint { position: fixed; top: 10px; left: 10px; background: #c9a96e; color: #fff; padding: 10px 20px; border: 0; border-radius: 6px; cursor: pointer; font-size: 12pt; }
+  @media print { .noprint { display: none; } body { margin: 0; } }
+</style>
+</head>
+<body>
+<button class="noprint" onclick="window.print()">🖨 הדפס / שמור כ-PDF</button>
+
+<h1>הצהרת עמידה בדרישות הוראת מקצוע 24/2004</h1>
+<p>ובמבנה אחיד גרסה 1.31</p>
+
+<p>אני הח״מ, יצרן/ית תוכנת "Barbershop Booking", מצהיר/ה בזאת כי התוכנה עומדת בכל הדרישות הבאות:</p>
+
+<h2>א. מבנה אחיד 1.31</h2>
+<table>
+  <tr><td>1</td><td>כל רשומת A000 מכילה 466 תווים.</td><td>✓</td></tr>
+  <tr><td>2</td><td>כל רשומת A100 מכילה 95 תווים; מתחילה ב-"A100" ומסתיימת ב-50 רווחים.</td><td>✓</td></tr>
+  <tr><td>3</td><td>כל רשומת C100 מכילה 444 תווים עם כל שדות החובה.</td><td>✓</td></tr>
+  <tr><td>4</td><td>כל רשומת D110 מכילה 339 תווים.</td><td>✓</td></tr>
+  <tr><td>5</td><td>כל רשומת D120 מכילה 222 תווים; קוד אמצעי תשלום 1-5/9 נכון.</td><td>✓</td></tr>
+  <tr><td>6</td><td>כל רשומת M100 מכילה 298 תווים.</td><td>✓</td></tr>
+  <tr><td>7</td><td>כל רשומת Z900 מכילה 110 תווים עם ספירה כוללת של רשומות.</td><td>✓</td></tr>
+  <tr><td>8</td><td>קוד מערכת "&amp;OF1.31&amp;" מופיע בשדות 1005, 1104, 1154.</td><td>✓</td></tr>
+  <tr><td>9</td><td>מזהה ראשי (1004/1103/1153) הוא מספר אקראי בן 15 ספרות, זהה בכל הרשומות לאותו ייצוא.</td><td>✓</td></tr>
+  <tr><td>10</td><td>שדות נומריים ללא נקודה עשרונית — נקודה משתמעת לפי אורך השדה.</td><td>✓</td></tr>
+  <tr><td>11</td><td>שדות טקסט מוצמדים מימין עם רווחים; שדות עתידיים ממולאים ב-"!".</td><td>✓</td></tr>
+  <tr><td>12</td><td>קידוד: ISO-8859-8-i (Windows-1255). תווי שורה: CRLF.</td><td>✓</td></tr>
+  <tr><td>13</td><td>מבנה תיקיות: OPENFRMT/&lt;ח.פ&gt;.&lt;YY&gt;/&lt;MMDDhhmm&gt;/INI.TXT + BKMVDATA.zip.</td><td>✓</td></tr>
+  <tr><td>14</td><td>קודי סוגי מסמכים (שדה 1201) לפי נספח 1 להוראת ניהול 36.</td><td>✓</td></tr>
+</table>
+
+<h2>ב. הוראת מקצוע 24/2004</h2>
+<table>
+  <tr><td>15</td><td>סעיף 2.6 — התוכנה מפיקה דוח הפקה ניתן להדפסה לכל ייצוא קבצים.</td><td>✓</td></tr>
+  <tr><td>16</td><td>סעיף 5.4 — המזהה הראשי (Primary ID) נשמר במסד הנתונים לתיעוד.</td><td>✓</td></tr>
+  <tr><td>17</td><td>סעיף 18ב(ב) — מסך ייעודי לרישום הודעת שימוש בתוכנה לרשות המיסים.</td><td>✓</td></tr>
+  <tr><td>18</td><td>סעיף 18ב(ג)(1) — קבלה ושמירה של הסכמת לקוחות למסמכים ממוחשבים.</td><td>✓</td></tr>
+  <tr><td>19</td><td>סעיף 25(ו) — מנגנון גיבויים רבעוני אוטומטי עם מעקב תאריך גיבוי אחרון.</td><td>✓</td></tr>
+</table>
+
+<h2>ג. הוראת ניהול 36</h2>
+<table>
+  <tr><td>20</td><td>מספרי חשבוניות רצים; המשכיות נשמרת; ביטול נעשה רק דרך זיכוי.</td><td>✓</td></tr>
+  <tr><td>21</td><td>פונקציית SQL ייעודית (check_invoice_continuity) לבדיקת קיום כל המספרים בטווח.</td><td>✓</td></tr>
+  <tr><td>22</td><td>מחיקה פיזית של חשבונית חסומה ברמת מסד הנתונים (אין עמודת delete).</td><td>✓</td></tr>
+  <tr><td>23</td><td>כל חשבונית זיכוי מקושרת למקור דרך השדה credit_note_for.</td><td>✓</td></tr>
+  <tr><td>24</td><td>PDF מופק עם כל השדות הנדרשים בעברית RTL.</td><td>✓</td></tr>
+</table>
+
+<h2>ד. אבטחה ושמירת נתונים</h2>
+<table>
+  <tr><td>25</td><td>כל הנתונים מוצפנים ב-TLS 1.2+ במעבר וב-AES במנוחה (Supabase).</td><td>✓</td></tr>
+  <tr><td>26</td><td>הרשאות גישה לפי Row Level Security (RLS) — רק admin רואה את כל הנתונים.</td><td>✓</td></tr>
+  <tr><td>27</td><td>לוג שינויים (audit trail) בכל פעולה רגישה.</td><td>✓</td></tr>
+  <tr><td>28</td><td>נתונים נשמרים לפחות 7 שנים מעבר לסוף שנת המס (חוק ביקורת מסים).</td><td>✓</td></tr>
+</table>
+
+<p>אני מתחייב/ת להודיע לרשות המיסים על כל שינוי מהותי בתוכנה או בדרך שבה היא מייצאת את הקובץ האחיד.</p>
+
+<div class="sig">
+  <p style="margin-top:20px;">ולראיה באתי על החתום:</p>
+  <div class="sig-line">שם מלא</div>
+  <div class="sig-line">ת.ז.</div>
+  <div class="sig-line">חתימה</div>
+  <div class="sig-line">תאריך</div>
+</div>
+</body>
+</html>

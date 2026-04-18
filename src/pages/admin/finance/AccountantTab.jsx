@@ -6,7 +6,7 @@ import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
 import { sendEmail, blobToBase64 } from '../../../lib/email'
 import { generateFinancialReport, downloadWorkbook } from '../../../lib/xlsx-report'
-import { downloadOpenFormat } from '../../../lib/openfrmt'
+import { downloadOpenFormat, validateOpenFormatSettings, printSection26 } from '../../../lib/openfrmt'
 import { downloadPcn874 } from '../../../lib/pcn874'
 
 function defaultRange() {
@@ -29,6 +29,10 @@ export function AccountantTab() {
   const [range, setRange] = useState(defaultRange)
   const [busy, setBusy] = useState(null) // 'receipts' | 'invoices' | 'report' | 'openfrmt' | 'pcn874'
   const [taxPanelOpen, setTaxPanelOpen] = useState(false)
+  const [openfrmtDialog, setOpenfrmtDialog] = useState(null) // { report, primaryId } | null
+
+  // Live validation of OPENFRMT settings
+  const ofValidation = settings ? validateOpenFormatSettings(settings) : { valid: false, errors: [], warnings: [] }
 
   const accountantEmail = settings?.accountant_email
   const accountantName  = settings?.accountant_name
@@ -224,10 +228,15 @@ export function AccountantTab() {
 
   // ─── Action 4a: OPENFRMT ───
   async function downloadOpenfrmt() {
+    if (!ofValidation.valid) {
+      toast({ message: 'חסרות הגדרות חובה — בדוק הגדרות רישום תוכנה', type: 'error' })
+      return
+    }
     setBusy('openfrmt')
     try {
-      await downloadOpenFormat({ from: range.from, to: range.to, settings })
-      toast({ message: 'הקובץ הורד. יש לאמת בסימולטור של רשות המיסים', type: 'success' })
+      const result = await downloadOpenFormat({ from: range.from, to: range.to, settings })
+      setOpenfrmtDialog(result)
+      toast({ message: 'הקובץ הורד ✓', type: 'success' })
     } catch (err) {
       toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
     } finally {
@@ -336,10 +345,29 @@ export function AccountantTab() {
             🏛 דוחות לרשות המיסים
           </p>
           <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-            הקבצים מופקים לפי מפרט רשות המיסים. לפני שימוש בפועל — יש לאמת בסימולטור הממשלתי.
+            הקבצים מופקים לפי מבנה אחיד 1.31 והוראת מקצוע 24/2004. יש לאמת בסימולטור הממשלתי לפני הגשה.
           </p>
+
+          {/* Validation warnings */}
+          {!ofValidation.valid && (
+            <div className="p-3 rounded-xl text-xs space-y-1"
+              style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)', color: '#dc2626' }}>
+              <p className="font-semibold">⚠️ חסרות הגדרות חובה להפקת OPENFRMT:</p>
+              <ul className="list-disc pr-4 space-y-0.5">
+                {ofValidation.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+              <p className="mt-2">יש להשלים את ההגדרות ב"הגדרות → רישום תוכנה ברשות המיסים".</p>
+            </div>
+          )}
+          {ofValidation.valid && ofValidation.warnings.length > 0 && (
+            <div className="p-3 rounded-xl text-xs space-y-1"
+              style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)', color: '#a16207' }}>
+              {ofValidation.warnings.map((w, i) => <p key={i}>⚠️ {w}</p>)}
+            </div>
+          )}
+
           <div className="flex gap-2 flex-wrap">
-            <button onClick={downloadOpenfrmt} disabled={busy === 'openfrmt'}
+            <button onClick={downloadOpenfrmt} disabled={busy === 'openfrmt' || !ofValidation.valid}
               className="px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
               style={{ background: 'var(--color-gold)', color: '#fff' }}>
               {busy === 'openfrmt' ? <Spinner size="sm" /> : '📁 OPENFRMT (קובץ אחיד)'}
@@ -355,6 +383,53 @@ export function AccountantTab() {
             className="text-xs underline inline-block" style={{ color: 'var(--color-gold)' }}>
             סימולטור אימות OPENFRMT ←
           </a>
+        </div>
+      )}
+
+      {/* OPENFRMT summary dialog (Instruction 24/2004 §5.4) */}
+      {openfrmtDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setOpenfrmtDialog(null)}>
+          <div className="card p-6 max-w-md w-full space-y-4"
+            style={{ background: 'var(--color-card)', border: '1px solid var(--color-gold)' }}
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
+              ✓ קובץ אחיד הופק בהצלחה
+            </h3>
+            <div className="text-sm space-y-1" style={{ color: 'var(--color-text)' }}>
+              <p><b>Primary ID:</b> <span className="font-mono text-xs">{openfrmtDialog.primaryId}</span></p>
+              <p><b>תקופה:</b> {range.from} עד {range.to}</p>
+              <p><b>ספירות:</b></p>
+              <ul className="list-disc pr-6 text-xs" style={{ color: 'var(--color-muted)' }}>
+                <li>C100 (כותרות מסמכים): {openfrmtDialog.report.totals.C100}</li>
+                <li>D110 (שורות מסמך): {openfrmtDialog.report.totals.D110}</li>
+                <li>D120 (תקבולים): {openfrmtDialog.report.totals.D120}</li>
+                <li>M100 (פריטים): {openfrmtDialog.report.totals.M100}</li>
+              </ul>
+            </div>
+            <div className="text-xs p-3 rounded-xl"
+              style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-muted)' }}>
+              ℹ️ לפי סעיף 5.4 להוראת מקצוע 24/2004 — יש לשמור את ה-Primary ID ואת דוח ההפקה (סעיף 2.6) לתיעוד.
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => printSection26(openfrmtDialog.report)}
+                className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                🖨 הדפס דוח הפקה (2.6)
+              </button>
+              <button onClick={() => setOpenfrmtDialog(null)}
+                className="px-4 py-2 rounded-xl text-sm"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                סגור
+              </button>
+            </div>
+            <a href="https://www.gov.il/he/service/download-open-format-files"
+              target="_blank" rel="noreferrer"
+              className="text-xs underline inline-block" style={{ color: 'var(--color-gold)' }}>
+              אמת בסימולטור הממשלתי ←
+            </a>
+          </div>
         </div>
       )}
 
