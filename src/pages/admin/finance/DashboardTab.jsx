@@ -17,6 +17,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
 import { fetchProductSales } from '../../../hooks/useProductSales'
+import { printInvoice } from '../../../lib/invoice'
 
 // ─────────────────────────────────────────────
 // Quick Receipt Panel
@@ -35,38 +36,34 @@ function QuickReceiptPanel() {
   const [products, setProducts] = useState([])
   const [productsOpen, setProductsOpen] = useState(false)
 
-  // form
-  const [selectedItem, setSelectedItem] = useState(null) // { type, id, name, price }
-  const [amount, setAmount] = useState('')
-  const [description, setDescription] = useState('')
+  // cart: [{ tempId, type:'service'|'product'|'custom', id, name, unit_price, quantity }]
+  const [cartItems, setCartItems] = useState([])
+  // custom item entry
+  const [customName, setCustomName] = useState('')
+  const [customPrice, setCustomPrice] = useState('')
+
   const [payMethod, setPayMethod] = useState('cash')
   const [isDebt, setIsDebt] = useState(false)
   const [staffId, setStaffId] = useState('')
 
   // customer
-  const [customerMode, setCustomerMode] = useState('walkin') // 'walkin' | 'search'
+  const [customerMode, setCustomerMode] = useState('walkin')
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerResults, setCustomerResults] = useState([])
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [searching, setSearching] = useState(false)
-
   const [saving, setSaving] = useState(false)
 
-  // load top services sorted by usage frequency
+  const total = cartItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+  const hasProducts = cartItems.some(i => i.type === 'product')
+
   useEffect(() => {
     if (!services.length) return
     async function load() {
-      const { data } = await supabase
-        .from('appointments')
-        .select('service_id')
-        .not('service_id', 'is', null)
+      const { data } = await supabase.from('appointments').select('service_id').not('service_id', 'is', null)
       const freq = {}
       ;(data ?? []).forEach(a => { freq[a.service_id] = (freq[a.service_id] ?? 0) + 1 })
-      setTopServices(
-        [...services]
-          .sort((a, b) => (freq[b.id] ?? 0) - (freq[a.id] ?? 0))
-          .slice(0, 8)
-      )
+      setTopServices([...services].sort((a, b) => (freq[b.id] ?? 0) - (freq[a.id] ?? 0)).slice(0, 8))
     }
     load()
   }, [services])
@@ -75,43 +72,43 @@ function QuickReceiptPanel() {
     if (!staffId && staff.length > 0) setStaffId(staff[0].id)
   }, [staff, staffId])
 
-  // load active products
   useEffect(() => {
     supabase.from('products').select('id, name, price').eq('is_active', true)
       .order('display_order').then(({ data }) => setProducts(data ?? []))
   }, [])
 
-  // customer search (debounced)
   useEffect(() => {
-    if (!customerSearch.trim() || customerSearch.length < 2) {
-      setCustomerResults([])
-      return
-    }
+    if (!customerSearch.trim() || customerSearch.length < 2) { setCustomerResults([]); return }
     const t = setTimeout(async () => {
       setSearching(true)
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, name, phone')
-        .eq('role', 'customer')
-        .or(`name.ilike.%${customerSearch}%,phone.ilike.%${customerSearch}%`)
-        .limit(6)
+      const { data } = await supabase.from('profiles').select('id, name, phone').eq('role', 'customer')
+        .or(`name.ilike.%${customerSearch}%,phone.ilike.%${customerSearch}%`).limit(6)
       setCustomerResults(data ?? [])
       setSearching(false)
     }, 300)
     return () => clearTimeout(t)
   }, [customerSearch])
 
-  function pickService(svc) {
-    setSelectedItem({ type: 'service', id: svc.id, name: svc.name, price: svc.price })
-    setAmount(String(svc.price ?? ''))
-    setDescription(svc.name)
+  function addToCart({ type, id, name, unit_price }) {
+    setCartItems(prev => {
+      if (id) {
+        const existing = prev.find(i => i.id === id && i.type === type)
+        if (existing) return prev.map(i => i.id === id && i.type === type ? { ...i, quantity: i.quantity + 1 } : i)
+      }
+      return [...prev, { tempId: Date.now() + Math.random(), type, id: id ?? null, name, unit_price: Number(unit_price) || 0, quantity: 1 }]
+    })
   }
 
-  function pickProduct(prod) {
-    setSelectedItem({ type: 'product', id: prod.id, name: prod.name, price: prod.price })
-    setAmount(String(prod.price ?? ''))
-    setDescription(prod.name)
-    setProductsOpen(false)
+  function setQty(tempId, newQty) {
+    if (newQty < 1) setCartItems(prev => prev.filter(i => i.tempId !== tempId))
+    else setCartItems(prev => prev.map(i => i.tempId === tempId ? { ...i, quantity: newQty } : i))
+  }
+
+  function addCustom() {
+    if (!customName.trim() || !Number(customPrice)) return
+    addToCart({ type: 'custom', id: null, name: customName.trim(), unit_price: Number(customPrice) })
+    setCustomName('')
+    setCustomPrice('')
   }
 
   function pickCustomer(c) {
@@ -121,68 +118,121 @@ function QuickReceiptPanel() {
   }
 
   function resetForm() {
-    setSelectedItem(null)
-    setAmount('')
-    setDescription('')
+    setCartItems([])
+    setCustomName('')
+    setCustomPrice('')
     setSelectedCustomer(null)
     setCustomerMode('walkin')
     setIsDebt(false)
     setPayMethod('cash')
-    // keep staffId so next entry defaults to same staff
   }
 
-  async function handleSubmit() {
-    if (!amount || Number(amount) <= 0) {
-      showToast({ message: 'נא להזין סכום', type: 'error' })
-      return
-    }
-    if (!description.trim()) {
-      showToast({ message: 'נא לבחור שירות, מוצר, או להזין תיאור', type: 'error' })
-      return
-    }
-    if (isDebt && !selectedCustomer) {
-      showToast({ message: 'לחוב נדרש לקוח רשום', type: 'error' })
-      return
-    }
-    if (selectedItem?.type === 'product' && !staffId) {
-      showToast({ message: 'יש לבחור עובד שמכר את המוצר (לחישוב עמלה)', type: 'error' })
-      return
-    }
+  function validate() {
+    if (cartItems.length === 0) { showToast({ message: 'הוסף לפחות פריט אחד', type: 'error' }); return false }
+    if (hasProducts && !staffId) { showToast({ message: 'יש לבחור עובד לחישוב עמלת מוצרים', type: 'error' }); return false }
+    if (isDebt && !selectedCustomer) { showToast({ message: 'לחוב נדרש לקוח רשום', type: 'error' }); return false }
+    return true
+  }
+
+  async function handleSaveReceipt() {
+    if (!validate()) return
     setSaving(true)
     try {
-      const amountNum = Number(amount)
+      const today = format(new Date(), 'yyyy-MM-dd')
       if (isDebt) {
         const { error } = await supabase.from('customer_debts').insert({
           customer_id: selectedCustomer.id,
-          amount: amountNum,
-          description: description.trim(),
+          amount: total,
+          description: cartItems.map(i => i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name).join(', '),
           status: 'pending',
         })
         if (error) throw error
         qc.invalidateQueries({ queryKey: ['customer_debts'] })
-        showToast({ message: 'חוב נרשם ללקוח ✓', type: 'success' })
+        showToast({ message: 'חוב נרשם ✓', type: 'success' })
       } else {
-        const entry = {
-          description: description.trim(),
-          amount: amountNum,
-          date: format(new Date(), 'yyyy-MM-dd'),
-          payment_method: payMethod,
-          customer_name: selectedCustomer?.name ?? null,
-          customer_id: selectedCustomer?.id ?? null,
-          service_id: selectedItem?.type === 'service' ? selectedItem.id : null,
-          product_id: selectedItem?.type === 'product' ? selectedItem.id : null,
-          staff_id: staffId || null,
-          branch_id: branchId,
-        }
-        if (hasVat(settings?.business_type)) {
-          entry.vat_amount = calcVat(amountNum, settings?.vat_rate, settings?.business_type).vatAmount
-        }
-        const { error } = await supabase.from('manual_income').insert(entry)
+        const rows = cartItems.map(item => {
+          const amt = item.unit_price * item.quantity
+          const entry = {
+            description: item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name,
+            amount: amt,
+            date: today,
+            payment_method: payMethod,
+            customer_name: selectedCustomer?.name ?? null,
+            customer_id: selectedCustomer?.id ?? null,
+            service_id: item.type === 'service' ? item.id : null,
+            product_id: item.type === 'product' ? item.id : null,
+            staff_id: staffId || null,
+            branch_id: branchId,
+          }
+          if (hasVat(settings?.business_type)) {
+            entry.vat_amount = calcVat(amt, settings?.vat_rate, settings?.business_type).vatAmount
+          }
+          return entry
+        })
+        const { error } = await supabase.from('manual_income').insert(rows)
         if (error) throw error
         qc.invalidateQueries({ queryKey: ['manual_income'] })
         qc.invalidateQueries({ queryKey: ['finance'] })
         showToast({ message: 'תקבול נרשם ✓', type: 'success' })
       }
+      resetForm()
+    } catch (err) {
+      showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleSaveAndInvoice() {
+    if (!validate()) return
+    setSaving(true)
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const serviceName = cartItems.map(i => i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name).join(' + ')
+
+      // get next invoice number
+      const { data: invNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+
+      const { data: inv, error: invErr } = await supabase.from('invoices').insert({
+        customer_name: selectedCustomer?.name ?? 'לקוח מזדמן',
+        customer_id: selectedCustomer?.id ?? null,
+        total_amount: total,
+        service_name: serviceName,
+        payment_method: payMethod,
+        branch_id: branchId,
+        invoice_number: invNum,
+      }).select().single()
+      if (invErr) throw invErr
+
+      const itemsPayload = cartItems.map(item => ({
+        invoice_id: inv.id,
+        kind: item.type === 'product' ? 'product' : 'service',
+        service_id: item.type === 'service' ? item.id : null,
+        product_id: item.type === 'product' ? item.id : null,
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        line_total: item.unit_price * item.quantity,
+        staff_id: staffId || null,
+      }))
+      const { error: itemsErr } = await supabase.from('invoice_items').insert(itemsPayload)
+      if (itemsErr) throw itemsErr
+
+      printInvoice({
+        appointment: { id: inv.id, services: { name: serviceName, price: total } },
+        business: settings,
+        businessType: settings?.business_type,
+        vatRate: settings?.vat_rate ?? 18,
+        invoiceNumber: String(invNum),
+        paymentMethod: payMethod,
+        items: itemsPayload.map(i => ({ name: i.name, quantity: i.quantity, unit_price: i.unit_price, line_total: i.line_total })),
+        logoUrl: settings?.logo_url,
+      })
+
+      qc.invalidateQueries({ queryKey: ['invoices'] })
+      qc.invalidateQueries({ queryKey: ['finance'] })
+      showToast({ message: 'חשבונית הופקה ✓', type: 'success' })
       resetForm()
     } catch (err) {
       showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
@@ -200,218 +250,214 @@ function QuickReceiptPanel() {
   ]
 
   return (
-    <motion.div
-      variants={m.fadeUp}
-      initial="hidden"
-      animate="visible"
-      className="card p-4 space-y-4"
-    >
+    <motion.div variants={m.fadeUp} initial="hidden" animate="visible" className="card p-4 space-y-4">
       <h2 className="font-bold text-base" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
         ⚡ תקבול מהיר
       </h2>
 
-      {/* Top services */}
+      {/* Services */}
       {topServices.length > 0 && (
         <div>
-          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>שירות</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>✂️ שירותים</p>
           <div className="flex flex-wrap gap-2">
-            {topServices.map(svc => (
-              <button
-                key={svc.id}
-                onClick={() => pickService(svc)}
-                className="text-xs px-3 py-2 rounded-xl font-medium transition-all border"
-                style={
-                  selectedItem?.id === svc.id && selectedItem?.type === 'service'
+            {topServices.map(svc => {
+              const inCart = cartItems.find(i => i.id === svc.id && i.type === 'service')
+              return (
+                <button
+                  key={svc.id}
+                  onClick={() => addToCart({ type: 'service', id: svc.id, name: svc.name, unit_price: svc.price })}
+                  className="text-xs px-3 py-2 rounded-xl font-medium transition-all border relative"
+                  style={inCart
                     ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
-                    : { borderColor: 'var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)' }
-                }
-              >
-                {svc.name} — ₪{svc.price}
-              </button>
-            ))}
+                    : { borderColor: 'var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)' }}
+                >
+                  {svc.name} — ₪{svc.price}
+                  {inCart && <span className="mr-1 font-bold">×{inCart.quantity}</span>}
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Products (collapsible) */}
+      {/* Products */}
       <div>
         <button
           onClick={() => setProductsOpen(o => !o)}
           className="flex items-center gap-1.5 text-xs font-semibold"
           style={{ color: 'var(--color-muted)' }}
         >
-          📦 מוצרים
-          <span className="text-[10px]">{productsOpen ? '▲' : '▼'}</span>
+          📦 מוצרים <span className="text-[10px]">{productsOpen ? '▲' : '▼'}</span>
         </button>
         {productsOpen && (
-          <div
-            className="mt-2 max-h-44 overflow-y-auto rounded-xl border p-1.5 space-y-0.5"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-          >
-            {products.length === 0 ? (
-              <p className="text-xs text-center py-3" style={{ color: 'var(--color-muted)' }}>אין מוצרים</p>
-            ) : products.map(p => (
-              <button
-                key={p.id}
-                onClick={() => pickProduct(p)}
-                className="w-full text-right px-3 py-2 rounded-lg text-sm flex justify-between items-center transition-colors"
-                style={
-                  selectedItem?.id === p.id && selectedItem?.type === 'product'
-                    ? { background: 'var(--color-gold-tint)', color: 'var(--color-gold)' }
-                    : { color: 'var(--color-text)' }
-                }
-              >
-                <span>{p.name}</span>
-                <span className="font-bold text-xs" style={{ color: 'var(--color-gold)' }}>₪{p.price}</span>
-              </button>
-            ))}
+          <div className="mt-2 max-h-44 overflow-y-auto rounded-xl border p-1.5 space-y-0.5"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+            {products.length === 0
+              ? <p className="text-xs text-center py-3" style={{ color: 'var(--color-muted)' }}>אין מוצרים</p>
+              : products.map(p => {
+                  const inCart = cartItems.find(i => i.id === p.id && i.type === 'product')
+                  return (
+                    <button key={p.id}
+                      onClick={() => addToCart({ type: 'product', id: p.id, name: p.name, unit_price: p.price })}
+                      className="w-full text-right px-3 py-2 rounded-lg text-sm flex justify-between items-center transition-colors"
+                      style={inCart ? { background: 'var(--color-gold-tint)', color: 'var(--color-gold)' } : { color: 'var(--color-text)' }}>
+                      <span>{p.name}{inCart && <span className="mr-1 font-bold text-xs">×{inCart.quantity}</span>}</span>
+                      <span className="font-bold text-xs" style={{ color: 'var(--color-gold)' }}>₪{p.price}</span>
+                    </button>
+                  )
+                })}
           </div>
         )}
       </div>
 
-      {/* Description + amount */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--color-muted)' }}>תיאור</label>
-          <input
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            className="input-field text-sm w-full"
-            placeholder="שם שירות / מוצר"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold mb-1 block" style={{ color: 'var(--color-muted)' }}>סכום ₪</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            className="input-field text-sm w-full"
-            min="0" step="1" placeholder="0"
-          />
+      {/* Custom item */}
+      <div>
+        <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>➕ פריט ידני</p>
+        <div className="flex gap-2">
+          <input value={customName} onChange={e => setCustomName(e.target.value)}
+            className="input-field text-sm flex-1" placeholder="שם" />
+          <input type="number" value={customPrice} onChange={e => setCustomPrice(e.target.value)}
+            className="input-field text-sm w-24" placeholder="₪" min="0" step="1" />
+          <button onClick={addCustom}
+            className="px-3 py-2 rounded-xl text-sm font-bold transition-colors"
+            style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}>
+            הוסף
+          </button>
         </div>
       </div>
 
-      {/* Customer selector */}
+      {/* Cart */}
+      {cartItems.length > 0 && (
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="px-3 py-2 text-xs font-semibold" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
+            🛒 עגלה
+          </div>
+          {cartItems.map(item => (
+            <div key={item.tempId} className="flex items-center gap-2 px-3 py-2 border-t text-sm"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}>
+              <span className="flex-1 truncate">{item.name}</span>
+              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>₪{item.unit_price}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setQty(item.tempId, item.quantity - 1)}
+                  className="w-6 h-6 rounded-lg text-center text-xs font-bold"
+                  style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>−</button>
+                <span className="w-5 text-center text-xs font-bold">{item.quantity}</span>
+                <button onClick={() => setQty(item.tempId, item.quantity + 1)}
+                  className="w-6 h-6 rounded-lg text-center text-xs font-bold"
+                  style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>+</button>
+              </div>
+              <span className="font-bold text-xs w-14 text-left" style={{ color: 'var(--color-gold)' }}>
+                ₪{(item.unit_price * item.quantity).toFixed(0)}
+              </span>
+              <button onClick={() => setQty(item.tempId, 0)}
+                className="text-xs" style={{ color: 'var(--color-muted)' }}>✕</button>
+            </div>
+          ))}
+          <div className="px-3 py-2 flex justify-between items-center font-bold text-sm border-t"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+            <span style={{ color: 'var(--color-muted)' }}>סה"כ</span>
+            <span style={{ color: 'var(--color-gold)' }}>₪{total.toFixed(0)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Staff */}
+      <div>
+        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-muted)' }}>
+          עובד {hasProducts && <span style={{ color: '#dc2626' }}>*</span>}
+        </label>
+        <select value={staffId} onChange={e => setStaffId(e.target.value)} className="input-field w-full text-sm">
+          <option value="">— ללא —</option>
+          {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+
+      {/* Customer */}
       <div>
         <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>לקוח</p>
         <div className="flex gap-2 mb-2">
-          <button
-            onClick={() => { setCustomerMode('walkin'); setSelectedCustomer(null); setCustomerSearch(''); setIsDebt(false) }}
+          <button onClick={() => { setCustomerMode('walkin'); setSelectedCustomer(null); setCustomerSearch(''); setIsDebt(false) }}
             className="text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
             style={customerMode === 'walkin'
               ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
-              : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}
-          >
+              : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}>
             🚶 מזדמן
           </button>
-          <button
-            onClick={() => setCustomerMode('search')}
+          <button onClick={() => setCustomerMode('search')}
             className="text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
             style={customerMode === 'search'
               ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
-              : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}
-          >
+              : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}>
             🔍 לקוח רשום
           </button>
         </div>
-
         {customerMode === 'search' && (
           <div className="relative">
             <input
-              value={selectedCustomer
-                ? `${selectedCustomer.name}${selectedCustomer.phone ? ' · ' + selectedCustomer.phone : ''}`
-                : customerSearch}
+              value={selectedCustomer ? `${selectedCustomer.name}${selectedCustomer.phone ? ' · ' + selectedCustomer.phone : ''}` : customerSearch}
               onChange={e => { setSelectedCustomer(null); setCustomerSearch(e.target.value) }}
               onClick={() => { if (selectedCustomer) { setSelectedCustomer(null); setCustomerSearch('') } }}
-              className="input-field text-sm w-full"
-              placeholder="שם, טלפון..."
-            />
+              className="input-field text-sm w-full" placeholder="שם, טלפון..." />
             {(customerResults.length > 0 || searching) && !selectedCustomer && (
-              <div
-                className="absolute top-full right-0 left-0 z-20 mt-1 rounded-xl border shadow-lg overflow-hidden"
-                style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
-              >
-                {searching ? (
-                  <div className="py-3 text-center text-xs" style={{ color: 'var(--color-muted)' }}>מחפש...</div>
-                ) : customerResults.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => pickCustomer(c)}
-                    className="w-full text-right px-4 py-3 text-sm flex justify-between items-center transition-colors hover:bg-[var(--color-surface)]"
-                    style={{ color: 'var(--color-text)' }}
-                  >
-                    <span className="font-medium">{c.name}</span>
-                    <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{c.phone}</span>
-                  </button>
-                ))}
+              <div className="absolute top-full right-0 left-0 z-20 mt-1 rounded-xl border shadow-lg overflow-hidden"
+                style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}>
+                {searching
+                  ? <div className="py-3 text-center text-xs" style={{ color: 'var(--color-muted)' }}>מחפש...</div>
+                  : customerResults.map(c => (
+                    <button key={c.id} onClick={() => pickCustomer(c)}
+                      className="w-full text-right px-4 py-3 text-sm flex justify-between items-center transition-colors hover:bg-[var(--color-surface)]"
+                      style={{ color: 'var(--color-text)' }}>
+                      <span className="font-medium">{c.name}</span>
+                      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{c.phone}</span>
+                    </button>
+                  ))}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Payment method (hidden when saving as debt) */}
+      {/* Payment method */}
       {!isDebt && (
         <div>
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>אמצעי תשלום</p>
           <div className="flex gap-2 flex-wrap">
-            {payMethods.map(m => (
-              <button
-                key={m.k}
-                onClick={() => setPayMethod(m.k)}
+            {payMethods.map(pm => (
+              <button key={pm.k} onClick={() => setPayMethod(pm.k)}
                 className="text-xs px-3 py-1.5 rounded-lg font-medium border transition-all"
-                style={payMethod === m.k
+                style={payMethod === pm.k
                   ? { borderColor: 'var(--color-gold)', color: 'var(--color-gold)', background: 'var(--color-gold-tint)' }
-                  : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}
-              >
-                {m.label}
+                  : { borderColor: 'var(--color-border)', color: 'var(--color-muted)', background: 'transparent' }}>
+                {pm.label}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Staff selector — required for product sales to attribute commissions */}
-      <div>
-        <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--color-muted)' }}>
-          עובד שביצע/מכר {selectedItem?.type === 'product' && <span style={{ color: '#dc2626' }}>*</span>}
-        </label>
-        <select
-          value={staffId}
-          onChange={e => setStaffId(e.target.value)}
-          className="input-field w-full text-sm"
-        >
-          <option value="">— ללא —</option>
-          {staff.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Debt toggle — only when existing customer is selected */}
+      {/* Debt toggle */}
       {customerMode === 'search' && selectedCustomer && (
         <label className="flex items-center gap-2.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={isDebt}
-            onChange={e => setIsDebt(e.target.checked)}
-            className="w-4 h-4 rounded"
-            style={{ accentColor: 'var(--color-gold)' }}
-          />
-          <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-            השאר כחוב ללקוח
-          </span>
+          <input type="checkbox" checked={isDebt} onChange={e => setIsDebt(e.target.checked)}
+            className="w-4 h-4 rounded" style={{ accentColor: 'var(--color-gold)' }} />
+          <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>השאר כחוב ללקוח</span>
         </label>
       )}
 
-      <button
-        onClick={handleSubmit}
-        disabled={saving || !amount || !description.trim()}
-        className="btn-primary w-full py-3 text-sm font-bold"
-      >
-        {saving ? 'שומר...' : isDebt ? '📋 רשום חוב' : '✅ רשום תקבול'}
-      </button>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button onClick={handleSaveReceipt} disabled={saving || cartItems.length === 0}
+          className="btn-primary flex-1 py-3 text-sm font-bold">
+          {saving ? 'שומר...' : isDebt ? '📋 רשום חוב' : '✅ רשום תקבול'}
+        </button>
+        {!isDebt && (
+          <button onClick={handleSaveAndInvoice} disabled={saving || cartItems.length === 0}
+            className="py-3 px-4 rounded-xl text-sm font-bold transition-colors"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
+            📄 הוצא חשבונית
+          </button>
+        )}
+      </div>
     </motion.div>
   )
 }
