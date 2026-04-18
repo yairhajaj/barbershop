@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { useExpenses } from '../../../hooks/useExpenses'
+import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatILS, calcVat, PAYMENT_METHODS, downloadCSV, hasVat } from '../../../lib/finance'
 import { Modal } from '../../../components/ui/Modal'
@@ -18,6 +19,7 @@ const CATEGORY_COLORS = [
 export function ExpensesTab() {
   const showToast = useToast()
   const { settings } = useBusinessSettings()
+  const { currentBranch } = useBranch()
 
   const now = new Date()
   const [monthFilter, setMonthFilter] = useState(format(now, 'yyyy-MM'))
@@ -36,6 +38,7 @@ export function ExpensesTab() {
     startDate: filterStart,
     endDate: filterEnd,
     categoryId: catFilter !== 'all' ? catFilter : undefined,
+    branchId: currentBranch?.id ?? null,
   })
 
   const totalExpenses = useMemo(

@@ -4,6 +4,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
 import { useManualIncome } from '../../../hooks/useManualIncome'
+import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useStaff } from '../../../hooks/useStaff'
 import { useServices } from '../../../hooks/useServices'
@@ -27,6 +28,8 @@ export function IncomeTab() {
   const { settings } = useBusinessSettings()
   const { staff } = useStaff()
   const { services } = useServices()
+  const { currentBranch } = useBranch()
+  const branchId = currentBranch?.id ?? null
 
   const now = new Date()
   const [startDate, setStartDate] = useState(format(startOfMonth(now), 'yyyy-MM-dd'))
@@ -36,6 +39,7 @@ export function IncomeTab() {
   const { income: manualIncome, loading: manualLoading, createIncome } = useManualIncome({
     startDate,
     endDate,
+    branchId,
   })
 
   // Payments from Supabase
@@ -44,17 +48,19 @@ export function IncomeTab() {
 
   useEffect(() => {
     fetchPayments()
-  }, [startDate, endDate])
+  }, [startDate, endDate, branchId])
 
   async function fetchPayments() {
     setPaymentsLoading(true)
-    const { data } = await supabase
+    let q = supabase
       .from('payments')
       .select('*, appointments(start_at, services(name, price), profiles:customer_id(name, phone))')
       .eq('status', 'paid')
       .gte('created_at', startDate)
       .lte('created_at', endDate + 'T23:59:59')
       .order('created_at', { ascending: false })
+    if (branchId) q = q.or(`branch_id.eq.${branchId},branch_id.is.null`)
+    const { data } = await q
     setPayments(data ?? [])
     setPaymentsLoading(false)
   }

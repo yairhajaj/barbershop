@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useFinanceDashboard } from '../../../hooks/useFinanceDashboard'
+import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useStaffCommissions } from '../../../hooks/useStaffCommissions'
 import { formatILS } from '../../../lib/finance'
@@ -14,7 +15,9 @@ function StaffPaymentsSection({ settings }) {
   const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(now), 'yyyy-MM-dd')
 
-  const { markAllPaid } = useStaffCommissions({ startDate: monthStart, endDate: monthEnd })
+  const { currentBranch } = useBranch()
+  const branchId = currentBranch?.id ?? null
+  const { markAllPaid } = useStaffCommissions({ startDate: monthStart, endDate: monthEnd, branchId })
 
   const [staffList, setStaffList]   = useState([])
   const [appts, setAppts]           = useState([])
@@ -152,7 +155,8 @@ function StaffPaymentsSection({ settings }) {
 }
 
 export function DashboardTab() {
-  const { stats, monthly, recent, loading } = useFinanceDashboard()
+  const { currentBranch } = useBranch()
+  const { stats, monthly, recent, loading } = useFinanceDashboard({ branchId: currentBranch?.id ?? null })
   const { settings } = useBusinessSettings()
   const isOsekPatur = settings?.business_type === 'osek_patur'
 

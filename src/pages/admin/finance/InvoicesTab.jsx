@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../../lib/supabase'
 import { useInvoices } from '../../../hooks/useInvoices'
+import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatILS, calcVat, invoiceTitle, hasVat } from '../../../lib/finance'
 import { printInvoice } from '../../../lib/invoice'
@@ -28,8 +29,10 @@ export function InvoicesTab() {
   const showToast = useToast()
   const { settings } = useBusinessSettings()
   const [filter, setFilter] = useState('all')
+  const { currentBranch } = useBranch()
   const { invoices, loading, createInvoice, markPaid, cancelInvoice, markSent } = useInvoices({
     status: filter === 'all' ? undefined : filter,
+    branchId: currentBranch?.id ?? null,
   })
 
   // Generate invoice modal

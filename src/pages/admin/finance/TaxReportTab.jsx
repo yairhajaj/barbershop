@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
+import { useBranch } from '../../../contexts/BranchContext'
 import { formatILS, getBiMonthlyPeriods, hasVat, downloadCSV } from '../../../lib/finance'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
@@ -54,6 +55,8 @@ const METHOD_LABELS = {
 export function TaxReportTab() {
   const showToast = useToast()
   const { settings } = useBusinessSettings()
+  const { currentBranch } = useBranch()
+  const branchId = currentBranch?.id ?? null
 
   const businessType = settings?.business_type || 'osek_morsheh'
   const vatRate      = settings?.vat_rate ?? 18
@@ -91,7 +94,7 @@ export function TaxReportTab() {
   const currentPeriod = periods[periodIdx]
 
   // re-fetch when period OR business settings change
-  useEffect(() => { if (currentPeriod && businessType) fetchData() }, [currentPeriod, businessType, vatRate])
+  useEffect(() => { if (currentPeriod && businessType) fetchData() }, [currentPeriod, businessType, vatRate, branchId])
 
   async function fetchData() {
     setLoading(true)
@@ -99,13 +102,16 @@ export function TaxReportTab() {
     const { startDate, endDate } = currentPeriod
     const effectiveVatRate = vatRate || 18
 
+    const branchOr = branchId ? `branch_id.eq.${branchId},branch_id.is.null` : null
+    const applyBranch = (q) => branchOr ? q.or(branchOr) : q
+
     const [{ data: payments }, { data: manualIncome }, { data: expenses }] = await Promise.all([
-      supabase.from('payments').select('amount').eq('status', 'paid')
-        .gte('created_at', startDate).lte('created_at', endDate + 'T23:59:59'),
-      supabase.from('manual_income').select('amount, vat_amount, payment_method')
-        .gte('date', startDate).lte('date', endDate),
-      supabase.from('expenses').select('amount, vat_amount, expense_categories(name, icon)')
-        .gte('date', startDate).lte('date', endDate),
+      applyBranch(supabase.from('payments').select('amount').eq('status', 'paid')
+        .gte('created_at', startDate).lte('created_at', endDate + 'T23:59:59')),
+      applyBranch(supabase.from('manual_income').select('amount, vat_amount, payment_method')
+        .gte('date', startDate).lte('date', endDate)),
+      applyBranch(supabase.from('expenses').select('amount, vat_amount, expense_categories(name, icon)')
+        .gte('date', startDate).lte('date', endDate)),
     ])
 
     // Group income by payment method
