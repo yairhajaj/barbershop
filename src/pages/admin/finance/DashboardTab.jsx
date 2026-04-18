@@ -394,13 +394,14 @@ function StaffPaymentsSection({ settings }) {
 
   const [staffList, setStaffList]   = useState([])
   const [appts, setAppts]           = useState([])
+  const [manualIncome, setManualIncome] = useState([])
   const [loadingData, setLoadingData] = useState(true)
   const [paying, setPaying]         = useState(null)
 
   useEffect(() => {
     async function load() {
       setLoadingData(true)
-      const [{ data: staffData }, { data: apptData }] = await Promise.all([
+      const [{ data: staffData }, { data: apptData }, { data: miData }] = await Promise.all([
         supabase
           .from('staff')
           .select('id, name, photo_url, commission_type, commission_rate, monthly_salary')
@@ -411,9 +412,16 @@ function StaffPaymentsSection({ settings }) {
           .eq('status', 'completed')
           .gte('start_at', monthStart + 'T00:00:00')
           .lte('start_at', monthEnd + 'T23:59:59'),
+        // Walk-in receipts (quick income) — credited to the selected staff too.
+        supabase
+          .from('manual_income')
+          .select('staff_id, amount, appointment_id')
+          .gte('date', monthStart)
+          .lte('date', monthEnd),
       ])
       setStaffList(staffData ?? [])
       setAppts(apptData ?? [])
+      setManualIncome(miData ?? [])
       setLoadingData(false)
     }
     load()
@@ -428,8 +436,13 @@ function StaffPaymentsSection({ settings }) {
       : (member.commission_rate ?? 0)
 
     const memberAppts = appts.filter(a => a.staff_id === member.id)
-    const count = memberAppts.length
-    const revenue = memberAppts.reduce((sum, a) => sum + (a.services?.price ?? 0), 0)
+    // Walk-in receipts attached to this staff — skip ones already tied to an
+    // appointment, since those appointments would double-count the revenue.
+    const memberManual = manualIncome.filter(m => m.staff_id === member.id && !m.appointment_id)
+    const count = memberAppts.length + memberManual.length
+    const revenue =
+      memberAppts.reduce((sum, a) => sum + (a.services?.price ?? 0), 0)
+      + memberManual.reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
 
     let amount = 0
     if (effectiveType === 'salary') {
