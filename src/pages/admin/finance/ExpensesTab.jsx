@@ -8,6 +8,7 @@ import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatILS, calcVat, PAYMENT_METHODS, downloadCSV, hasVat } from '../../../lib/finance'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
+import { useConfirm } from '../../../components/ui/ConfirmDialog'
 import { Spinner } from '../../../components/ui/Spinner'
 import { ImageUpload } from '../../../components/ui/ImageUpload'
 
@@ -18,6 +19,7 @@ const CATEGORY_COLORS = [
 
 export function ExpensesTab() {
   const showToast = useToast()
+  const confirm = useConfirm()
   const { settings } = useBusinessSettings()
   const { currentBranch } = useBranch()
 
@@ -136,7 +138,7 @@ export function ExpensesTab() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D4\u05D5\u05E6\u05D0\u05D4?')) return
+    if (!await confirm({ title: 'מחיקת הוצאה', description: 'האם אתה בטוח שברצונך למחוק את ההוצאה? פעולה זו אינה הפיכה.', variant: 'destructive', confirmLabel: 'מחק' })) return
     setDeleting(id)
     try {
       await deleteExpense(id)
