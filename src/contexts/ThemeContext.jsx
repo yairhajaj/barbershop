@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { applyStatusBarForTheme } from '../lib/native'
 
 export const THEMES = [
   {
@@ -80,6 +81,7 @@ export function ThemeProvider({ children }) {
     const lsLayout = localStorage.getItem('app_layout')
     if (lsTheme || lsLayout) {
       applyToDOM(lsTheme || 'orange', lsLayout || 'modern')
+      applyStatusBarForTheme(lsTheme || 'orange')
     }
 
     // Then load from Supabase (authoritative — syncs all devices)
@@ -92,6 +94,7 @@ export function ThemeProvider({ children }) {
       localStorage.setItem('app_theme',  t)
       localStorage.setItem('app_layout', l)
       applyToDOM(t, l)
+      applyStatusBarForTheme(t)
       setLoaded(true)
     })
 
@@ -102,8 +105,13 @@ export function ThemeProvider({ children }) {
         event: 'UPDATE',
         schema: 'public',
         table: 'business_settings',
-      }, ({ new: row }) => {
-        if (row.theme)  { setThemeState(row.theme);  localStorage.setItem('app_theme',  row.theme);  document.documentElement.setAttribute('data-theme',  row.theme) }
+      }, async ({ new: row }) => {
+        if (row.theme)  {
+          setThemeState(row.theme)
+          localStorage.setItem('app_theme',  row.theme)
+          document.documentElement.setAttribute('data-theme',  row.theme)
+          await applyStatusBarForTheme(row.theme)
+        }
         if (row.layout) { setLayoutState(row.layout); localStorage.setItem('app_layout', row.layout); document.documentElement.setAttribute('data-layout', row.layout) }
       })
       .subscribe()
@@ -126,6 +134,7 @@ export function ThemeProvider({ children }) {
     const currentLayout = localStorage.getItem('app_layout') || layout
     applyToDOM(t, currentLayout)
     localStorage.setItem('app_theme', t)
+    await applyStatusBarForTheme(t)
     const id = await getSettingsId()
     if (id) await supabase.from('business_settings').update({ theme: t }).eq('id', id)
   }

@@ -131,3 +131,30 @@ export async function hideSplash() {
   const { SplashScreen } = await import('@capacitor/splash-screen')
   await SplashScreen.hide({ fadeOutDuration: 300 })
 }
+
+// ─── Theme Colors ──────────────────────────────────────────────────────────
+/**
+ * Apply status bar styling based on theme.
+ * Also updates meta theme-color for web.
+ * @param {'orange'|'rose'|'sage'|'midnight'|'obsidian'} themeName
+ */
+export async function applyStatusBarForTheme(themeName) {
+  const themeMap = {
+    orange:    { statusStyle: 'dark', accentColor: '#FF8500', bgColor: '#ffffff' },
+    rose:      { statusStyle: 'dark', accentColor: '#d4627a', bgColor: '#fdf4f0' },
+    sage:      { statusStyle: 'dark', accentColor: '#4a8c6a', bgColor: '#f0f5f1' },
+    midnight:  { statusStyle: 'light', accentColor: '#818cf8', bgColor: '#0f1025' },
+    obsidian:  { statusStyle: 'light', accentColor: '#F59E0B', bgColor: '#06080F' },
+  }
+
+  const theme = themeMap[themeName] || themeMap.orange
+
+  // Update meta theme-color for web
+  const metaTheme = document.querySelector('meta[name="theme-color"]')
+  if (metaTheme) {
+    metaTheme.setAttribute('content', theme.accentColor)
+  }
+
+  // Apply to status bar on native
+  await setStatusBar(theme.statusStyle, theme.bgColor)
+}
