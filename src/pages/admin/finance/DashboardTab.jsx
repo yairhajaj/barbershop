@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { ResponsiveTable } from '../../../components/ui/ResponsiveTable'
 import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useFinanceDashboard } from '../../../hooks/useFinanceDashboard'
@@ -469,58 +470,70 @@ function StaffPaymentsSection({ settings }) {
       ) : rows.length === 0 ? (
         <p className="text-sm text-center py-6" style={{ color: 'var(--color-muted)' }}>אין ספרים פעילים</p>
       ) : (
-        <div className="overflow-x-auto -mx-1">
-          <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-            <thead>
-              <tr>
-                {['ספר', 'תורים', 'הכנסות', 'עמלה', 'לתשלום', ''].map(h => (
-                  <th key={h} className="text-right py-2 px-2 text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((member, i) => (
-                <tr
-                  key={member.id}
-                  style={{ background: i % 2 === 0 ? 'transparent' : 'var(--color-surface)' }}
+        <ResponsiveTable
+          columns={[
+            {
+              key: 'name', label: 'ספר',
+              render: m => (
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
+                    {m.photo_url ? <img src={m.photo_url} alt={m.name} className="w-full h-full object-cover" /> : m.name[0]}
+                  </div>
+                  <span className="font-medium whitespace-nowrap" style={{ color: 'var(--color-text)' }}>{m.name}</span>
+                </div>
+              ),
+            },
+            { key: 'count',   label: 'תורים',   render: m => m.count },
+            { key: 'revenue', label: 'הכנסות',  render: m => formatILS(m.revenue) },
+            {
+              key: 'commission', label: 'עמלה',
+              render: m => (
+                <span style={{ color: 'var(--color-muted)' }}>
+                  {m.effectiveType === 'salary' && 'משכורת'}
+                  {m.effectiveType === 'percentage' && `${m.commission_type === 'inherit' ? settings?.commission_default_rate : m.commission_rate}%`}
+                  {m.effectiveType === 'fixed' && `₪${m.commission_type === 'inherit' ? settings?.commission_default_rate : m.commission_rate}/תור`}
+                </span>
+              ),
+            },
+            { key: 'amount', label: 'לתשלום', render: m => <span style={{ color: 'var(--color-gold)', fontWeight: 700 }}>{formatILS(m.amount)}</span> },
+            {
+              key: 'action', label: '',
+              render: m => (
+                <button
+                  onClick={() => handleMarkAllPaid(m.id)}
+                  disabled={paying === m.id}
+                  className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap"
+                  style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
                 >
-                  <td className="py-2.5 px-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
-                        {member.photo_url
-                          ? <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
-                          : member.name[0]}
-                      </div>
-                      <span className="font-medium whitespace-nowrap" style={{ color: 'var(--color-text)' }}>{member.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-2 text-center" style={{ color: 'var(--color-text)' }}>{member.count}</td>
-                  <td className="py-2.5 px-2 whitespace-nowrap" style={{ color: 'var(--color-text)' }}>{formatILS(member.revenue)}</td>
-                  <td className="py-2.5 px-2 text-xs whitespace-nowrap" style={{ color: 'var(--color-muted)' }}>
-                    {member.effectiveType === 'salary' && 'משכורת'}
-                    {member.effectiveType === 'percentage' && `${member.commission_type === 'inherit' ? settings?.commission_default_rate : member.commission_rate}%`}
-                    {member.effectiveType === 'fixed' && `₪${member.commission_type === 'inherit' ? settings?.commission_default_rate : member.commission_rate}/תור`}
-                  </td>
-                  <td className="py-2.5 px-2 font-bold whitespace-nowrap" style={{ color: 'var(--color-gold)' }}>
-                    {formatILS(member.amount)}
-                  </td>
-                  <td className="py-2.5 px-2">
-                    <button
-                      onClick={() => handleMarkAllPaid(member.id)}
-                      disabled={paying === member.id}
-                      className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors whitespace-nowrap"
-                      style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
-                    >
-                      {paying === member.id ? '...' : '💳 שולם'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  {paying === m.id ? '...' : '💳 שולם'}
+                </button>
+              ),
+            },
+          ]}
+          rows={rows}
+          mobileRowRender={m => (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold" style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
+                {m.photo_url ? <img src={m.photo_url} alt={m.name} className="w-full h-full object-cover" /> : m.name[0]}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate" style={{ color: 'var(--color-text)' }}>{m.name}</p>
+                <p className="text-sm" style={{ color: 'var(--color-muted)' }}>{m.count} תורים · {formatILS(m.revenue)}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="font-bold text-sm" style={{ color: 'var(--color-gold)' }}>{formatILS(m.amount)}</span>
+                <button
+                  onClick={() => handleMarkAllPaid(m.id)}
+                  disabled={paying === m.id}
+                  className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                  style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)', border: '1px solid var(--color-gold)' }}
+                >
+                  {paying === m.id ? '...' : '💳 שולם'}
+                </button>
+              </div>
+            </div>
+          )}
+        />
       )}
     </motion.div>
   )
