@@ -38,6 +38,7 @@ export function Dashboard() {
   const [openDebts, setOpenDebts] = useState([])
   const [waitlistActive, setWaitlistActive] = useState([])
   const [nowTick, setNowTick] = useState(Date.now())
+  const [manualIncomeToday, setManualIncomeToday] = useState(0)
 
   // Tick every minute to re-filter waitlist expirations in-place
   useEffect(() => {
@@ -56,6 +57,14 @@ export function Dashboard() {
       .order('start_at', { ascending: false })
       .limit(20)
     setUninvoiced(uninv ?? [])
+
+    // 2b. Today's manual income (walk-in receipts)
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const { data: mi } = await supabase
+      .from('manual_income')
+      .select('amount')
+      .eq('date', todayStr)
+    setManualIncomeToday((mi ?? []).reduce((s, r) => s + Number(r.amount || 0), 0))
 
     // 2. Open debts
     const { data: debts } = await supabase
@@ -115,9 +124,11 @@ export function Dashboard() {
 
     // Today stats
     const completed = todayAppts.filter(a => a.status === 'completed' && !a.no_show)
-    const revenuePaid = completed
-      .filter(a => a.payment_status === 'paid')
+    // Count all completed appointments as revenue (cash/card collected on the spot)
+    // + add walk-in manual_income receipts
+    const revenueFromAppts = completed
       .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+    const revenuePaid = revenueFromAppts + manualIncomeToday
     const revenueExpected = todayAppts
       .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
       .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
@@ -170,7 +181,7 @@ export function Dashboard() {
     ]
 
     return { nextApt: next, upcoming: rest, stats }
-  }, [todayAppts, openDebts, waitlistActive])
+  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday])
 
   // ── Handle schedule from waitlist ──
   function handleScheduleWaitlist(entry) {
@@ -219,7 +230,7 @@ export function Dashboard() {
       </div>
 
       {/* Responsive grid: single col on mobile, 3-col (2 main + 1 sidebar) on lg+.
-          Mobile order: Hero → KPIs → Inbox → Upcoming → Staff → GapCloser.
+          Mobile order: Hero → KPIs → Upcoming → Inbox → Staff → GapCloser.
           Desktop: main content stacked on one side, sidebar on the other. */}
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Hero — next appointment */}
@@ -232,8 +243,13 @@ export function Dashboard() {
           <KpiStrip stats={stats} />
         </div>
 
+        {/* 3 upcoming */}
+        <div className="order-3 lg:order-2 lg:col-span-2">
+          <UpcomingAppointmentsList appointments={upcoming} limit={3} />
+        </div>
+
         {/* Action inbox */}
-        <div className="order-3 lg:order-5">
+        <div className="order-4 lg:order-5">
           <ActionInbox
             uninvoiced={uninvoiced}
             openDebts={openDebts}
@@ -241,11 +257,6 @@ export function Dashboard() {
             waitlist={waitlistActive}
             onScheduleWaitlist={handleScheduleWaitlist}
           />
-        </div>
-
-        {/* 3 upcoming */}
-        <div className="order-4 lg:order-2 lg:col-span-2">
-          <UpcomingAppointmentsList appointments={upcoming} limit={3} />
         </div>
 
         {/* Staff compact row */}
@@ -261,7 +272,7 @@ export function Dashboard() {
               const done = mine.filter(a => a.status === 'completed').length
               const total = mine.filter(a => a.status !== 'cancelled').length
               const revenue = mine
-                .filter(a => a.status === 'completed' && a.payment_status === 'paid')
+                .filter(a => a.status === 'completed' && !a.no_show)
                 .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
               return (
                 <div key={m.id} className="flex-shrink-0 rounded-2xl p-3 min-w-[130px]"
