@@ -36,6 +36,53 @@ import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
+function useScrollReveal() {
+  useEffect(() => {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
+    }, { threshold: 0.12 })
+    const els = document.querySelectorAll('.v6-reveal')
+    els.forEach(el => io.observe(el))
+    return () => io.disconnect()
+  })
+}
+
+function FanGallery({ items }) {
+  const stageRef = useRef(null)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!stageRef.current) return
+    const el = stageRef.current
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setTimeout(() => setOpen(true), 350)
+        io.unobserve(el)
+      }
+    }, { threshold: 0.38 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  const cards = items.slice(0, 5)
+  return (
+    <div
+      ref={stageRef}
+      className={`v6-fan-stage${open ? ' open' : ''}`}
+      onClick={() => setOpen(o => !o)}
+    >
+      {cards.map((item, i) => (
+        <div key={item.id ?? i} className="v6-fan-card">
+          <img className="v6-fan-img" src={item.url} alt={item.caption || ''} loading="lazy" />
+          <div className="v6-fan-overlay">
+            <span className="v6-fan-lbl">{item.caption || ''}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function StaffVideoCard({ member, portfolioMode }) {
   const videoRef = useRef(null)
   const containerRef = useRef(null)
@@ -221,6 +268,24 @@ export function HomePage() {
   const [portfolioMember, setPortfolioMember] = useState(null)
   const heroVideoRef = useRef(null)
 
+  useScrollReveal()
+
+  // Hero parallax — fade + slide up as page scrolls
+  useEffect(() => {
+    const root = document.getElementById('root')
+    const target = root ?? window
+    const handle = () => {
+      const y = root ? root.scrollTop : window.scrollY
+      const brand = document.getElementById('v6-hero-brand')
+      if (brand) {
+        brand.style.opacity = Math.max(0, 1 - y / 190)
+        brand.style.transform = `translateY(${y * -0.12}px)`
+      }
+    }
+    target.addEventListener('scroll', handle, { passive: true })
+    return () => target.removeEventListener('scroll', handle)
+  }, [])
+
   // hero source: prefer DB → localStorage → BUSINESS config → gradient
   const heroType = settings?.hero_type
     || localStorage.getItem('hero_type')
@@ -283,7 +348,7 @@ export function HomePage() {
     : {
         position: 'relative', zIndex: 10, marginTop: -32,
         borderRadius: '26px 26px 0 0',
-        background: 'var(--color-surface)',
+        background: 'rgba(243,240,234,0.92)',
         backdropFilter: 'blur(36px) saturate(2.0)',
         WebkitBackdropFilter: 'blur(36px) saturate(2.0)',
         borderTop: '1px solid rgba(255,255,255,0.82)',
@@ -331,13 +396,19 @@ export function HomePage() {
           {/* Bottom fade into surface so glass panel blends in */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
             height: '60%',
-            background: 'linear-gradient(to top, var(--color-surface) 0%, transparent 100%)',
+            background: 'linear-gradient(to top, #f3f0ea 0%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
 
+        {/* Scroll indicator */}
+        <div className="v6-scroll-ind">
+          <div className="v6-scroll-ind-line" />
+          <span>גלול</span>
+        </div>
+
         {/* Hero brand */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5, paddingBottom: 24 }}>
+        <div id="v6-hero-brand" className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5, paddingBottom: 24 }}>
           {/* Logo mark */}
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
@@ -403,10 +474,12 @@ export function HomePage() {
           transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
           <p style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--color-muted)', letterSpacing: '0.01em', marginBottom: 4 }}>
-            {user ? `שלום, ${profile?.name ?? ''}` : 'ברוכים הבאים'}
+            שלום,
           </p>
           <p style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', lineHeight: 1 }}>
-            {user ? 'מה נעשה היום?' : BUSINESS.tagline}
+            <em style={{ fontStyle: 'normal', color: 'var(--color-gold)' }}>
+              {user ? (profile?.name ?? 'אורח') : BUSINESS.name}
+            </em>
           </p>
         </motion.section>
 
@@ -585,6 +658,7 @@ export function HomePage() {
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             <Link to={bookHref} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-gold)', textDecoration: 'none', letterSpacing: '0.01em' }}>כל השירותים ←</Link>
           </div>
+          <h2 style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</h2>
 
           {servicesLoading ? (
             <div className="space-y-3 mt-4">
@@ -595,10 +669,10 @@ export function HomePage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
               {services.map((service, i) => (
-                <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
+                <motion.div key={service.id} className="v6-reveal" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                   <Link
                     to={serviceHref(service.id)}
-                    className="group"
+                    className="group v6-svc-row"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 14,
                       background: isDark ? 'rgba(255,255,255,0.04)' : 'var(--color-card)',
@@ -659,6 +733,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מוצרים</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
+            <h2 className="px-5" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</h2>
             <div
               style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', display: 'flex', gap: 12, padding: '14px 20px 8px', margin: '0 -0px' }}
               tabIndex={0} role="region" aria-label="מוצרים מומלצים"
@@ -666,6 +741,7 @@ export function HomePage() {
               {featuredProducts.map((product, i) => (
                 <motion.div
                   key={product.id}
+                  className="v6-prod-card v6-reveal"
                   initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                   style={{
                     flexShrink: 0, width: 136,
@@ -680,6 +756,7 @@ export function HomePage() {
                 >
                   {/* Image */}
                   <div style={{ width: '100%', height: 160, overflow: 'hidden', background: 'linear-gradient(145deg,#f0e4cc,#d4c0a0)', position: 'relative' }}>
+                    <div className="v6-prod-badge">{priceDisplay(product.price)}</div>
                     {product.image_url
                       ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform .7s cubic-bezier(.22,1,.36,1)', display: 'block' }}
                           onMouseEnter={e => { e.target.style.transform = 'scale(1.08)' }}
@@ -711,6 +788,8 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>הצוות</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
+            <h2 className="px-5" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</h2>
+            <p className="px-5" style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 7, marginBottom: 6, lineHeight: 1.6 }}>לחץ על כרטיס לצפייה בעבודות</p>
             <div
               style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 20px 4px' }}
               role="region" aria-label="הצוות שלנו"
@@ -718,6 +797,7 @@ export function HomePage() {
               {staff.map((member, i) => (
                 <motion.div
                   key={member.id}
+                  className="v6-reveal"
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -812,38 +892,34 @@ export function HomePage() {
 
         {/* ── FIND US ───────────────────────────────────────────── */}
         <section id="contact" className="py-8 px-5">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מצאו אותנו</span>
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
           </div>
+          <h2 style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</h2>
 
-          {/* Gallery carousel */}
+          {/* Fan gallery */}
           {galleryItems.filter(g => g.type === 'image').length > 0 && (
-            <div
-              style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -20px 20px', padding: '0 20px' }}
-              tabIndex={0} role="region" aria-label="גלריית תמונות"
-            >
-              {galleryItems.filter(g => g.type === 'image').map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
-                  style={{ flexShrink: 0, width: 240, height: 160, borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}
-                >
-                  <img src={item.url} alt={item.caption || 'המספרה'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </motion.div>
-              ))}
-              <div style={{ flexShrink: 0, width: 8 }} />
-            </div>
+            <FanGallery items={galleryItems.filter(g => g.type === 'image')} />
+          )}
+          {galleryItems.filter(g => g.type === 'image').length > 0 && (
+            <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-muted)', marginBottom: 24, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' }}>
+              לחץ לפתיחה · לחץ שוב לסגירה
+            </p>
           )}
 
-          {/* Location card */}
-          <div style={{
-            background: isDark ? 'rgba(255,255,255,0.05)' : 'var(--color-card)',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.82)'}`,
-            borderRadius: 18, padding: '18px 16px',
-            boxShadow: 'var(--sh-md)', display: 'flex', flexDirection: 'column', gap: 14,
-          }}>
-            {/* Address */}
+          {/* v6 location card */}
+          <div className="v6-loc-card">
+            <div className="v6-map-placeholder">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="1.5" strokeOpacity="0.3" strokeLinecap="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+                <line x1="8" y1="2" x2="8" y2="18"/>
+                <line x1="16" y1="6" x2="16" y2="22"/>
+              </svg>
+              <button className="v6-map-btn" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(BUSINESS.address)}`, '_blank')}>פתח במפות</button>
+            </div>
+
+            {/* Address row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 11, flexShrink: 0,
@@ -856,13 +932,28 @@ export function HomePage() {
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{BUSINESS.address}</div>
-                {BUSINESS.phone && (
-                  <a href={`tel:${BUSINESS.phone}`} style={{ fontSize: 11.5, color: 'var(--color-muted)', textDecoration: 'none' }}>{BUSINESS.phone}</a>
-                )}
+                <div style={{ fontSize: 11.5, color: 'var(--color-muted)' }}>המיקום שלנו</div>
               </div>
             </div>
 
-            {/* Phone */}
+            {/* Hours row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+                background: 'rgba(255,122,0,0.10)', border: '1px solid rgba(255,122,0,0.16)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>א׳–ה׳ 09:00–20:00</div>
+                <div style={{ fontSize: 11.5, color: 'var(--color-muted)' }}>ו׳ 09:00–14:00</div>
+              </div>
+            </div>
+
+            {/* Phone row */}
             {BUSINESS.phone && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{

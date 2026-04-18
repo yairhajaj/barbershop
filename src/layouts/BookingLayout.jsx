@@ -482,7 +482,8 @@ export function BookingLayout({ children }) {
 
       <main>{children}</main>
 
-      {/* Footer — extra bottom padding on mobile to clear the floating bottom bar */}
+      {/* Footer — hidden on homepage (v6 has its own contact section) */}
+      {!isHome && (
       <footer
         className="border-t pt-10 pb-32 md:pb-10 mt-8"
         style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}
@@ -519,6 +520,7 @@ export function BookingLayout({ children }) {
           </div>
         </div>
       </footer>
+      )}
 
       {/* ── Mobile floating bottom bar ── */}
       <div
