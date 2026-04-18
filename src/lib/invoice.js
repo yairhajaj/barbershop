@@ -26,13 +26,31 @@ export function generateInvoiceHTML({
   logoUrl,
   taxSoftwareRegNumber,
   isCreditNote = false,
+  items,
 }) {
   const invoiceNum     = invoiceNumber || `INV-${String(appointment.id).slice(0, 8).toUpperCase()}`
-  const price          = Number(appointment.services?.price) || 0
   const isPatur        = businessType === 'osek_patur'
   const rate           = vatRate / 100
-  const priceBeforeVat = isPatur ? price : Math.round((price / (1 + rate)) * 100) / 100
-  const vatAmount      = isPatur ? 0 : Math.round((price - priceBeforeVat) * 100) / 100
+
+  // Build line items — either from `items[]` (multi-line) or a single service line.
+  const lineItems = (Array.isArray(items) && items.length > 0)
+    ? items.map(it => ({
+        name: it.name || '-',
+        quantity: Number(it.quantity || 1),
+        unitPriceGross: Number(it.unit_price || 0),
+        lineTotalGross: Number(it.line_total || (Number(it.unit_price || 0) * Number(it.quantity || 1))),
+      }))
+    : [{
+        name: appointment?.services?.name || '-',
+        quantity: 1,
+        unitPriceGross: Number(appointment?.services?.price) || 0,
+        lineTotalGross: Number(appointment?.services?.price) || 0,
+      }]
+
+  const totalGross     = lineItems.reduce((s, it) => s + it.lineTotalGross, 0)
+  const price          = totalGross
+  const priceBeforeVat = isPatur ? totalGross : Math.round((totalGross / (1 + rate)) * 100) / 100
+  const vatAmount      = isPatur ? 0 : Math.round((totalGross - priceBeforeVat) * 100) / 100
   const docTitle       = isCreditNote ? 'חשבונית זיכוי' : (isPatur ? 'קבלה' : 'חשבונית מס קבלה')
   const businessTypeLabel = isPatur ? 'עוסק פטור' : 'עוסק מורשה'
   const serviceDate    = formatDate(appointment.start_at)
@@ -332,7 +350,7 @@ export function generateInvoiceHTML({
 
     <!-- Line items -->
     <div class="items-section">
-      <div class="section-title">פירוט שירותים</div>
+      <div class="section-title">פירוט</div>
       <table class="items-table">
         <thead>
           <tr>
@@ -343,12 +361,17 @@ export function generateInvoiceHTML({
           </tr>
         </thead>
         <tbody>
+          ${lineItems.map(it => {
+            const unitBefore = isPatur ? it.unitPriceGross : Math.round((it.unitPriceGross / (1 + rate)) * 100) / 100
+            const lineBefore = isPatur ? it.lineTotalGross : Math.round((it.lineTotalGross / (1 + rate)) * 100) / 100
+            return `
           <tr>
-            <td>${esc(appointment.services?.name ?? '-')}</td>
-            <td class="num">1</td>
-            <td class="num">₪${fmt(isPatur ? price : priceBeforeVat)}</td>
-            <td class="num">₪${fmt(isPatur ? price : priceBeforeVat)}</td>
-          </tr>
+            <td>${esc(it.name)}</td>
+            <td class="num">${it.quantity}</td>
+            <td class="num">₪${fmt(unitBefore)}</td>
+            <td class="num">₪${fmt(lineBefore)}</td>
+          </tr>`
+          }).join('')}
         </tbody>
       </table>
     </div>

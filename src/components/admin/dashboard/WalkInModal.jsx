@@ -24,7 +24,7 @@ const PAYMENT_METHODS = [
  * - Save as debt (no invoice, goes to customer_debts)
  * - Otherwise: creates invoice + manual_income
  */
-export function WalkInModal({ open, onClose, onSaved }) {
+export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) {
   const toast = useToast()
   const { services } = useServices({ activeOnly: true })
   const { staff } = useStaff({ activeOnly: true })
@@ -67,14 +67,19 @@ export function WalkInModal({ open, onClose, onSaved }) {
       setStaffId('')
       setPayMethod('cash')
       setIsDebt(false)
-      setCustomerMode('walkin')
+      if (initialCustomer?.id) {
+        setCustomerMode('search')
+        setSelectedCustomer(initialCustomer)
+      } else {
+        setCustomerMode('walkin')
+        setSelectedCustomer(null)
+      }
       setCustomerSearch('')
       setCustomerResults([])
-      setSelectedCustomer(null)
       setCustomerNameManual('')
       setProductsOpen(false)
     }
-  }, [open])
+  }, [open, initialCustomer])
 
   // Load products once
   useEffect(() => {
