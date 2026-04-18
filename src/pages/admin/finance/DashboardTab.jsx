@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useMotion } from '../../../hooks/useMotion'
 import { ResponsiveTable } from '../../../components/ui/ResponsiveTable'
 import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -19,6 +20,7 @@ import { supabase } from '../../../lib/supabase'
 // Quick Receipt Panel
 // ─────────────────────────────────────────────
 function QuickReceiptPanel() {
+  const m = useMotion()
   const { currentBranch } = useBranch()
   const branchId = currentBranch?.id ?? null
   const { settings } = useBusinessSettings()
@@ -185,9 +187,9 @@ function QuickReceiptPanel() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 }}
+      variants={m.fadeUp}
+      initial="hidden"
+      animate="visible"
       className="card p-4 space-y-4"
     >
       <h2 className="font-bold text-base" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
@@ -387,6 +389,7 @@ function QuickReceiptPanel() {
 // Staff Payments Section
 // ─────────────────────────────────────────────
 function StaffPaymentsSection({ settings }) {
+  const m = useMotion()
   const now = new Date()
   const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(now), 'yyyy-MM-dd')
@@ -490,9 +493,9 @@ function StaffPaymentsSection({ settings }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
+      variants={m.fadeUp}
+      initial="hidden"
+      animate="visible"
       className="card p-5"
     >
       <h2 className="font-bold text-base mb-4" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
@@ -598,6 +601,8 @@ export function DashboardTab() {
   const { settings } = useBusinessSettings()
   const isOsekPatur = settings?.business_type === 'osek_patur'
 
+  const m = useMotion()
+
   if (loading) return <AdminSkeleton />
 
   const statCards = [
@@ -632,13 +637,16 @@ export function DashboardTab() {
   return (
     <div className="space-y-4">
       {/* Stat cards */}
-      <div className={`grid gap-3 ${isOsekPatur ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
-        {statCards.map((card, i) => (
+      <motion.div
+        className={`grid gap-3 ${isOsekPatur ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}
+        variants={m.listStagger}
+        initial="hidden"
+        animate="visible"
+      >
+        {statCards.map((card) => (
           <motion.div
             key={card.label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
+            variants={m.fadeUp}
             className="card p-3 sm:p-4"
           >
             <div className="text-xl mb-1">{card.icon}</div>
@@ -650,16 +658,16 @@ export function DashboardTab() {
             </p>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Quick receipt */}
       <QuickReceiptPanel />
 
       {/* Bar chart */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
+        variants={m.fadeUp}
+        initial="hidden"
+        animate="visible"
         className="card p-4"
       >
         <h2 className="font-bold text-base mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
@@ -707,9 +715,9 @@ export function DashboardTab() {
 
       {/* Recent activity */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
+        variants={m.fadeUp}
+        initial="hidden"
+        animate="visible"
         className="card p-4"
       >
         <h2 className="font-bold text-base mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
@@ -717,8 +725,13 @@ export function DashboardTab() {
         </h2>
 
         {recent.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {recent.map((item, i) => {
+          <motion.div
+            className="flex flex-col gap-2"
+            variants={m.listStagger}
+            initial="hidden"
+            animate="visible"
+          >
+            {recent.map((item) => {
               const isPositive = item.amount >= 0
               const icon = item.type === 'expense' ? (item.icon || '💸') : item.type === 'manual' ? '💰' : '💳'
               let formattedDate = ''
@@ -726,9 +739,7 @@ export function DashboardTab() {
               return (
                 <motion.div
                   key={item.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.04 * i }}
+                  variants={m.fadeUp}
                   className="flex items-center gap-3 p-3 rounded-xl"
                   style={{ background: 'var(--color-surface)' }}
                 >
@@ -743,7 +754,7 @@ export function DashboardTab() {
                 </motion.div>
               )
             })}
-          </div>
+          </motion.div>
         ) : (
           <p className="text-sm text-center py-8" style={{ color: 'var(--color-muted)' }}>אין פעולות אחרונות</p>
         )}
