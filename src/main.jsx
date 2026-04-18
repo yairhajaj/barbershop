@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { hideSplash } from './lib/native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from 'react-error-boundary'
 import { AuthProvider } from './contexts/AuthContext'
@@ -28,6 +29,9 @@ function RootError({ error, resetErrorBoundary }) {
     </div>
   )
 }
+
+// Hide native splash screen as soon as React is ready
+hideSplash()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
