@@ -13,6 +13,7 @@ import { useBusinessGallery } from '../../hooks/useBusinessGallery'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useToast } from '../../components/ui/Toast'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
@@ -89,6 +90,7 @@ export function HomePage() {
   const { user, profile } = useAuth()
   const { theme, layout, isDark } = useTheme()
   const showToast = useToast()
+  const confirm = useConfirm()
 
   // Upcoming appointment — direct query so it's always fresh and never blocked by hook re-fetch timing
   const [nextAppointment, setNextAppointment] = useState(undefined) // undefined = loading, null = none
@@ -157,7 +159,7 @@ export function HomePage() {
 
   async function handleCancelAppointment() {
     if (!nextAppointment) return
-    if (!window.confirm('האם לבטל את התור?')) return
+    if (!await confirm({ title: 'ביטול תור', description: 'האם אתה בטוח שברצונך לבטל את התור?', variant: 'destructive', confirmLabel: 'בטל תור' })) return
     setCancellingAppt(true)
     try {
       await supabase
