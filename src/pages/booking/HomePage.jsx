@@ -412,8 +412,10 @@ export function HomePage() {
 
         {/* ── CTA BUTTON ───────────────────────────────────────── */}
         <section className="px-5 pt-5 pb-6">
+          <style>{`@keyframes v6CtaSweep{0%{left:-110%}55%,100%{left:150%}}`}</style>
           <Link
             to={bookHref}
+            className="v6-cta"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%',
               background: 'var(--color-gold)', color: '#fff',
@@ -426,15 +428,21 @@ export function HomePage() {
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.015)'; e.currentTarget.style.boxShadow = '0 14px 36px rgba(255,122,0,0.36), 0 1px 0 rgba(255,255,255,0.20) inset' }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px var(--color-accent-glow), 0 1px 0 rgba(255,255,255,0.20) inset' }}
           >
-            קבע תור עכשיו
+            <span style={{ position: 'relative', zIndex: 1 }}>קבע תור עכשיו</span>
             <span style={{
+              position: 'relative', zIndex: 1,
               width: 22, height: 22, background: 'rgba(255,255,255,0.18)', borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="7 2 11 6 7 10" /><line x1="1" y1="6" x2="11" y2="6" />
+                <polyline points="8,3 5,6 8,9" />
               </svg>
             </span>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: '-110%', width: '46%', height: '100%',
+              background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)',
+              animation: 'v6CtaSweep 3.2s ease infinite 1.5s', pointerEvents: 'none',
+            }} />
           </Link>
           {!user && (
             <Link to="/login" style={{
