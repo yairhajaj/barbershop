@@ -940,7 +940,7 @@ function PortfolioModal({ member, onClose, toast }) {
                 )}
                 <button
                   onClick={() => handleDelete(photo.id)}
-                  className="absolute top-2 left-2 w-7 h-7 bg-red-500 text-white rounded-full text-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  className="absolute top-2 left-2 min-w-11 min-h-11 w-11 h-11 bg-red-500 text-white rounded-full text-base flex items-center justify-center shadow-lg opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                 >×</button>
               </motion.div>
             ))}
