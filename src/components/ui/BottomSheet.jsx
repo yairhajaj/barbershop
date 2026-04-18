@@ -100,20 +100,33 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
   }, [open])
 
   /* ── Animations ──────────────────────────────────────────────────── */
-  const mobileAnim = { initial: { y: '100%' }, animate: { y: 0 }, exit: { y: '100%' } }
-  const desktopAnim = {
-    initial: { opacity: 0, scale: 0.95, y: 16 },
+  const anim = {
+    initial: { opacity: 0, scale: 0.96, y: 12 },
     animate: { opacity: 1, scale: 1,    y: 0  },
-    exit:    { opacity: 0, scale: 0.95, y: 16 },
+    exit:    { opacity: 0, scale: 0.96, y: 12 },
   }
-  const anim = isMobile ? mobileAnim : desktopAnim
+
+  /* Mobile bottom-bar (both layouts) ≈ 60-72px + safe-area. Reserve
+     a generous pad at both ends so the modal is centred between the
+     top of the viewport and the floating nav. */
+  const mobileEdgePad = 'max(16px, env(safe-area-inset-bottom, 0px))'
+  const mobileBottomClearance = '92px'  // bottom bar + breathing room
 
   return (
     <AnimatePresence>
       {open && (
         <div
-          className={`fixed inset-0 z-[60] flex ${isMobile ? 'items-end' : 'items-center justify-center p-4'}`}
-          style={{ touchAction: 'none' }}
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{
+            padding: isMobile
+              ? `${mobileEdgePad} 12px ${mobileBottomClearance}`
+              : '16px',
+            touchAction: 'none',
+          }}
+          onTouchMove={(e) => {
+            // Prevent iOS rubber-banding the page behind the modal
+            if (e.target === e.currentTarget) e.preventDefault()
+          }}
         >
           {/* Backdrop */}
           <motion.div
@@ -132,31 +145,19 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
             aria-label={title || 'תפריט'}
             {...anim}
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            className={
-              isMobile
-                ? 'relative w-full rounded-t-3xl card flex flex-col z-10'
-                : `relative w-full ${SIZES[size]} card p-6 flex flex-col z-10`
-            }
+            className={`relative w-full ${SIZES[size]} card flex flex-col z-10 ${isMobile ? 'rounded-3xl' : 'p-6'}`}
             style={{
-              maxHeight: isMobile ? '92dvh' : 'min(88vh, calc(100dvh - 2rem))',
+              maxHeight: isMobile
+                ? `calc(100dvh - ${mobileBottomClearance} - 32px)`
+                : 'min(88vh, calc(100dvh - 2rem))',
               touchAction: 'auto',
-              ...(isMobile && {
-                paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-              }),
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drag handle — mobile only */}
-            {isMobile && (
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0" aria-hidden>
-                <div className="w-10 h-1 rounded-full bg-black/15" />
-              </div>
-            )}
-
             {/* Header row (title + close button) */}
             <div
               className={`flex items-center justify-between flex-shrink-0 ${
-                isMobile ? 'px-5 pt-2 pb-3' : 'mb-5'
+                isMobile ? 'px-5 pt-5 pb-3' : 'mb-5'
               }`}
             >
               {title ? (
@@ -181,7 +182,7 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
 
             {/* Scrollable content */}
             <div
-              className={`overflow-y-auto flex-1 ${isMobile ? 'px-5' : ''}`}
+              className={`overflow-y-auto flex-1 ${isMobile ? 'px-5 pb-5' : ''}`}
               style={{
                 WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain',
