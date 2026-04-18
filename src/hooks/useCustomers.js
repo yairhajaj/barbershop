@@ -1,14 +1,12 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 
 export function useCustomers({ search = '' } = {}) {
-  const [customers, setCustomers] = useState([])
-  const [loading, setLoading]     = useState(true)
+  const qc = useQueryClient()
 
-  const fetchCustomers = useCallback(async () => {
-    setLoading(true)
-    try {
-      // 1. All customer profiles
+  const query = useQuery({
+    queryKey: ['customers', { search }],
+    queryFn: async () => {
       let q = supabase
         .from('profiles')
         .select('*')
@@ -20,14 +18,12 @@ export function useCustomers({ search = '' } = {}) {
       }
 
       const { data: profiles, error } = await q
-      if (error) throw error
+      if (error) throw new Error(error.message)
 
-      // 2. All appointments for stats
       const { data: appts } = await supabase
         .from('appointments')
         .select('customer_id, status, start_at, services(price)')
 
-      // 3. Build stats map
       const statsMap = {}
       ;(appts ?? []).forEach(a => {
         const cid = a.customer_id
@@ -40,23 +36,36 @@ export function useCustomers({ search = '' } = {}) {
         if (!s.lastDate || a.start_at > s.lastDate) s.lastDate = a.start_at
       })
 
-      setCustomers(
-        (profiles ?? []).map(p => ({
-          ...p,
-          ...(statsMap[p.id] ?? { total: 0, noShow: 0, spent: 0, lastDate: null }),
-        }))
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [search])
+      return (profiles ?? []).map(p => ({
+        ...p,
+        ...(statsMap[p.id] ?? { total: 0, noShow: 0, spent: 0, lastDate: null }),
+      }))
+    },
+  })
 
-  useEffect(() => { fetchCustomers() }, [fetchCustomers])
+  const toggleBlockMut = useMutation({
+    mutationFn: async ({ id, block }) => {
+      const { error } = await supabase.from('profiles').update({ is_blocked: block }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['customers'] })
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+    },
+  })
 
-  async function toggleBlock(id, block) {
-    await supabase.from('profiles').update({ is_blocked: block }).eq('id', id)
-    setCustomers(cs => cs.map(c => c.id === id ? { ...c, is_blocked: block } : c))
-  }
+  const deleteMut = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('profiles').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['customers'] })
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['invoices'] })
+      qc.invalidateQueries({ queryKey: ['payments'] })
+    },
+  })
 
   async function fetchHistory(customerId) {
     const { data } = await supabase
@@ -67,5 +76,12 @@ export function useCustomers({ search = '' } = {}) {
     return data ?? []
   }
 
-  return { customers, loading, toggleBlock, fetchHistory, refetch: fetchCustomers }
+  return {
+    customers: query.data ?? [],
+    loading: query.isLoading,
+    refetch: query.refetch,
+    toggleBlock: (id, block) => toggleBlockMut.mutateAsync({ id, block }),
+    deleteCustomer: deleteMut.mutateAsync,
+    fetchHistory,
+  }
 }
