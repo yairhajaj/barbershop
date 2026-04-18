@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../components/ui/Toast'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { Spinner } from '../../components/ui/Spinner'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useServices } from '../../hooks/useServices'
@@ -53,6 +54,7 @@ function ModePill({ value, onChange }) {
 
 export function Payments() {
   const showToast = useToast()
+  const confirm = useConfirm()
   const { settings, saveSettings } = useBusinessSettings()
   const { services, loading: servicesLoading } = useServices()
 
@@ -135,7 +137,7 @@ export function Payments() {
   }
 
   async function handleRefund(payment) {
-    if (!window.confirm(`להחזיר ₪${payment.amount} ל${payment.appointments?.profiles?.name}?`)) return
+    if (!await confirm({ title: 'החזר תשלום', description: `האם להחזיר ₪${payment.amount} ל${payment.appointments?.profiles?.name}? פעולה זו אינה הפיכה.`, variant: 'destructive', confirmLabel: 'בצע החזר' })) return
     setRefunding(payment.id)
     try {
       const { data, error } = await supabase.functions.invoke('verify-payment', {
