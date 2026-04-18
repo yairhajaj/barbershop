@@ -187,26 +187,26 @@ export function Dashboard() {
   const refreshAll = () => { refetchAppts(); fetchInbox() }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-black" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+    <div className="max-w-full overflow-x-hidden">
+      {/* Header — stacks on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black truncate" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
             🎯 לוח בקרה
           </h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-[11px] sm:text-xs mt-0.5 truncate" style={{ color: 'var(--color-muted)' }}>
             {formatDateFull(today)}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setWalkInOpen(true)}
-            className="text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-all"
+            className="flex-1 sm:flex-none text-xs font-black px-3 py-2.5 rounded-xl active:scale-95 transition-all whitespace-nowrap"
             style={{ background: 'var(--color-gold)', color: '#fff' }}>
             💰 תקבול מהיר
           </button>
           <Link to="/book/service"
-            className="text-xs font-bold px-3 py-2 rounded-xl"
+            className="flex-1 sm:flex-none text-xs font-bold px-3 py-2.5 rounded-xl text-center whitespace-nowrap"
             style={{ background: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
             + תור
           </Link>
@@ -301,10 +301,10 @@ function GapCloserCard({ settings, saveSettings }) {
   return (
     <section className="rounded-2xl p-4 mb-5"
       style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🧩</span>
-          <div>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg flex-shrink-0">🧩</span>
+          <div className="min-w-0">
             <h2 className="font-black text-sm" style={{ color: 'var(--color-text)' }}>Gap Closer</h2>
             <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
               מצב: <strong style={{ color: mode !== 'off' ? 'var(--color-gold)' : 'var(--color-muted)' }}>
@@ -313,13 +313,13 @@ function GapCloserCard({ settings, saveSettings }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
             {MODE_OPTIONS.map(opt => (
               <button key={opt.value}
                 onClick={() => updateField('gap_closer_mode', opt.value)}
                 disabled={saving}
-                className="px-2 py-1.5 text-[10px] font-bold transition-all"
+                className="px-2.5 py-1.5 text-sm font-bold transition-all"
                 style={{
                   background: mode === opt.value ? 'var(--color-gold)' : 'transparent',
                   color: mode === opt.value ? '#fff' : 'var(--color-muted)',
@@ -329,7 +329,7 @@ function GapCloserCard({ settings, saveSettings }) {
             ))}
           </div>
           <button onClick={() => setExpanded(!expanded)}
-            className="text-xs px-1.5 py-1 rounded-lg"
+            className="text-sm px-2 py-1 rounded-lg"
             style={{ color: 'var(--color-muted)' }}>
             {expanded ? '▲' : '⚙️'}
           </button>
