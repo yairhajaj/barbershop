@@ -36,15 +36,19 @@ import { supabase } from '../../lib/supabase'
 import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
-function useScrollReveal() {
+function useScrollReveal(deps = []) {
   useEffect(() => {
     const io = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
+      entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('visible')
+      })
     }, { threshold: 0.12 })
-    const els = document.querySelectorAll('.v6-reveal')
-    els.forEach(el => io.observe(el))
-    return () => io.disconnect()
-  })
+    const timer = setTimeout(() => {
+      document.querySelectorAll('.v6-reveal').forEach(el => io.observe(el))
+    }, 100)
+    return () => { clearTimeout(timer); io.disconnect() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
 }
 
 function FanGallery({ items }) {
@@ -268,7 +272,7 @@ export function HomePage() {
   const [portfolioMember, setPortfolioMember] = useState(null)
   const heroVideoRef = useRef(null)
 
-  useScrollReveal()
+  useScrollReveal([servicesLoading, staffLoading, featuredProducts.length, galleryItems.length])
 
   // Hero parallax — fade + slide up as page scrolls
   useEffect(() => {
@@ -485,21 +489,17 @@ export function HomePage() {
 
         {/* ── CTA BUTTON ───────────────────────────────────────── */}
         <section className="px-5 pt-5 pb-6">
-          <style>{`@keyframes v6CtaSweep{0%{left:-110%}55%,100%{left:150%}}`}</style>
           <Link
             to={bookHref}
-            className="v6-cta"
+            className="v6-cta-btn"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%',
               background: 'var(--color-gold)', color: '#fff',
               fontWeight: 600, fontSize: 14, letterSpacing: '0.02em',
               padding: '16px 28px', borderRadius: 9999, border: 'none', cursor: 'pointer',
               boxShadow: '0 8px 32px var(--color-accent-glow), 0 1px 0 rgba(255,255,255,0.20) inset',
-              transition: 'all .38s cubic-bezier(.34,1.56,.64,1)',
-              textDecoration: 'none', position: 'relative', overflow: 'hidden',
+              textDecoration: 'none',
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.015)'; e.currentTarget.style.boxShadow = '0 14px 36px rgba(255,122,0,0.36), 0 1px 0 rgba(255,255,255,0.20) inset' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px var(--color-accent-glow), 0 1px 0 rgba(255,255,255,0.20) inset' }}
           >
             <span style={{ position: 'relative', zIndex: 1 }}>קבע תור עכשיו</span>
             <span style={{
@@ -511,11 +511,7 @@ export function HomePage() {
                 <polyline points="8,3 5,6 8,9" />
               </svg>
             </span>
-            <span aria-hidden style={{
-              position: 'absolute', top: 0, left: '-110%', width: '46%', height: '100%',
-              background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)',
-              animation: 'v6CtaSweep 3.2s ease infinite 1.5s', pointerEvents: 'none',
-            }} />
+            <span className="v6-cta-shimmer" aria-hidden="true" />
           </Link>
           {!user && (
             <Link to="/login" style={{
@@ -658,7 +654,7 @@ export function HomePage() {
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             <Link to={bookHref} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-gold)', textDecoration: 'none', letterSpacing: '0.01em' }}>כל השירותים ←</Link>
           </div>
-          <h2 style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</h2>
+          <h2 className="v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</h2>
 
           {servicesLoading ? (
             <div className="space-y-3 mt-4">
@@ -669,7 +665,7 @@ export function HomePage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
               {services.map((service, i) => (
-                <motion.div key={service.id} className="v6-reveal" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
+                <motion.div key={service.id} className={`v6-reveal v6-d${(i % 6) + 1}`} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                   <Link
                     to={serviceHref(service.id)}
                     className="group v6-svc-row"
@@ -680,18 +676,6 @@ export function HomePage() {
                       borderRadius: 18, padding: '15px 16px',
                       boxShadow: 'var(--sh-sm)',
                       cursor: 'pointer', textDecoration: 'none',
-                      transition: 'all .34s cubic-bezier(.22,1,.36,1)',
-                      position: 'relative', overflow: 'hidden',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-3px)'
-                      e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : '#fff'
-                      e.currentTarget.style.boxShadow = '0 10px 28px rgba(0,0,0,0.09), 0 0 0 1px rgba(255,122,0,0.14), 0 1px 0 rgba(255,255,255,0.90) inset'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'var(--color-card)'
-                      e.currentTarget.style.boxShadow = 'var(--sh-sm)'
                     }}
                   >
                     {/* Icon */}
@@ -733,7 +717,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מוצרים</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
-            <h2 className="px-5" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</h2>
+            <h2 className="px-5 v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</h2>
             <div
               style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', display: 'flex', gap: 12, padding: '14px 20px 8px', margin: '0 -0px' }}
               tabIndex={0} role="region" aria-label="מוצרים מומלצים"
@@ -741,7 +725,7 @@ export function HomePage() {
               {featuredProducts.map((product, i) => (
                 <motion.div
                   key={product.id}
-                  className="v6-prod-card v6-reveal"
+                  className={`v6-prod-card v6-reveal v6-d${(i % 6) + 1}`}
                   initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                   style={{
                     flexShrink: 0, width: 136,
@@ -749,18 +733,13 @@ export function HomePage() {
                     borderRadius: 18, overflow: 'hidden',
                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.88)'}`,
                     boxShadow: 'var(--sh-sm)', cursor: 'pointer',
-                    transition: 'all .38s cubic-bezier(.22,1,.36,1)',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'; e.currentTarget.style.boxShadow = 'var(--sh-lg), 0 0 0 1.5px rgba(255,122,0,0.16)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'var(--sh-sm)' }}
                 >
                   {/* Image */}
                   <div style={{ width: '100%', height: 160, overflow: 'hidden', background: 'linear-gradient(145deg,#f0e4cc,#d4c0a0)', position: 'relative' }}>
                     <div className="v6-prod-badge">{priceDisplay(product.price)}</div>
                     {product.image_url
-                      ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform .7s cubic-bezier(.22,1,.36,1)', display: 'block' }}
-                          onMouseEnter={e => { e.target.style.transform = 'scale(1.08)' }}
-                          onMouseLeave={e => { e.target.style.transform = 'scale(1)' }} />
+                      ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform .7s cubic-bezier(.22,1,.36,1)', display: 'block' }} />
                       : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: 42, fontWeight: 900, color: 'var(--color-gold)', opacity: 0.12 }}>H</span>
                         </div>
@@ -788,7 +767,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>הצוות</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
-            <h2 className="px-5" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</h2>
+            <h2 className="px-5 v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</h2>
             <p className="px-5" style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 7, marginBottom: 6, lineHeight: 1.6 }}>לחץ על כרטיס לצפייה בעבודות</p>
             <div
               style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 20px 4px' }}
@@ -797,7 +776,7 @@ export function HomePage() {
               {staff.map((member, i) => (
                 <motion.div
                   key={member.id}
-                  className="v6-reveal"
+                  className={`v6-team-card v6-reveal v6-d${(i % 2) + 1}`}
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -807,10 +786,8 @@ export function HomePage() {
                     background: '#f0e8d8',
                     border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.80)'}`,
                     boxShadow: '0 3px 12px rgba(0,0,0,0.07), 0 1px 0 rgba(255,255,255,0.80)',
-                    transition: 'all .42s cubic-bezier(.22,1,.36,1)',
                     position: 'relative',
                   }}
-                  whileHover={{ y: -5, scale: 1.015, boxShadow: '0 16px 40px rgba(0,0,0,0.11), 0 0 0 1.5px rgba(255,122,0,0.18)' }}
                   onClick={() => setPortfolioMember(member)}
                 >
                   <div style={{ position: 'relative', height: 195, overflow: 'hidden', background: 'linear-gradient(145deg,#ede0c8,#c8a87c)' }}>
@@ -896,7 +873,7 @@ export function HomePage() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מצאו אותנו</span>
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
           </div>
-          <h2 style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</h2>
+          <h2 className="v6-reveal" style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</h2>
 
           {/* Fan gallery */}
           {galleryItems.filter(g => g.type === 'image').length > 0 && (

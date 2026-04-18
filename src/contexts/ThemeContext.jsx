@@ -10,6 +10,12 @@ export const THEMES = [
     preview: ['#ffffff', '#FF8500', '#f5f5f5'],
   },
   {
+    id: 'mono',
+    name: 'שחור-לבן',
+    desc: 'מונוכרום מינימליסטי — נייטרלי ונקי',
+    preview: ['#eeeae4', '#1c1c1c', '#f8f6f2'],
+  },
+  {
     id: 'rose',
     name: 'ורוד',
     desc: 'ורוד אלגנטי — נשי ומתוחכם',

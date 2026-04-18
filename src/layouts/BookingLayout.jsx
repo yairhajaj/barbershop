@@ -522,48 +522,57 @@ export function BookingLayout({ children }) {
       </footer>
       )}
 
-      {/* ── Mobile floating bottom bar ── */}
-      <div
-        className="mobile-bottom-bar md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{ padding: '0 10px calc(10px + env(safe-area-inset-bottom, 0px))' }}
-      >
-        <nav style={{
-          background: barNavBg,
-          backdropFilter: barNavBlur,
-          WebkitBackdropFilter: barNavBlur,
-          border: `1px solid ${barNavBorder}`,
-          borderRadius: '26px',
-          boxShadow: barNavShadow,
+      {/* ── v6 mobile toolbar ── */}
+      <div className="v6-toolbar md:hidden fixed bottom-0 left-0 right-0 z-50"
+        style={{
+          background: isDark ? 'rgba(12,12,12,0.92)' : 'rgba(255,255,255,0.94)',
+          backdropFilter: 'blur(36px) saturate(2)',
+          WebkitBackdropFilter: 'blur(36px) saturate(2)',
+          borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.72)',
+          boxShadow: isDark
+            ? '0 -1px 0 rgba(255,255,255,0.05), 0 -8px 40px rgba(0,0,0,0.55)'
+            : '0 -1px 0 rgba(0,0,0,0.05), 0 -4px 20px rgba(0,0,0,0.07), 0 -16px 40px rgba(0,0,0,0.03)',
+          borderRadius: '22px 22px 0 0',
+          padding: `10px 6px calc(10px + env(safe-area-inset-bottom, 0px))`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
-          padding: '10px 6px',
-        }}>
-          <BottomBarButton to="/" icon="home" label="בית" active={location.pathname === '/'} barText={barText} barBgActive={barBgActive} />
-          {/* Central book button — elevated pill */}
-          <Link
-            to={bookHref}
-            className="flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl"
-            style={{
-              background: 'var(--color-gold-btn, var(--color-gold))',
-              color: '#fff',
-              boxShadow: '0 10px 36px var(--color-accent-glow), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.22)',
-              transform: 'translateY(-8px)',
-              minWidth: 64,
-              textAlign: 'center',
-            }}
-          >
-            <BarIcon name="scissors" size={24} color="#fff" />
-            <span className="text-[10px] font-bold leading-none">הזמן תור</span>
-          </Link>
-          {user
-            ? <BottomBarButton to="/my-appointments" icon="calendar" label="התורים שלי" active={location.pathname === '/my-appointments'} barText={barText} barBgActive={barBgActive} />
-            : <BottomBarButton to="/login" icon="person" label="כניסה" active={location.pathname.startsWith('/login')} barText={barText} barBgActive={barBgActive} />
-          }
-          {isAdmin && (
-            <BottomBarButton to="/admin" icon="settings" label="ניהול" active={location.pathname.startsWith('/admin')} barText={barText} barBgActive={barBgActive} />
-          )}
-        </nav>
+        }}
+      >
+        <V6BarBtn to="/" icon="home" label="בית" active={location.pathname === '/'} isDark={isDark} />
+        <V6BarBtn to="/#products" icon="bag" label="מוצרים" active={false} isDark={isDark} />
+
+        {/* CENTER FAB */}
+        <Link to={bookHref} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: -24, cursor: 'pointer', textDecoration: 'none' }}>
+          <div className="v6-fab" style={{
+            width: 52, height: 52, borderRadius: '50%',
+            background: `linear-gradient(145deg, var(--color-gold-light), var(--color-gold-dark))`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `3px solid var(--color-surface)`,
+            boxShadow: '0 8px 32px var(--color-accent-glow), 0 0 0 4px rgba(255,122,0,0.07)',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+            </svg>
+          </div>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.04em', color: isDark ? 'rgba(255,255,255,0.5)' : 'var(--color-gold)' }}>קבע תור</span>
+        </Link>
+
+        <V6BarBtn
+          to={user ? '/my-appointments' : '/login'}
+          icon="calendar"
+          label={user ? 'התורים שלי' : 'כניסה'}
+          active={location.pathname === '/my-appointments'}
+          isDark={isDark} />
+        <V6BarBtn
+          to={isAdmin ? '/admin' : '/login'}
+          icon={isAdmin ? 'settings' : 'person'}
+          label={isAdmin ? 'ניהול' : 'פרופיל'}
+          active={location.pathname.startsWith('/admin') || location.pathname.startsWith('/login')}
+          isDark={isDark} />
       </div>
     </div>
   )
@@ -632,6 +641,53 @@ function BottomBarButton({ to, icon, label, active, barText, barBgActive }) {
       {/* Color passed directly to SVG stroke — bypasses any CSS color inheritance issues */}
       <BarIcon name={icon} size={26} color={iconColor} />
       <span className="text-[10px] font-semibold leading-none text-center" style={{ color: labelColor }}>{label}</span>
+    </Link>
+  )
+}
+
+function V6BarBtn({ to, icon, label, active, isDark }) {
+  const gold = 'var(--color-gold)'
+  const muted = isDark ? 'rgba(255,255,255,0.45)' : '#8c8280'
+  const color = active ? gold : muted
+  const icons = {
+    home: <path d="M3 11L12 3l9 8v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9z" />,
+    bag: (
+      <>
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <path d="M16 10a4 4 0 01-8 0" />
+      </>
+    ),
+    calendar: (
+      <>
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </>
+    ),
+    person: (
+      <>
+        <circle cx="12" cy="7" r="4" />
+        <path d="M4 21v-1a8 8 0 0116 0v1" />
+      </>
+    ),
+    settings: (
+      <>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+      </>
+    ),
+  }
+  return (
+    <Link to={to} style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      padding: '6px 12px', borderRadius: 14, minWidth: 54, textDecoration: 'none',
+      background: active ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,122,0,0.08)') : 'transparent',
+      transition: 'all .24s cubic-bezier(.34,1.56,.64,1)',
+    }}>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={active ? 2.1 : 1.65} strokeLinecap="round" strokeLinejoin="round">
+        {icons[icon]}
+      </svg>
+      <span style={{ fontSize: 9, fontWeight: active ? 700 : 600, color, letterSpacing: '.03em' }}>{label}</span>
     </Link>
   )
 }

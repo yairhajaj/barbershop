@@ -157,6 +157,40 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   THEME: mono — שחור-לבן (monochrome)
+══════════════════════════════════════════════════════════════════ */
+[data-theme="mono"] {
+  --color-primary:       #000000;
+  --color-primary-light: #1a1a1a;
+  --color-gold:          #1c1c1c;
+  --color-gold-text:     #000000;
+  --color-gold-btn:      #1c1c1c;
+  --color-gold-light:    #444444;
+  --color-gold-dark:     #000000;
+  --color-surface:       #eeeae4;
+  --color-surface2:      #f8f6f2;
+  --color-card:          rgba(255,255,255,0.92);
+  --color-border:        rgba(0,0,0,0.08);
+  --color-muted:         #888888;
+  --color-text:          #0e0e0e;
+  --color-navbar:        #000000;
+  --color-accent-glow:   rgba(0,0,0,0.15);
+  --radius-btn:          999px;
+  --radius-card:         1.25rem;
+  --shadow-card:         0 2px 16px rgba(0,0,0,0.08);
+  --shadow-elevated:     0 8px 32px rgba(0,0,0,0.20);
+}
+[data-theme="mono"] .btn-primary {
+  background: #1c1c1c;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+[data-theme="mono"] .btn-primary:hover {
+  background: #000;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.40);
+}
+
+/* ══════════════════════════════════════════════════════════════════
    THEME: rose — ורוד (feminine pink)
 ══════════════════════════════════════════════════════════════════ */
 [data-theme="rose"] {
@@ -1437,3 +1471,58 @@
   box-shadow:0 3px 12px rgba(255,122,0,.30);transition:all .22s;
 }
 .v6-map-btn:hover{transform:scale(1.05);}
+
+/* ══ v6 stagger delays ══════════════════════════════════════════ */
+.v6-d1 { transition-delay: .06s }
+.v6-d2 { transition-delay: .13s }
+.v6-d3 { transition-delay: .20s }
+.v6-d4 { transition-delay: .26s }
+.v6-d5 { transition-delay: .32s }
+.v6-d6 { transition-delay: .38s }
+
+/* ══ v6 CTA button spring ══════════════════════════════════════ */
+.v6-cta-btn {
+  transition: all .38s cubic-bezier(.34,1.56,.64,1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.v6-cta-btn:hover { transform: translateY(-2px) scale(1.015) !important; }
+.v6-cta-btn:active {
+  transform: scale(.97) !important;
+  transition-duration: .1s !important;
+}
+
+/* ══ v6 service row (spring + active) ══════════════════════════ */
+.v6-svc-row { transition: all .34s cubic-bezier(.22,1,.36,1) !important; }
+.v6-svc-row:active { transform: scale(.98) !important; transition-duration: .1s !important; }
+
+/* ══ v6 product card (spring + active) ══════════════════════════ */
+.v6-prod-card { transition: all .38s cubic-bezier(.22,1,.36,1) !important; }
+.v6-prod-card:hover {
+  transform: translateY(-5px) scale(1.02) !important;
+  box-shadow: var(--sh-lg), 0 0 0 1.5px rgba(255,122,0,.16) !important;
+}
+.v6-prod-card:active { transform: scale(.96) !important; transition-duration: .12s !important; }
+
+/* ══ v6 team card ══════════════════════════════════════════════ */
+.v6-team-card { transition: all .42s cubic-bezier(.22,1,.36,1) !important; }
+.v6-team-card:hover {
+  transform: translateY(-5px) scale(1.015) !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,.11),
+              0 0 0 1.5px rgba(255,122,0,.18) !important;
+}
+
+/* ══ v6 bottom toolbar slide-in ════════════════════════════════ */
+.v6-toolbar {
+  transform: translateY(100%);
+  animation: v6TbIn .65s cubic-bezier(.22,1,.36,1) .4s forwards;
+}
+@keyframes v6TbIn { to { transform: translateY(0) } }
+
+/* ══ v6 FAB ═════════════════════════════════════════════════════ */
+.v6-fab { transition: all .42s cubic-bezier(.34,1.56,.64,1); }
+.v6-fab:hover { transform: scale(1.12) rotate(-8deg); }
+.v6-fab:active {
+  transform: scale(.85) rotate(-15deg) !important;
+  transition-duration: .1s !important;
+}
