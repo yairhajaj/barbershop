@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { buzzNotification } from '../../lib/native'
 
 const ToastContext = createContext(null)
 
@@ -11,6 +12,10 @@ export function ToastProvider({ children }) {
   const show = useCallback(({ message, type = 'info', duration = 4000 }) => {
     const id = ++toastId
     setToasts(t => [...t, { id, message, type }])
+    // Haptic feedback for destructive actions
+    if (type === 'error')   buzzNotification('error')
+    if (type === 'warning') buzzNotification('warning')
+    if (type === 'success') buzzNotification('success')
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), duration)
   }, [])
 

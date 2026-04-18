@@ -25,6 +25,7 @@ import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate,
 import { supabase } from '../../lib/supabase'
 import { printInvoice } from '../../lib/invoice'
 import { BUSINESS } from '../../config/business'
+import { buzz } from '../../lib/native'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const VIEWS = ['day', 'week', 'list']
@@ -481,6 +482,7 @@ export function Appointments() {
 
     await refetch()
     setSelectedAppt(null)
+    await buzz('success')
     toast({ message: 'תור בוטל', type: 'success' })
 
     // Send cancellation notification

@@ -11,6 +11,7 @@ import { useToast } from '../../components/ui/Toast'
 import { ImageUpload } from '../../components/ui/ImageUpload'
 import { dayName } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
+import { buzz } from '../../lib/native'
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
 
@@ -160,6 +161,7 @@ export function Staff() {
     if (!confirm('למחוק ספר זה?')) return
     try {
       await deleteStaffMember(id)
+      await buzz('success')
       toast({ message: 'ספר נמחק', type: 'success' })
     } catch (err) {
       const msg = err?.message ?? ''
