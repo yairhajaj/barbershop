@@ -40,6 +40,7 @@ import { he } from 'date-fns/locale/he'
 function FanGallery({ items }) {
   const stageRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState(null)
 
   useEffect(() => {
     if (!stageRef.current) return
@@ -56,20 +57,58 @@ function FanGallery({ items }) {
 
   const cards = items.slice(0, 5)
   return (
-    <div
-      ref={stageRef}
-      className={`v6-fan-stage${open ? ' open' : ''}`}
-      onClick={() => setOpen(o => !o)}
-    >
-      {cards.map((item, i) => (
-        <div key={item.id ?? i} className="v6-fan-card">
-          <img className="v6-fan-img" src={item.url} alt={item.caption || ''} loading="lazy" />
-          <div className="v6-fan-overlay">
-            <span className="v6-fan-lbl">{item.caption || ''}</span>
+    <>
+      <div
+        ref={stageRef}
+        className={`v6-fan-stage${open ? ' open' : ''}`}
+        onClick={() => setOpen(o => !o)}
+      >
+        {cards.map((item, i) => (
+          <div
+            key={item.id ?? i}
+            className="v6-fan-card"
+            onClick={open ? e => { e.stopPropagation(); setLightboxIdx(i) } : undefined}
+          >
+            <img className="v6-fan-img" src={item.url} alt={item.caption || ''} loading="lazy" />
+            <div className="v6-fan-overlay">
+              <span className="v6-fan-lbl">{item.caption || ''}</span>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {lightboxIdx !== null && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setLightboxIdx(null)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
+              zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <button
+              onClick={() => setLightboxIdx(null)}
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%',
+                width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >✕</button>
+            <motion.img
+              src={cards[lightboxIdx]?.url}
+              alt={cards[lightboxIdx]?.caption || ''}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12 }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
 
@@ -638,7 +677,7 @@ export function HomePage() {
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             <Link to={bookHref} style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-gold)', textDecoration: 'none', letterSpacing: '0.01em' }}>כל השירותים ←</Link>
           </div>
-          <motion.h2 initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</motion.h2>
+          <motion.h2 initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מה תרצה לעשות?</motion.h2>
 
           {servicesLoading ? (
             <div className="space-y-3 mt-4">
@@ -649,7 +688,7 @@ export function HomePage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
               {services.map((service, i) => (
-                <motion.div key={service.id} initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: i * 0.07 }}>
+                <motion.div key={service.id} initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.12 }}>
                   <Link
                     to={serviceHref(service.id)}
                     className="group v6-svc-row"
@@ -701,7 +740,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מוצרים</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
-            <motion.h2 className="px-5" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</motion.h2>
+            <motion.h2 className="px-5" initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>מוצרים לרכישה</motion.h2>
             <div
               style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', display: 'flex', gap: 12, padding: '14px 20px 8px', margin: '0 -0px' }}
               tabIndex={0} role="region" aria-label="מוצרים מומלצים"
@@ -710,7 +749,7 @@ export function HomePage() {
                 <motion.div
                   key={product.id}
                   className="v6-prod-card"
-                  initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: i * 0.07 }}
+                  initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.12 }}
                   style={{
                     flexShrink: 0, width: 136,
                     background: isDark ? 'rgba(255,255,255,0.06)' : 'var(--color-card)',
@@ -751,7 +790,7 @@ export function HomePage() {
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>הצוות</span>
               <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
             </div>
-            <motion.h2 className="px-5" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</motion.h2>
+            <motion.h2 className="px-5" initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8 }}>הכירו את הספרים</motion.h2>
             <p className="px-5" style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 7, marginBottom: 6, lineHeight: 1.6 }}>לחץ על כרטיס לצפייה בעבודות</p>
             <div
               style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 20px 4px' }}
@@ -761,10 +800,10 @@ export function HomePage() {
                 <motion.div
                   key={member.id}
                   className="v6-team-card"
-                  initial={{ opacity: 0, y: 28 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.82, y: 40 }}
+                  whileInView={{ opacity: 1, scale: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.15 }}
-                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: i * 0.07 }}
+                  transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.12 }}
                   style={{
                     borderRadius: 18, overflow: 'hidden', cursor: 'pointer',
                     background: '#f0e8d8',
@@ -824,7 +863,7 @@ export function HomePage() {
               {reviews.slice(0, 10).map((review, i) => (
                 <motion.div
                   key={review.id}
-                  initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                  initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.12 }}
                   style={{
                     flexShrink: 0, borderRadius: 16, padding: 16, width: 240,
                     background: isDark ? 'rgba(255,255,255,0.05)' : 'var(--color-card)',
@@ -857,7 +896,7 @@ export function HomePage() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-muted)' }}>מצאו אותנו</span>
             <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
           </div>
-          <motion.h2 initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</motion.h2>
+          <motion.h2 initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</motion.h2>
 
           {/* Fan gallery */}
           {galleryItems.filter(g => g.type === 'image').length > 0 && (
@@ -870,7 +909,7 @@ export function HomePage() {
           )}
 
           {/* v6 location card */}
-          <motion.div className="v6-loc-card" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.div className="v6-loc-card" initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}>
             <div className="v6-map-placeholder">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="1.5" strokeOpacity="0.3" strokeLinecap="round">
                 <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
@@ -963,7 +1002,7 @@ export function HomePage() {
           </div>
 
           {/* Final CTA */}
-          <motion.div initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+          <motion.div initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}>
             <Link to={bookHref} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', marginTop: 16,
               background: 'var(--color-gold)', color: '#fff',

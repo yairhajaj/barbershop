@@ -1402,6 +1402,7 @@
 .v6-fan-stage {
   position:relative;height:300px;margin-bottom:18px;cursor:pointer;
   filter:drop-shadow(0 12px 24px rgba(0,0,0,.12));
+  max-width:100%;overflow:clip;
 }
 .v6-fan-card {
   position:absolute;bottom:0;left:50%;
@@ -1427,17 +1428,17 @@
 .v6-fan-card:nth-child(5){transform:translateX(-50%) rotate(7deg) translateY(16px);z-index:1}
 
 .v6-fan-stage.open .v6-fan-card:nth-child(1){transform:translateX(-50%) rotate(0deg) translateY(0);z-index:5;transition-delay:.00s}
-.v6-fan-stage.open .v6-fan-card:nth-child(2){transform:translateX(-130%) rotate(-28deg) translateY(22px);z-index:4;transition-delay:.08s}
-.v6-fan-stage.open .v6-fan-card:nth-child(3){transform:translateX(28%) rotate(28deg) translateY(22px);z-index:4;transition-delay:.08s}
-.v6-fan-stage.open .v6-fan-card:nth-child(4){transform:translateX(-208%) rotate(-52deg) translateY(72px);z-index:3;transition-delay:.18s}
-.v6-fan-stage.open .v6-fan-card:nth-child(5){transform:translateX(102%) rotate(52deg) translateY(72px);z-index:3;transition-delay:.18s}
+.v6-fan-stage.open .v6-fan-card:nth-child(2){transform:translateX(-105%) rotate(-15deg) translateY(14px);z-index:4;transition-delay:.08s}
+.v6-fan-stage.open .v6-fan-card:nth-child(3){transform:translateX(4%) rotate(15deg) translateY(14px);z-index:4;transition-delay:.08s}
+.v6-fan-stage.open .v6-fan-card:nth-child(4){transform:translateX(-160%) rotate(-28deg) translateY(48px);z-index:3;transition-delay:.18s}
+.v6-fan-stage.open .v6-fan-card:nth-child(5){transform:translateX(58%) rotate(28deg) translateY(48px);z-index:3;transition-delay:.18s}
 
 /* ── v6 scroll reveal ── */
 .v6-reveal {
-  opacity:0;transform:translateY(26px);
-  transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1);
+  opacity:0;transform:scale(.82) translateY(40px);
+  transition:opacity .55s cubic-bezier(.34,1.56,.64,1),transform .55s cubic-bezier(.34,1.56,.64,1);
 }
-.v6-reveal.scale-up{transform:scale(.94) translateY(12px);}
+.v6-reveal.scale-up{transform:scale(.82) translateY(40px);}
 .v6-reveal.visible{opacity:1!important;transform:none!important;}
 
 /* ── v6 scroll indicator ── */
