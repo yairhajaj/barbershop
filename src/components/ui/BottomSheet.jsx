@@ -27,6 +27,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useAndroidBack } from '../../hooks/useAndroidBack'
+import { useMotion } from '../../hooks/useMotion'
 
 const FOCUSABLE_SEL = [
   'a[href]',
@@ -42,6 +43,7 @@ const SIZES = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl'
 export function BottomSheet({ open, onClose, title, size = 'md', children }) {
   const panelRef = useRef(null)
   const isMobile = useMediaQuery('(max-width: 640px)')
+  const m = useMotion()
 
   /* ── Android back button ─────────────────────────────────────────── */
   const handleBack = useCallback(() => { if (open) onClose() }, [open, onClose])
@@ -99,13 +101,6 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
     return () => window.removeEventListener('keydown', trap)
   }, [open])
 
-  /* ── Animations ──────────────────────────────────────────────────── */
-  const anim = {
-    initial: { opacity: 0, scale: 0.96, y: 12 },
-    animate: { opacity: 1, scale: 1,    y: 0  },
-    exit:    { opacity: 0, scale: 0.96, y: 12 },
-  }
-
   /* Mobile bottom-bar (both layouts) ≈ 60-72px + safe-area. Reserve
      a generous pad at both ends so the modal is centred between the
      top of the viewport and the floating nav. */
@@ -130,9 +125,10 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
         >
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            variants={m.backdrop}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
@@ -143,8 +139,10 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
             role="dialog"
             aria-modal="true"
             aria-label={title || 'תפריט'}
-            {...anim}
-            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+            variants={m.modalEnter}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className={`relative w-full ${SIZES[size]} card flex flex-col z-10 ${isMobile ? 'rounded-3xl' : 'p-6'}`}
             style={{
               maxHeight: isMobile
