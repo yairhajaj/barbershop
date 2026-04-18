@@ -139,6 +139,8 @@ export function Login() {
             <input
               className="input"
               type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               placeholder="050-0000000"
               value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
@@ -151,6 +153,7 @@ export function Login() {
             <input
               className="input"
               type="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
@@ -201,6 +204,8 @@ export function Login() {
                   <input
                     className="input"
                     type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     placeholder="050-0000000"
                     value={fpPhone}
                     onChange={e => setFpPhone(e.target.value)}
@@ -261,6 +266,7 @@ export function Login() {
                   <input
                     className="input"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="לפחות 6 תווים"
                     value={fpPass}
                     onChange={e => setFpPass(e.target.value)}
@@ -272,6 +278,7 @@ export function Login() {
                   <input
                     className="input"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={fpPassConf}
                     onChange={e => setFpPassConf(e.target.value)}

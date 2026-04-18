@@ -180,6 +180,8 @@ export function Register() {
               <input
                 className="input"
                 type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 placeholder="050-0000000"
                 value={form.phone}
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
@@ -193,6 +195,7 @@ export function Register() {
               <input
                 className="input"
                 type="password"
+                autoComplete="new-password"
                 placeholder="לפחות 6 תווים"
                 value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
@@ -205,6 +208,7 @@ export function Register() {
               <input
                 className="input"
                 type="password"
+                autoComplete="new-password"
                 placeholder="••••••••"
                 value={form.confirmPassword}
                 onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
@@ -217,6 +221,7 @@ export function Register() {
               <input
                 className="input"
                 type="date"
+                autoComplete="bday"
                 value={form.birthDate}
                 onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))}
                 dir="ltr"

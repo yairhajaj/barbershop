@@ -772,6 +772,7 @@ export function Staff() {
                   </label>
                   <input
                     type="number"
+                    inputMode={editMember.commission_type === 'percentage' ? 'decimal' : 'numeric'}
                     min="0"
                     step={editMember.commission_type === 'percentage' ? '0.1' : '1'}
                     className="input w-40"
@@ -787,6 +788,7 @@ export function Staff() {
                   <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--color-muted)' }}>משכורת חודשית (₪)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="100"
                     className="input w-40"

@@ -132,6 +132,7 @@ export function Services() {
                 <input
                   className="input"
                   type="number"
+                  inputMode="numeric"
                   min="5"
                   max="300"
                   value={editService.duration_minutes}
@@ -143,6 +144,7 @@ export function Services() {
                 <input
                   className="input"
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   placeholder="ריק = חינם"
                   value={editService.price || ''}
@@ -156,6 +158,7 @@ export function Services() {
                 <input
                   className="input"
                   type="number"
+                  inputMode="numeric"
                   value={editService.display_order}
                   onChange={e => setEditService(s => ({ ...s, display_order: Number(e.target.value) }))}
                 />

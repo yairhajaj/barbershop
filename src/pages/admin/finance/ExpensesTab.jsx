@@ -404,6 +404,7 @@ export function ExpensesTab() {
               </label>
               <input
                 type="number"
+                inputMode="decimal"
                 value={form.amount}
                 onChange={e => handleAmountChange(e.target.value)}
                 className="input-field"
@@ -419,6 +420,7 @@ export function ExpensesTab() {
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={form.vat_amount}
                   onChange={e => setForm(f => ({ ...f, vat_amount: e.target.value }))}
                   className="input-field"

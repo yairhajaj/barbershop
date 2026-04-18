@@ -162,6 +162,8 @@ export function CustomerDetails() {
               className={`input ${errors.phone ? 'border-red-400' : ''}`}
               placeholder="050-0000000"
               type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
             />
@@ -174,6 +176,8 @@ export function CustomerDetails() {
               className={`input ${errors.email ? 'border-red-400' : ''}`}
               placeholder="name@email.com"
               type="email"
+              inputMode="email"
+              autoComplete="email"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             />
