@@ -6,6 +6,7 @@ import { useBranch } from '../contexts/BranchContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
 import { useAndroidBack } from '../hooks/useAndroidBack'
 import { useKeyboardAware } from '../hooks/useKeyboardAware'
+import { useOnline } from '../hooks/useOnline'
 import { BUSINESS } from '../config/business'
 import { PageSpinner } from '../components/ui/Spinner'
 
@@ -163,6 +164,8 @@ export function AdminLayout({ children }) {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const NAV_LINKS = BASE_NAV_LINKS
+
+  const online = useOnline()
 
   // Scroll to top on every route change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
@@ -351,6 +354,23 @@ export function AdminLayout({ children }) {
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
       <div className="flex-1 lg:mr-64 flex flex-col min-h-screen">
+        {/* Offline banner — sits above the top bar, slides in when offline */}
+        <AnimatePresence>
+          {!online && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="sticky top-0 z-30 overflow-hidden"
+            >
+              <div className="bg-yellow-400 text-yellow-900 text-xs text-center font-semibold py-2 px-4">
+                ⚠️ אין חיבור לאינטרנט — שינויים ישמרו כשהחיבור יחזור
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Top bar */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
           <div className="text-sm text-gray-500 hidden sm:block">
