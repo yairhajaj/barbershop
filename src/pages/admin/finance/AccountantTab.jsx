@@ -229,7 +229,7 @@ export function AccountantTab() {
   // ─── Action 4a: OPENFRMT ───
   async function downloadOpenfrmt() {
     if (!ofValidation.valid) {
-      toast({ message: 'חסרות הגדרות חובה — בדוק הגדרות רישום תוכנה', type: 'error' })
+      toast({ message: 'חסרות הגדרות חובה: ' + ofValidation.errors[0], type: 'error' })
       return
     }
     setBusy('openfrmt')

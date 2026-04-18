@@ -23,6 +23,7 @@
 
 import JSZip from 'jszip'
 import { supabase } from './supabase'
+import { OPERATOR } from '../config/operator'
 
 const CRLF = '\r\n'
 const OF_VERSION = '&OF1.31&'
@@ -533,15 +534,15 @@ function buildIni({ vatId, primaryId, settings, from, to, counts }) {
     primaryId,
     totalIniRecords: 3,
     manufacturer: {
-      vatId: settings.manufacturer_vat_id || settings.business_tax_id,
-      name:  settings.manufacturer_name   || settings.business_name,
+      vatId: OPERATOR.manufacturer_vat_id,
+      name:  OPERATOR.manufacturer_name,
     },
     software: {
-      name:    settings.software_name    || 'Barbershop Booking',
-      version: settings.software_version || '1.0',
+      name:    OPERATOR.software_name,
+      version: OPERATOR.software_version,
     },
-    softwareType:    settings.software_type    || 2,
-    bookkeepingType: settings.bookkeeping_type || 1,
+    softwareType:    OPERATOR.software_type,
+    bookkeepingType: OPERATOR.bookkeeping_type,
     companyReg:      settings.company_registration_number,
     deductionFile:   settings.deduction_file_number,
     vatId,
@@ -557,7 +558,7 @@ function buildIni({ vatId, primaryId, settings, from, to, counts }) {
       end:   `${new Date(to).getFullYear()}-12-31`,
     },
     dataRange: { start: from, end: to },
-    leadingCurrency: settings.leading_currency || 'ILS',
+    leadingCurrency: OPERATOR.leading_currency,
     hasBranches: settings.has_branches,
   }))
 
@@ -575,7 +576,7 @@ export function buildSection26Report({ settings, from, to, counts, primaryId }) 
   return {
     businessName: settings.business_name,
     vatId:        settings.business_tax_id,
-    softwareReg:  settings.tax_software_reg_number,
+    softwareReg:  OPERATOR.tax_software_reg_number,
     primaryId,
     dataRange:    { from, to },
     generatedAt:  new Date().toISOString(),
@@ -635,29 +636,35 @@ export function printSection26(report) {
 }
 
 // ── Validation before generation ────────────────────────────────
-const REQUIRED_FIELDS = [
-  ['tax_software_reg_number', 'מס׳ רישום תוכנה ברשות המיסים'],
+const REQUIRED_SETTINGS_FIELDS = [
   ['business_tax_id',         'מס׳ עוסק מורשה'],
   ['business_name',           'שם העסק'],
   ['business_address_street', 'כתובת — רחוב'],
   ['business_address_city',   'כתובת — עיר'],
-  ['manufacturer_vat_id',     'ח.פ/ת.ז יצרן התוכנה'],
-  ['manufacturer_name',       'שם יצרן התוכנה'],
 ]
 
 export function validateOpenFormatSettings(settings) {
   const errors = []
   const warnings = []
-  for (const [key, label] of REQUIRED_FIELDS) {
+
+  // Validate per-business fields from settings
+  for (const [key, label] of REQUIRED_SETTINGS_FIELDS) {
     if (!settings[key] || String(settings[key]).trim() === '') {
       errors.push(`חסר שדה חובה: ${label}`)
     }
   }
+
+  // Validate operator (SaaS) fields from OPERATOR config
+  if (!OPERATOR.manufacturer_vat_id) errors.push('חסר ת.ז/ח.פ יצרן התוכנה (operator.js)')
+  if (!OPERATOR.manufacturer_name)   errors.push('חסר שם יצרן התוכנה (operator.js)')
+  if (!OPERATOR.tax_software_reg_number) {
+    warnings.push('מספר רישום תוכנה עדיין לא הוזן ב-operator.js — הקובץ יכלול "0" ולא יתקבל ברשות המיסים.')
+  } else if (!/^\d{8}$/.test(OPERATOR.tax_software_reg_number)) {
+    errors.push('מס׳ רישום תוכנה ב-operator.js חייב להיות 8 ספרות.')
+  }
+
   if (!settings.tax_office_notified) {
     warnings.push('לא סומן "עודכנה רשות המיסים" — יש להגיש הודעת שימוש בתוכנה לפני הפעלה (הוראת מקצוע 24/2004 §18ב(ב)).')
-  }
-  if (settings.tax_software_reg_number && !/^\d{8}$/.test(settings.tax_software_reg_number)) {
-    errors.push('מס׳ רישום תוכנה חייב להיות 8 ספרות.')
   }
   if (settings.business_tax_id && !/^\d{9}$/.test(String(settings.business_tax_id).replace(/\D/g, ''))) {
     errors.push('מס׳ עוסק חייב להיות 9 ספרות.')
@@ -722,7 +729,7 @@ export async function generateOpenFormatZip({ from, to, settings }) {
     `עסק: ${settings.business_name}`,
     `מס׳ עוסק: ${vatId}`,
     `תקופה: ${from} עד ${to}`,
-    `מספר רישום תוכנה: ${settings.tax_software_reg_number}`,
+    `מספר רישום תוכנה: ${OPERATOR.tax_software_reg_number || '(טרם הוזן)'}`,
     `Primary ID: ${primaryId}`,
     `גרסת מבנה: ${OF_VERSION}`,
     '',

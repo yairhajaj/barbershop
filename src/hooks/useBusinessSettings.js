@@ -47,28 +47,20 @@ const DEFAULT_SETTINGS = {
   commission_type:          'percentage', // 'percentage' | 'fixed' | 'salary'
   commission_default_rate:  50,
   openai_api_key:           '',
-  // Israeli Tax Authority — software registration (OPENFRMT 1.31 / Inst. 24/2004)
-  tax_software_reg_number:  '',                   // 8-digit reg. number (from רשות המיסים)
-  business_name:            '',                   // used in A000 field 1018 + invoice header
-  business_address_street:  '',
-  business_address_number:  '',
-  business_address_city:    '',
-  business_address_postal:  '',
-  software_name:            'Barbershop Booking', // A000 field 1007
-  software_version:         '1.0',                // A000 field 1008
-  manufacturer_vat_id:      '',                   // A000 field 1009 (9 digits)
-  manufacturer_name:        '',                   // A000 field 1010
-  software_type:            2,                    // A000 field 1011 (1=חד-שנתי, 2=רב-שנתי)
-  bookkeeping_type:         1,                    // A000 field 1013 (0/1/2)
-  company_registration_number: '',                // A000 field 1015 (ח.פ.)
-  deduction_file_number:    '',                   // A000 field 1016 (תיק ניכויים)
-  leading_currency:         'ILS',                // A000 field 1032
-  has_branches:             false,                // A000 field 1034
-  customer_consent_required: true,                // Inst. 24/2004 §18ב(ג)(1)
-  last_quarterly_backup_at: null,                 // Inst. 24/2004 §25(ו)
-  last_openfrmt_export_at:  null,
-  tax_office_notified:      false,                // Inst. 24/2004 §18ב(ב)
-  tax_office_notified_at:   null,
+  // Israeli Tax Authority — per-business OPENFRMT fields (A000 record)
+  business_name:               '',  // A000 field 1018
+  business_address_street:     '',  // A000 field 1019
+  business_address_number:     '',  // A000 field 1020
+  business_address_city:       '',  // A000 field 1021
+  business_address_postal:     '',  // A000 field 1022
+  company_registration_number: '',  // A000 field 1015 (ח.פ.)
+  deduction_file_number:       '',  // A000 field 1016
+  has_branches:                false,
+  customer_consent_required:   true,
+  last_quarterly_backup_at:    null,
+  last_openfrmt_export_at:     null,
+  tax_office_notified:         false,
+  tax_office_notified_at:      null,
   // Announcement
   announcement_enabled:    false,
   announcement_title:      '',

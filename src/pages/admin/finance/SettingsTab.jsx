@@ -6,6 +6,7 @@ import { useServices } from '../../../hooks/useServices'
 import { useExpenses } from '../../../hooks/useExpenses'
 import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
+import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 
 // ── Payment mode constants (migrated from Payments.jsx) ──
 
@@ -105,22 +106,6 @@ export function SettingsTab() {
   // Section 7: Cash tracking
   const [cashTracking, setCashTracking] = useState(true)
 
-  // Section 8: Tax Authority registration (OPENFRMT / Inst. 24/2004)
-  const [taxRegNumber, setTaxRegNumber]           = useState('')
-  const [businessName, setBusinessName]           = useState('')
-  const [addrStreet, setAddrStreet]               = useState('')
-  const [addrNumber, setAddrNumber]               = useState('')
-  const [addrCity, setAddrCity]                   = useState('')
-  const [addrPostal, setAddrPostal]               = useState('')
-  const [manufacturerVatId, setManufacturerVatId] = useState('')
-  const [manufacturerName, setManufacturerName]   = useState('')
-  const [softwareType, setSoftwareType]           = useState(2)   // 1=חד-שנתי, 2=רב-שנתי
-  const [bookkeepingType, setBookkeepingType]     = useState(1)   // 0/1/2
-  const [companyRegNumber, setCompanyRegNumber]   = useState('')
-  const [deductionFileNumber, setDeductionFileNumber] = useState('')
-  const [taxOfficeNotified, setTaxOfficeNotified] = useState(false)
-  const [customerConsentRequired, setCustomerConsentRequired] = useState(true)
-
   // ── Sync from settings ──
   useEffect(() => {
     if (!settings) return
@@ -138,22 +123,6 @@ export function SettingsTab() {
     setAccountantPhone(settings.accountant_phone || '')
     setAccountantEmail(settings.accountant_email || '')
     setCashTracking(settings.cash_tracking_enabled ?? true)
-
-    // Tax authority registration
-    setTaxRegNumber(settings.tax_software_reg_number || '')
-    setBusinessName(settings.business_name || '')
-    setAddrStreet(settings.business_address_street || '')
-    setAddrNumber(settings.business_address_number || '')
-    setAddrCity(settings.business_address_city || '')
-    setAddrPostal(settings.business_address_postal || '')
-    setManufacturerVatId(settings.manufacturer_vat_id || '')
-    setManufacturerName(settings.manufacturer_name || '')
-    setSoftwareType(settings.software_type ?? 2)
-    setBookkeepingType(settings.bookkeeping_type ?? 1)
-    setCompanyRegNumber(settings.company_registration_number || '')
-    setDeductionFileNumber(settings.deduction_file_number || '')
-    setTaxOfficeNotified(settings.tax_office_notified ?? false)
-    setCustomerConsentRequired(settings.customer_consent_required ?? true)
   }, [settings])
 
   // Sync services payment_mode
@@ -193,22 +162,6 @@ export function SettingsTab() {
         accountant_phone: accountantPhone,
         accountant_email: accountantEmail,
         cash_tracking_enabled: cashTracking,
-        // Tax Authority registration
-        tax_software_reg_number:     taxRegNumber,
-        business_name:               businessName,
-        business_address_street:     addrStreet,
-        business_address_number:     addrNumber,
-        business_address_city:       addrCity,
-        business_address_postal:     addrPostal,
-        manufacturer_vat_id:         manufacturerVatId,
-        manufacturer_name:           manufacturerName,
-        software_type:               softwareType,
-        bookkeeping_type:            bookkeepingType,
-        company_registration_number: companyRegNumber,
-        deduction_file_number:       deductionFileNumber,
-        tax_office_notified:         taxOfficeNotified,
-        tax_office_notified_at:      taxOfficeNotified && !settings?.tax_office_notified_at ? new Date().toISOString() : settings?.tax_office_notified_at,
-        customer_consent_required:   customerConsentRequired,
       })
 
       // 2. Save per-service overrides
@@ -899,214 +852,6 @@ export function SettingsTab() {
               style={{ [cashTracking ? 'left' : 'right']: 2 }}
             />
           </button>
-        </div>
-      </motion.div>
-
-      {/* ══════════ Section 8: Tax Authority Registration ══════════ */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.33 }}
-        className="card p-5"
-        style={{ border: '1px solid var(--color-gold)' }}
-      >
-        <h3
-          className="font-bold text-base mb-1"
-          style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}
-        >
-          🏛 רישום תוכנה ברשות המיסים
-        </h3>
-        <p className="text-xs mb-4" style={{ color: 'var(--color-muted)' }}>
-          פרטים הנדרשים להפקת קובץ אחיד (OPENFRMT 1.31) ולעמידה בהוראת מקצוע 24/2004.
-          שדות אלו יופיעו ברשומת A000 שבכותרת הקובץ.
-        </p>
-
-        <div className="space-y-4">
-          {/* Tax reg number */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>
-              מספר רישום תוכנה (8 ספרות) <span style={{ color: '#dc2626' }}>*</span>
-            </label>
-            <input
-              type="text"
-              maxLength={8}
-              value={taxRegNumber}
-              onChange={e => setTaxRegNumber(e.target.value.replace(/\D/g, ''))}
-              placeholder="12345678"
-              className="w-full rounded-xl px-3 py-2.5 text-sm font-mono"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-            />
-            <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-              מתקבל מרשות המיסים לאחר הגשת טופס בקשה לרישום תוכנה.
-            </p>
-          </div>
-
-          {/* Business name */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>
-              שם העסק (כפי שמופיע ברשות המיסים) <span style={{ color: '#dc2626' }}>*</span>
-            </label>
-            <input
-              type="text"
-              maxLength={50}
-              value={businessName}
-              onChange={e => setBusinessName(e.target.value)}
-              className="w-full rounded-xl px-3 py-2.5 text-sm"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-            />
-          </div>
-
-          {/* Address */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>רחוב <span style={{ color: '#dc2626' }}>*</span></label>
-              <input type="text" maxLength={50} value={addrStreet} onChange={e => setAddrStreet(e.target.value)}
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>מספר בית</label>
-              <input type="text" maxLength={10} value={addrNumber} onChange={e => setAddrNumber(e.target.value)}
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>עיר <span style={{ color: '#dc2626' }}>*</span></label>
-              <input type="text" maxLength={30} value={addrCity} onChange={e => setAddrCity(e.target.value)}
-                className="w-full rounded-xl px-3 py-2.5 text-sm"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>מיקוד</label>
-              <input type="text" maxLength={8} value={addrPostal} onChange={e => setAddrPostal(e.target.value.replace(/\D/g, ''))}
-                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-            </div>
-          </div>
-
-          {/* Company reg / deduction file */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>ח.פ. (חברה)</label>
-              <input type="text" maxLength={9} value={companyRegNumber} onChange={e => setCompanyRegNumber(e.target.value.replace(/\D/g, ''))}
-                placeholder="רק אם חברה בע״מ"
-                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>תיק ניכויים</label>
-              <input type="text" maxLength={9} value={deductionFileNumber} onChange={e => setDeductionFileNumber(e.target.value.replace(/\D/g, ''))}
-                placeholder="אם קיים"
-                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-            </div>
-          </div>
-
-          <hr style={{ borderColor: 'var(--color-border)' }} />
-
-          {/* Manufacturer */}
-          <div>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>פרטי יצרן התוכנה</h4>
-            <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
-              בתור "עוסק מורשה על שמך" — מספר העוסק שלך הוא גם מזהה היצרן.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>ח.פ / ת.ז יצרן <span style={{ color: '#dc2626' }}>*</span></label>
-                <input type="text" maxLength={9} value={manufacturerVatId} onChange={e => setManufacturerVatId(e.target.value.replace(/\D/g, ''))}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm font-mono"
-                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-muted)' }}>שם יצרן <span style={{ color: '#dc2626' }}>*</span></label>
-                <input type="text" maxLength={20} value={manufacturerName} onChange={e => setManufacturerName(e.target.value)}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm"
-                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Software type */}
-          <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--color-muted)' }}>סוג תוכנה (A000 שדה 1011)</label>
-            <div className="flex gap-2">
-              {[
-                { v: 1, label: 'חד-שנתי' },
-                { v: 2, label: 'רב-שנתי (מומלץ)' },
-              ].map(o => (
-                <button key={o.v} type="button" onClick={() => setSoftwareType(o.v)}
-                  className="flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all"
-                  style={{
-                    background: softwareType === o.v ? 'var(--color-gold)' : 'var(--color-surface)',
-                    color: softwareType === o.v ? '#fff' : 'var(--color-text)',
-                    border: `1px solid ${softwareType === o.v ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                  }}>
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Bookkeeping type */}
-          <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--color-muted)' }}>סוג ניהול ספרים (A000 שדה 1013)</label>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { v: 0, label: 'ללא' },
-                { v: 1, label: 'חד-צדית' },
-                { v: 2, label: 'כפולה' },
-              ].map(o => (
-                <button key={o.v} type="button" onClick={() => setBookkeepingType(o.v)}
-                  className="flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all"
-                  style={{
-                    background: bookkeepingType === o.v ? 'var(--color-gold)' : 'var(--color-surface)',
-                    color: bookkeepingType === o.v ? '#fff' : 'var(--color-text)',
-                    border: `1px solid ${bookkeepingType === o.v ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                  }}>
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-              עסק שירות קטן = חד-צדית. חברות בע״מ גדולות = כפולה.
-            </p>
-          </div>
-
-          <hr style={{ borderColor: 'var(--color-border)' }} />
-
-          {/* Checkboxes */}
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={taxOfficeNotified} onChange={e => setTaxOfficeNotified(e.target.checked)}
-              className="mt-1" />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>הודעת שימוש בתוכנה נמסרה לרשות המיסים</p>
-              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                הוראת מקצוע 24/2004 §18ב(ב): יש להודיע למשרד השומה לפני הפעלה בפועל.
-                {settings?.tax_office_notified_at && (
-                  <> · נשלח ב-{new Date(settings.tax_office_notified_at).toLocaleDateString('he-IL')}</>
-                )}
-              </p>
-            </div>
-          </label>
-
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={customerConsentRequired} onChange={e => setCustomerConsentRequired(e.target.checked)}
-              className="mt-1" />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>דרוש אישור לקוח לקבלת מסמכים ממוחשבים</p>
-              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                הוראת מקצוע 24/2004 §18ב(ג)(1): כל לקוח חייב לאשר בכתב קבלת חשבוניות/קבלות בפורמט דיגיטלי.
-              </p>
-            </div>
-          </label>
-        </div>
-
-        <div className="mt-4 p-3 rounded-xl text-xs"
-          style={{ background: 'rgba(59,130,246,0.08)', color: 'var(--color-muted)' }}>
-          ℹ️ לאחר קבלת מספר רישום — יש לעדכן אותו כאן.
-          הקבצים שיופקו לפני קבלת המספר ישמרו עם "0" ולא יתקבלו על-ידי רשות המיסים.
         </div>
       </motion.div>
 
