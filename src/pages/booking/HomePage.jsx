@@ -273,7 +273,7 @@ function TeamVideoMedia({ member }) {
 function TeamCardMedia({ member }) {
   const [landscape, setLandscape] = useState(false)
   return (
-    <div style={{ position: 'relative', aspectRatio: landscape ? '4/3' : '3/4', minHeight: 240, overflow: 'hidden', background: 'linear-gradient(145deg,#ede0c8,#c8a87c)' }}>
+    <div style={{ position: 'relative', aspectRatio: landscape ? '4/3' : '4/5', minHeight: 180, overflow: 'hidden', background: 'linear-gradient(145deg,#ede0c8,#c8a87c)' }}>
       {member.video_url ? (
         <TeamVideoMedia member={member} />
       ) : member.photo_url ? (
@@ -522,8 +522,8 @@ export function HomePage() {
           }} />
           {/* Bottom fade into surface so glass panel blends in */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: '60%',
-            background: 'linear-gradient(to top, #f3f0ea 0%, transparent 100%)',
+            height: '32%',
+            background: 'linear-gradient(to top, #f3f0ea 0%, rgba(243,240,234,0.55) 45%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
@@ -586,6 +586,15 @@ export function HomePage() {
             transition={{ delay: 1.0, duration: 0.5 }}
             style={{ width: 32, height: 1.5, borderRadius: 1, background: 'var(--color-gold)', marginTop: 14, boxShadow: '0 0 8px rgba(255,122,0,0.35)' }}
           />
+
+          {/* Tagline */}
+          <motion.p
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginTop: 14, textAlign: 'center' }}
+          >
+            Look Sharp · Feel Sharp
+          </motion.p>
         </div>
       </section>
 
@@ -605,7 +614,7 @@ export function HomePage() {
           </p>
           <p style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--color-text)', lineHeight: 1 }}>
             <em style={{ fontStyle: 'normal', color: 'var(--color-gold)' }}>
-              {user ? (profile?.name ?? 'אורח') : BUSINESS.name}
+              {user ? (profile?.name ?? 'אורח') : 'אורח'}
             </em>
           </p>
         </motion.section>
