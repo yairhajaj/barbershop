@@ -1448,11 +1448,11 @@
 /* ── v6 scroll indicator ── */
 .v6-scroll-ind {
   position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
-  z-index:6;display:flex;flex-direction:column;align-items:center;gap:5px;
-  color:var(--color-gold);opacity:0.65;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  z-index:6;display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:var(--color-gold);opacity:0.8;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
   animation:v6IndFloat 2.8s ease infinite;pointer-events:none;
 }
-.v6-scroll-ind-line{width:1px;height:24px;background:linear-gradient(to bottom,var(--color-gold),transparent);animation:v6IndPulse 2.8s ease infinite;}
+.v6-scroll-ind-line{width:1.5px;height:30px;background:linear-gradient(to bottom,var(--color-gold),transparent);animation:v6IndPulse 2.8s ease infinite;}
 @keyframes v6IndFloat{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(5px)}}
 @keyframes v6IndPulse{0%,100%{opacity:.6}50%{opacity:.15}}
 

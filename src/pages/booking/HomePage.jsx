@@ -475,11 +475,11 @@ export function HomePage() {
     : {
         position: 'relative', zIndex: 10, marginTop: -32,
         borderRadius: '26px 26px 0 0',
-        background: 'rgba(243,240,234,0.92)',
+        background: 'rgba(243,240,234,1)',
         backdropFilter: 'blur(36px) saturate(2.0)',
         WebkitBackdropFilter: 'blur(36px) saturate(2.0)',
-        borderTop: '1px solid rgba(255,255,255,0.82)',
-        boxShadow: '0 -2px 0 rgba(255,255,255,0.70), 0 -12px 40px rgba(0,0,0,0.10)',
+        borderTop: 'none',
+        boxShadow: '0 -8px 24px rgba(0,0,0,0.06)',
         minHeight: '60vh',
       }
 
@@ -516,16 +516,17 @@ export function HomePage() {
                 'linear-gradient(168deg,#1c0d00 0%,#0f0904 50%,#190900 100%)'
             }} />
           )}
-          {/* Top + bottom gradient bars */}
+          {/* Top dark bar only — no bottom darkening so the surface fade is clean */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 22%,transparent 58%,rgba(0,0,0,.60) 100%)'
+            background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 26%)'
           }} />
-          {/* Bottom edge softener — just covers the glass panel overlap (56px), no more */}
+          {/* Surface fade — grows from transparent to solid surface color over 72px,
+              matching the glass panel exactly so there is zero visible seam */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: 56,
+            height: 72,
             background: isDark
-              ? 'linear-gradient(to top, rgba(18,14,10,0.72) 0%, transparent 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,0.72) 0%, transparent 100%)',
+              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.55) 45%, transparent 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.55) 45%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
