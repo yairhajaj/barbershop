@@ -11,7 +11,6 @@ function countdown(startAt) {
 }
 
 export function UpcomingAppointmentsList({ appointments = [], limit = 4, onSelect }) {
-  if (!appointments.length) return null
   const next = appointments.slice(0, limit)
 
   return (
@@ -24,6 +23,13 @@ export function UpcomingAppointmentsList({ appointments = [], limit = 4, onSelec
           כל היומן ←
         </Link>
       </div>
+      {next.length === 0 && (
+        <div className="rounded-xl px-4 py-6 text-center"
+          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+          <div className="text-2xl mb-1">☕</div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--color-muted)' }}>אין תורים קרובים</p>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         {next.map(apt => {
           const isPaid = apt.payment_status === 'paid' || apt.cash_paid
