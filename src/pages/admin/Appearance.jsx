@@ -27,6 +27,28 @@ export function Appearance() {
       .then(({ error }) => setBucketOk(!error))
   }, [])
 
+  // ── Homepage content ──────────────────────────────────────────
+  const [heroTitle,   setHeroTitle]   = useState('')
+  const [heroTagline, setHeroTagline] = useState('')
+  const [contentSaving, setContentSaving] = useState(false)
+
+  useEffect(() => {
+    setHeroTitle(settings?.hero_title   || '')
+    setHeroTagline(settings?.hero_tagline || '')
+  }, [settings?.hero_title, settings?.hero_tagline])
+
+  async function handleSaveContent() {
+    setContentSaving(true)
+    try {
+      await saveSettings({ hero_title: heroTitle.trim(), hero_tagline: heroTagline.trim() })
+      toast({ message: 'תוכן דף הבית עודכן ✓', type: 'success' })
+    } catch {
+      toast({ message: 'שגיאה בשמירה', type: 'error' })
+    } finally {
+      setContentSaving(false)
+    }
+  }
+
   // ── Hero — local state, independent of DB ──────────────────────
   // Tabs work immediately in the UI; we only save to DB when a URL is chosen
   const [localHeroType, setLocalHeroType] = useState('gradient')
@@ -217,6 +239,50 @@ export function Appearance() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── HOMEPAGE CONTENT ────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">תוכן דף הבית</h2>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>הטקסט שמוצג בראש דף הבית על תמונת הרקע</p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold tracking-widest uppercase block mb-1.5" style={{ color: 'var(--color-muted)' }}>
+              שם העסק / כותרת
+            </label>
+            <input
+              type="text"
+              className="input w-full"
+              placeholder="HAJAJ Hair Design"
+              value={heroTitle}
+              onChange={e => setHeroTitle(e.target.value)}
+            />
+            <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>ריק = ברירת מחדל מהקוד</p>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold tracking-widest uppercase block mb-1.5" style={{ color: 'var(--color-muted)' }}>
+              סלוגן / תת-כותרת
+            </label>
+            <input
+              type="text"
+              className="input w-full"
+              placeholder="Look Sharp · Feel Sharp"
+              value={heroTagline}
+              onChange={e => setHeroTagline(e.target.value)}
+            />
+            <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>ריק = הסתר סלוגן</p>
+          </div>
+
+          <button
+            onClick={handleSaveContent}
+            disabled={contentSaving}
+            className="btn-primary text-sm px-6 py-2"
+          >
+            {contentSaving ? 'שומר...' : 'שמור תוכן'}
+          </button>
+        </div>
+      </motion.section>
 
       {/* ── HERO IMAGE ──────────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">

@@ -580,7 +580,7 @@ export function HomePage() {
               textShadow: '0 2px 20px rgba(0,0,0,0.45)',
             }}
           >
-            {BUSINESS.name}
+            {settings?.hero_title || BUSINESS.name}
           </motion.h1>
 
           {/* Gold rule */}
@@ -591,13 +591,15 @@ export function HomePage() {
           />
 
           {/* Tagline */}
-          <motion.p
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginTop: 14, textAlign: 'center' }}
-          >
-            Look Sharp · Feel Sharp
-          </motion.p>
+          {(settings?.hero_tagline || 'Look Sharp · Feel Sharp') && (
+            <motion.p
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.25, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em', marginTop: 14, textAlign: 'center' }}
+            >
+              {settings?.hero_tagline || 'Look Sharp · Feel Sharp'}
+            </motion.p>
+          )}
         </div>
       </section>
 
