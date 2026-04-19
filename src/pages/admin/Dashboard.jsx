@@ -12,11 +12,11 @@ import { isWaitlistExpired, sweepExpiredWaitlist } from '../../hooks/useWaitlist
 import { supabase } from '../../lib/supabase'
 import { formatDateFull } from '../../lib/utils'
 
-import { NextAppointmentHero } from '../../components/admin/dashboard/NextAppointmentHero'
 import { UpcomingAppointmentsList } from '../../components/admin/dashboard/UpcomingAppointmentsList'
 import { KpiStrip } from '../../components/admin/dashboard/KpiStrip'
 import { WalkInModal } from '../../components/admin/dashboard/WalkInModal'
 import { ActionInbox } from '../../components/admin/dashboard/ActionInbox'
+import { AppointmentDetailModal } from '../../components/admin/dashboard/AppointmentDetailModal'
 
 export function Dashboard() {
   const today = new Date()
@@ -32,8 +32,9 @@ export function Dashboard() {
     branchId: currentBranch?.id ?? null,
   })
 
-  // ── State for action inbox + walk-in ──
+  // ── State ──
   const [walkInOpen, setWalkInOpen] = useState(false)
+  const [selectedAppt, setSelectedAppt] = useState(null)
   const [uninvoiced, setUninvoiced] = useState([])
   const [openDebts, setOpenDebts] = useState([])
   const [waitlistActive, setWaitlistActive] = useState([])
@@ -117,7 +118,7 @@ export function Dashboard() {
   }, [fetchInbox])
 
   // ── Derived: the "next" appointment + upcoming ──
-  const { nextApt, upcoming, stats } = useMemo(() => {
+  const { nextApt, upcoming, upcoming4, stats } = useMemo(() => {
     const now = Date.now()
     const future = todayAppts
       .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
@@ -125,6 +126,7 @@ export function Dashboard() {
       .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
     const [next, ...rest] = future
+    const upcoming4 = future.slice(0, 4)
 
     // Today stats
     const completed = todayAppts.filter(a => a.status === 'completed' && !a.no_show)
@@ -230,7 +232,7 @@ export function Dashboard() {
       },
     ]
 
-    return { nextApt: next, upcoming: rest, stats }
+    return { nextApt: next, upcoming: rest, upcoming4, stats }
   }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff])
 
   // ── Handle schedule from waitlist ──
@@ -280,21 +282,20 @@ export function Dashboard() {
       </div>
 
       {/* Responsive grid: single col on mobile, 3-col on lg+.
-          Mobile order: KPIs → Hero → Upcoming → Inbox → Staff → GapCloser.
-          Desktop: KPIs full row, then Hero+Inbox side by side, Upcoming+GapCloser, Staff. */}
+          Mobile order: KPIs → Upcoming4 → Inbox → Staff → GapCloser. */}
       <div className="grid gap-5 lg:grid-cols-3">
         {/* KPI grid — FULL WIDTH at top */}
         <div className="order-1 lg:col-span-3">
           <KpiStrip stats={stats} />
         </div>
 
-        {/* Hero — next appointment (compact) */}
+        {/* 4 upcoming appointments — clickable → modal */}
         <div className="order-2 lg:col-span-2">
-          <NextAppointmentHero apt={nextApt} onChange={refreshAll} />
+          <UpcomingAppointmentsList appointments={upcoming4} limit={4} onSelect={setSelectedAppt} />
         </div>
 
         {/* Action inbox */}
-        <div className="order-4 lg:order-3">
+        <div className="order-3 lg:order-3">
           <ActionInbox
             uninvoiced={uninvoiced}
             openDebts={openDebts}
@@ -302,11 +303,6 @@ export function Dashboard() {
             waitlist={waitlistActive}
             onScheduleWaitlist={handleScheduleWaitlist}
           />
-        </div>
-
-        {/* 3 upcoming */}
-        <div className="order-3 lg:order-4 lg:col-span-2">
-          <UpcomingAppointmentsList appointments={upcoming} limit={3} />
         </div>
 
         {/* Gap Closer */}
@@ -355,6 +351,14 @@ export function Dashboard() {
 
       {/* Walk-in modal */}
       <WalkInModal open={walkInOpen} onClose={() => setWalkInOpen(false)} onSaved={refreshAll} />
+
+      {/* Appointment detail modal */}
+      <AppointmentDetailModal
+        apt={selectedAppt}
+        open={!!selectedAppt}
+        onClose={() => setSelectedAppt(null)}
+        onChange={refreshAll}
+      />
     </div>
   )
 }
