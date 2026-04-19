@@ -1068,11 +1068,11 @@ export function HomePage() {
 
           {/* Final CTA */}
           <motion.div initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}>
-            <Link to={bookHref} style={{
+            <Link to={bookHref} className="v6-cta-btn" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', marginTop: 16,
               background: 'var(--color-gold)', color: '#fff',
               fontWeight: 600, fontSize: 14, padding: '16px 28px', borderRadius: 9999,
-              boxShadow: '0 8px 32px var(--color-accent-glow)', textDecoration: 'none',
+              textDecoration: 'none',
             }}>
               קבע תור עכשיו
             </Link>

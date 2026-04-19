@@ -4,6 +4,7 @@
   --color-primary: #111111;
   --color-primary-light: #333333;
   --color-gold: #FF7A00;
+  --color-primary-rgb: 255, 122, 0;
   --color-gold-text: #FF7A00;
   --color-gold-btn: #FF7A00;
   --color-gold-light: #FFA040;
@@ -74,6 +75,7 @@
   --color-primary:       #000000;
   --color-primary-light: #1a1a1a;
   --color-gold:          #FF8500;
+  --color-primary-rgb:   255, 133, 0;
   --color-gold-text:     #FF8500;
   --color-gold-btn:      #FF8500;
   --color-gold-light:    #FFA030;
@@ -163,6 +165,7 @@
   --color-primary:       #000000;
   --color-primary-light: #1a1a1a;
   --color-gold:          #1c1c1c;
+  --color-primary-rgb:   28, 28, 28;
   --color-gold-text:     #000000;
   --color-gold-btn:      #1c1c1c;
   --color-gold-light:    #444444;
@@ -197,6 +200,7 @@
   --color-primary:       #2d1b1f;
   --color-primary-light: #4a2d33;
   --color-gold:          #d4627a;
+  --color-primary-rgb:   212, 98, 122;
   --color-gold-text:     #a63050;   /* darker for text on light bg */
   --color-gold-btn:      #b84d63;   /* btn bg with white text */
   --color-gold-light:    #e8a0b0;
@@ -226,6 +230,7 @@
   --color-primary:       #1a2e22;
   --color-primary-light: #2a4435;
   --color-gold:          #4a8c6a;
+  --color-primary-rgb:   74, 140, 106;
   --color-gold-text:     #326b4f;   /* darker for text on light bg */
   --color-gold-btn:      #326b4f;   /* btn bg with white text */
   --color-gold-light:    #72b08e;
@@ -255,6 +260,7 @@
   --color-primary:       #0f1025;
   --color-primary-light: #1a1b3a;
   --color-gold:          #818cf8;
+  --color-primary-rgb:   129, 140, 248;
   --color-gold-text:     #818cf8;   /* on dark bg — existing gold is fine */
   --color-gold-btn:      #6366f1;   /* btn bg with white text on dark */
   --color-gold-light:    #a5b4fc;
@@ -303,6 +309,7 @@
   --color-primary:       #06080F;
   --color-primary-light: #0f1219;
   --color-gold:          #F59E0B;
+  --color-primary-rgb:   245, 158, 11;
   --color-gold-text:     #F59E0B;
   --color-gold-btn:      #D97706;
   --color-gold-light:    #FBBF24;
@@ -1343,6 +1350,7 @@
 [data-theme="navy-gold"],
 [data-theme="charcoal"] {
   --color-gold:        #818cf8;
+  --color-primary-rgb: 129, 140, 248;
   --color-gold-text:   #818cf8;
   --color-gold-btn:    #6366f1;
   --color-surface:     #0f1025;
@@ -1479,9 +1487,9 @@
 
 /* ══ v6 CTA button spring ══════════════════════════════════════ */
 @keyframes cta-heartbeat {
-  0%, 100% { box-shadow: 0 8px 32px rgba(255,122,0,0.18), 0 1px 0 rgba(255,255,255,0.20) inset; }
-  50%       { box-shadow: 0 8px 32px rgba(255,122,0,0.18), 0 1px 0 rgba(255,255,255,0.20) inset,
-                          0 0 0 8px rgba(255,122,0,0.14); }
+  0%, 100% { box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.18), 0 1px 0 rgba(255,255,255,0.20) inset; }
+  50%       { box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.18), 0 1px 0 rgba(255,255,255,0.20) inset,
+                          0 0 0 9px rgba(var(--color-primary-rgb), 0.13); }
 }
 .v6-cta-btn {
   transition: all .38s cubic-bezier(.34,1.56,.64,1) !important;
