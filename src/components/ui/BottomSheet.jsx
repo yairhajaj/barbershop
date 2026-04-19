@@ -1,26 +1,15 @@
 /**
  * BottomSheet — responsive sheet / modal primitive.
  *
- * On mobile  (<640px): slides up from the bottom with a drag handle,
- *                      safe-area-inset-bottom padding, native-feel spring.
- * On desktop (≥640px): centred modal with backdrop blur — identical UX to Modal.jsx.
+ * On mobile  (<640px): anchored to the bottom of the screen, slides up,
+ *                      stays above the app toolbar (booking + admin),
+ *                      inner content scrolls without bleeding to the page.
+ * On desktop (≥640px): centred modal with backdrop blur.
  *
  * API:
  *   <BottomSheet open onClose title? size?>
  *     {children}
  *   </BottomSheet>
- *
- * Backward-compat note:
- *   Modal.jsx is untouched. Pages can adopt BottomSheet incrementally.
- *   If you want Modal to delegate to BottomSheet add the one-line adapter shown
- *   at the bottom of this file.
- *
- * Included behaviours:
- *   • iOS-safe body-scroll-lock (position:fixed trick, same as Modal.jsx)
- *   • Escape key → close
- *   • Android hardware back-button → close (via useAndroidBack)
- *   • Focus trap (Tab / Shift-Tab loops within the panel)
- *   • Backdrop click → close
  */
 
 import { useEffect, useRef, useCallback } from 'react'
@@ -39,6 +28,10 @@ const FOCUSABLE_SEL = [
 ].join(',')
 
 const SIZES = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
+
+// Height of the fixed bottom toolbar (booking + admin).
+// Used to keep the sheet above the nav bar on every page.
+const TOOLBAR_H = '72px'
 
 export function BottomSheet({ open, onClose, title, size = 'md', children }) {
   const panelRef = useRef(null)
@@ -80,17 +73,13 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
   /* ── Focus trap ──────────────────────────────────────────────────── */
   useEffect(() => {
     if (!open || !panelRef.current) return
-
-    // Move focus inside on open
     const first = panelRef.current.querySelector(FOCUSABLE_SEL)
     first?.focus()
-
     const trap = (e) => {
       if (e.key !== 'Tab' || !panelRef.current) return
-      const els   = [...panelRef.current.querySelectorAll(FOCUSABLE_SEL)]
+      const els  = [...panelRef.current.querySelectorAll(FOCUSABLE_SEL)]
       if (!els.length) return
-      const head = els[0]
-      const tail = els[els.length - 1]
+      const head = els[0], tail = els[els.length - 1]
       if (e.shiftKey) {
         if (document.activeElement === head) { e.preventDefault(); tail.focus() }
       } else {
@@ -101,110 +90,147 @@ export function BottomSheet({ open, onClose, title, size = 'md', children }) {
     return () => window.removeEventListener('keydown', trap)
   }, [open])
 
-  /* Mobile bottom-bar (both layouts) ≈ 60-72px + safe-area. Reserve
-     a generous pad at both ends so the modal is centred between the
-     top of the viewport and the floating nav. */
-  const mobileEdgePad = 'max(16px, env(safe-area-inset-bottom, 0px))'
-  const mobileBottomClearance = '92px'  // bottom bar + breathing room
-
   return (
     <AnimatePresence>
       {open && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center"
-          style={{
-            padding: isMobile
-              ? `${mobileEdgePad} 12px ${mobileBottomClearance}`
-              : '16px',
-            touchAction: 'none',
-          }}
-          onTouchMove={(e) => {
-            // Prevent iOS rubber-banding the page behind the modal
-            if (e.target === e.currentTarget) e.preventDefault()
-          }}
-        >
-          {/* Backdrop */}
-          <motion.div
-            variants={m.backdrop}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
-
-          {/* Panel */}
-          <motion.div
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title || 'תפריט'}
-            variants={m.modalEnter}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className={`relative w-full ${SIZES[size]} card flex flex-col z-10 ${isMobile ? 'rounded-3xl' : 'p-6'}`}
-            style={{
-              maxHeight: isMobile
-                ? `calc(100dvh - ${mobileBottomClearance} - 32px)`
-                : 'min(88vh, calc(100dvh - 2rem))',
-              touchAction: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header row (title + close button) */}
-            <div
-              className={`flex items-center justify-between flex-shrink-0 ${
-                isMobile ? 'px-5 pt-5 pb-3' : 'mb-5'
-              }`}
-            >
-              {title ? (
-                <h3
-                  className="text-xl font-semibold"
-                  style={{ fontFamily: 'var(--font-display)' }}
-                >
-                  {title}
-                </h3>
-              ) : (
-                <span />
-              )}
-
-              <button
-                onClick={onClose}
-                aria-label="סגור"
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none min-w-11 min-h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Scrollable content */}
-            <div
-              className={`overflow-y-auto flex-1 ${isMobile ? 'px-5 pb-5' : ''}`}
-              style={{
-                WebkitOverflowScrolling: 'touch',
-                overscrollBehavior: 'contain',
-                touchAction: 'pan-y',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-              }}
-            >
-              {children}
-            </div>
-          </motion.div>
-        </div>
+        isMobile
+          ? <MobileSheet panelRef={panelRef} title={title} onClose={onClose} m={m}>{children}</MobileSheet>
+          : <DesktopModal panelRef={panelRef} title={title} size={size} onClose={onClose} m={m}>{children}</DesktopModal>
       )}
     </AnimatePresence>
   )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
- * Optional one-line adapter for Modal.jsx (if you want Modal to use BottomSheet
- * under the hood without touching any call-sites):
- *
- *   // In Modal.jsx, replace the entire return with:
- *   return <BottomSheet open={open} onClose={onClose} title={title} size={size}>{children}</BottomSheet>
- *
- * This is NOT done automatically — apply it per-component once QA is satisfied.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/* ── Mobile bottom sheet ─────────────────────────────────────────────── */
+function MobileSheet({ panelRef, title, onClose, m, children }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+      {/* Backdrop */}
+      <motion.div
+        variants={m.backdrop}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Sheet panel — sits above the bottom toolbar */}
+      <motion.div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || 'תפריט'}
+        variants={m.sheetEnter}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="relative z-10 w-full card rounded-t-3xl flex flex-col"
+        style={{
+          // Max height: leave ~80px at top for status bar breathing room
+          maxHeight: `calc(100dvh - 80px - ${TOOLBAR_H})`,
+          // Push content above the app toolbar + iOS home indicator
+          marginBottom: `calc(${TOOLBAR_H} + env(safe-area-inset-bottom, 0px))`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+        </div>
+
+        {/* Header row */}
+        <div className="flex items-center justify-between px-5 pt-3 pb-3 flex-shrink-0">
+          {title
+            ? <h3 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3>
+            : <span />
+          }
+          <button
+            onClick={onClose}
+            aria-label="סגור"
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none min-w-11 min-h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Scrollable content — scroll stays inside the sheet */}
+        <div
+          className="overflow-y-auto flex-1 px-5 pb-6"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+            touchAction: 'pan-y',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {children}
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+/* ── Desktop centred modal ───────────────────────────────────────────── */
+function DesktopModal({ panelRef, title, size, onClose, m, children }) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      style={{ padding: '16px' }}
+    >
+      {/* Backdrop */}
+      <motion.div
+        variants={m.backdrop}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <motion.div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || 'תפריט'}
+        variants={m.modalEnter}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className={`relative w-full ${SIZES[size]} card flex flex-col z-10 p-6`}
+        style={{ maxHeight: 'min(88vh, calc(100dvh - 2rem))' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-5 flex-shrink-0">
+          {title
+            ? <h3 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3>
+            : <span />
+          }
+          <button
+            onClick={onClose}
+            aria-label="סגור"
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none min-w-11 min-h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div
+          className="overflow-y-auto flex-1"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {children}
+        </div>
+      </motion.div>
+    </div>
+  )
+}
