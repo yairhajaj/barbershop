@@ -490,7 +490,7 @@ export function HomePage() {
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: '100svh',
+          height: '58svh',
           overflow: 'hidden',
           background: '#0a0806',
         }}
@@ -530,7 +530,7 @@ export function HomePage() {
         </div>
 
         {/* Hero brand — upper portion */}
-        <div id="v6-hero-brand" className="absolute inset-0 flex flex-col items-center pointer-events-none" style={{ zIndex: 5, paddingTop: '13vh', justifyContent: 'flex-start' }}>
+        <div id="v6-hero-brand" className="absolute inset-0 flex flex-col items-center pointer-events-none" style={{ zIndex: 5, paddingTop: '8svh', justifyContent: 'flex-start' }}>
           {/* Logo mark */}
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
@@ -588,7 +588,7 @@ export function HomePage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
-          style={{ position: 'absolute', bottom: 104, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}
+          style={{ position: 'absolute', bottom: 24, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}
         >
           <Link
             to={bookHref}
