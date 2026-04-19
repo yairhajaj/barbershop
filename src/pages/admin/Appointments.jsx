@@ -120,7 +120,7 @@ export function Appointments() {
 
   // Book for customer modal
   const [bookOpen, setBookOpen] = useState(false)
-  const [bookForm, setBookForm] = useState({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '', wlTimeFrom: '', wlTimeTo: '' })
+  const [bookForm, setBookForm] = useState({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '', wlTimeFrom: '', wlTimeTo: '', qty: 1 })
   const [customerResults, setCustomerResults] = useState([])
   const [savingBook, setSavingBook] = useState(false)
   const [deviceContacts, setDeviceContacts] = useState([])
@@ -277,6 +277,7 @@ export function Appointments() {
         notes:          '',
         wlTimeFrom:     p.wlTimeFrom   || '',
         wlTimeTo:       p.wlTimeTo     || '',
+        qty:            1,
       })
       // Navigate calendar to the prefilled date
       if (p.date) setCurrentDate(new Date(p.date + 'T12:00:00'))
@@ -865,12 +866,14 @@ export function Appointments() {
 
     const svc = services.find(s => s.id === bookForm.serviceId)
     const durationMin = svc?.duration_minutes ?? 30
-    const start_at = new Date(`${bookForm.date}T${bookForm.startTime}`).toISOString()
-    const end_at   = new Date(new Date(start_at).getTime() + durationMin * 60000).toISOString()
+    const qty = bookForm.qty || 1
 
     setSavingBook(true)
     try {
       let customerId = bookForm.customerId
+
+      // Walk-in customer → no profile needed
+      if (customerId === 'walkin') customerId = null
 
       // If selected from device contacts and not yet in DB — create a profile
       if (customerId === 'new') {
@@ -883,16 +886,23 @@ export function Appointments() {
         customerId = newProfile.id
       }
 
-      const { error } = await supabase.from('appointments').insert({
-        customer_id: customerId,
-        service_id:  bookForm.serviceId,
-        staff_id:    bookForm.staffId,
-        branch_id:   currentBranch?.id ?? null,
-        start_at,
-        end_at,
-        status: 'confirmed',
-        notes: bookForm.notes || null,
+      // Build rows for qty consecutive appointments
+      const rows = Array.from({ length: qty }, (_, i) => {
+        const start_at = new Date(new Date(`${bookForm.date}T${bookForm.startTime}`).getTime() + i * durationMin * 60000).toISOString()
+        const end_at   = new Date(new Date(start_at).getTime() + durationMin * 60000).toISOString()
+        return {
+          customer_id: customerId,
+          service_id:  bookForm.serviceId,
+          staff_id:    bookForm.staffId,
+          branch_id:   currentBranch?.id ?? null,
+          start_at,
+          end_at,
+          status: 'confirmed',
+          notes: bookForm.notes || null,
+        }
       })
+
+      const { error } = await supabase.from('appointments').insert(rows)
       if (error) throw error
 
       // If this was a manual schedule from the waitlist — mark entry as booked
@@ -905,7 +915,7 @@ export function Appointments() {
       }
 
       await refetch()
-      toast({ message: 'תור נקבע בהצלחה ✓', type: 'success' })
+      toast({ message: qty > 1 ? `${qty} תורים נקבעו בהצלחה ✓` : 'תור נקבע בהצלחה ✓', type: 'success' })
       closeBook()
     } catch (err) {
       toast({ message: err.message, type: 'error' })
@@ -937,6 +947,7 @@ export function Appointments() {
       notes:        '',
       wlTimeFrom:   entry.time_from?.slice(0,5) || '',
       wlTimeTo:     entry.time_to?.slice(0,5)   || '',
+      qty:          1,
     })
     if (entry.preferred_date) setCurrentDate(new Date(entry.preferred_date + 'T12:00:00'))
     setBookOpen(true)
@@ -954,7 +965,7 @@ export function Appointments() {
     setBookWlLockService(false)
     setBookWlLockStaff(false)
     setBookChangeConfirm(null)
-    setBookForm({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '', wlTimeFrom: '', wlTimeTo: '' })
+    setBookForm({ customerSearch: '', customerId: null, customerName: '', customerPhone: '', serviceId: '', staffId: '', date: format(new Date(), 'yyyy-MM-dd'), startTime: '', notes: '', wlTimeFrom: '', wlTimeTo: '', qty: 1 })
   }
 
   // Open book modal pre-filled from a slot click in DayView
@@ -2559,11 +2570,14 @@ export function Appointments() {
                   <p className="text-[11px] font-bold mb-2 tracking-widest uppercase" style={{ color: 'var(--color-muted)' }}>👤 לקוח</p>
                   {bookForm.customerId ? (
                     <div className="flex items-center justify-between px-4 py-3 rounded-2xl"
-                      style={{ background: 'var(--color-gold-tint)', border: '1.5px solid var(--color-gold)' }}>
+                      style={{
+                        background: bookForm.customerId === 'walkin' ? 'var(--color-surface)' : 'var(--color-gold-tint)',
+                        border: `1.5px solid ${bookForm.customerId === 'walkin' ? 'var(--color-border)' : 'var(--color-gold)'}`,
+                      }}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0"
-                          style={{ background: 'var(--color-gold)', color: '#fff' }}>
-                          {bookForm.customerName?.[0] ?? '?'}
+                          style={{ background: bookForm.customerId === 'walkin' ? 'var(--color-muted)' : 'var(--color-gold)', color: '#fff' }}>
+                          {bookForm.customerId === 'walkin' ? '👤' : (bookForm.customerName?.[0] ?? '?')}
                         </div>
                         <div>
                           <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{bookForm.customerName}</div>
@@ -2616,6 +2630,11 @@ export function Appointments() {
                           ))}
                         </div>
                       )}
+                      <button type="button"
+                        onClick={() => { setBookForm(f => ({ ...f, customerId: 'walkin', customerName: 'לקוח מזדמן', customerPhone: '', customerSearch: '' })); setCustomerResults([]) }}
+                        className="mt-2 w-full px-4 py-2.5 rounded-xl text-sm font-bold text-right transition-all"
+                        style={{ background: 'var(--color-surface)', border: '1.5px dashed var(--color-border)', color: 'var(--color-muted)' }}
+                      >👤 לקוח מזדמן</button>
                     </div>
                   )}
                 </section>
@@ -2675,6 +2694,25 @@ export function Appointments() {
                           </button>
                         )
                       })}
+                    </div>
+                  )}
+                  {/* Quantity picker — shown when a service is selected */}
+                  {bookForm.serviceId && (
+                    <div className="flex items-center gap-3 mt-3">
+                      <span className="text-[11px] font-bold tracking-widest uppercase flex-shrink-0" style={{ color: 'var(--color-muted)' }}>כמות:</span>
+                      <div className="flex items-center gap-1.5">
+                        {[1,2,3,4,5].map(n => (
+                          <button key={n} type="button"
+                            onClick={() => setBookForm(f => ({ ...f, qty: n }))}
+                            className="w-9 h-9 rounded-xl text-sm font-bold transition-all"
+                            style={{
+                              background: (bookForm.qty || 1) === n ? 'var(--color-gold)' : 'var(--color-surface)',
+                              color:      (bookForm.qty || 1) === n ? '#fff' : 'var(--color-text)',
+                              border:     `1.5px solid ${(bookForm.qty || 1) === n ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                            }}
+                          >{n}</button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </section>
@@ -2905,7 +2943,7 @@ export function Appointments() {
                 >
                   {savingBook
                     ? <><Spinner size="sm" className="border-white border-t-transparent" /><span className="mr-2">שומר...</span></>
-                    : `✓ קבע תור${bookForm.customerName ? ` ל${bookForm.customerName}` : ''}`
+                    : `✓ קבע ${(bookForm.qty || 1) > 1 ? `${bookForm.qty} תורים` : 'תור'}${bookForm.customerName ? ` ל${bookForm.customerName}` : ''}`
                   }
                 </button>
               </div>
