@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { useBranch } from '../contexts/BranchContext'
 import { useBusinessSettings } from '../hooks/useBusinessSettings'
+import { useTheme } from '../contexts/ThemeContext'
 import { useAndroidBack } from '../hooks/useAndroidBack'
 import { useKeyboardAware } from '../hooks/useKeyboardAware'
 import { useOnline } from '../hooks/useOnline'
@@ -48,8 +49,8 @@ const BOTTOM_MORE = [
 ]
 
 // SVG icon set — matches the style of BookingLayout BarIcon
-function AdminBarIcon({ name, size = 24, color = '#fff' }) {
-  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }
+function AdminBarIcon({ name, size = 24, color = '#fff', strokeWidth = 2 }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round' }
   if (name === 'calendar') return (
     <svg {...p}>
       <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -90,6 +91,27 @@ function AdminBarIcon({ name, size = 24, color = '#fff' }) {
     </svg>
   )
   return null
+}
+
+function AdminV6Btn({ link, active, isDark, onClick, asButton }) {
+  const gold  = 'var(--color-gold)'
+  const muted = isDark ? 'rgba(255,255,255,0.45)' : '#8c8280'
+  const color = active ? gold : muted
+  const style = {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+    padding: '6px 12px', borderRadius: 14, minWidth: 54, textDecoration: 'none',
+    background: active ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(201,169,110,0.10)') : 'transparent',
+    transition: 'all .24s cubic-bezier(.34,1.56,.64,1)',
+    border: 'none', cursor: 'pointer',
+  }
+  const content = (
+    <>
+      <AdminBarIcon name={link.svgIcon} size={22} color={color} strokeWidth={active ? 2.1 : 1.65} />
+      <span style={{ fontSize: 9, fontWeight: active ? 700 : 600, color, letterSpacing: '.03em' }}>{link.label}</span>
+    </>
+  )
+  if (asButton) return <button onClick={onClick} style={style}>{content}</button>
+  return <Link to={link.to} style={style}>{content}</Link>
 }
 
 function BranchSwitcher() {
@@ -159,6 +181,7 @@ function BranchSwitcher() {
 export function AdminLayout({ children }) {
   const { user, profile, loading, signOut } = useAuth()
   const { settings } = useBusinessSettings()
+  const { isDark } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -180,6 +203,8 @@ export function AdminLayout({ children }) {
   // Scroll focused input into view when soft keyboard appears (iOS / Android)
   useKeyboardAware()
 
+  const gold = 'var(--color-gold)'
+
   if (loading) return <PageSpinner />
   if (!user || profile?.role !== 'admin') return <Navigate to="/login" replace />
 
@@ -187,13 +212,6 @@ export function AdminLayout({ children }) {
     await signOut()
     navigate('/')
   }
-
-  // Bottom bar visual constants — dark glass (matches booking bar in dark/midnight mode)
-  const barBg     = 'rgba(12,12,12,0.90)'
-  const barBorder = 'rgba(255,255,255,0.10)'
-  const barBlur   = 'blur(32px) saturate(1.8)'
-  const barShadow = '0 -1px 0 rgba(255,255,255,0.05), 0 8px 48px rgba(0,0,0,0.55), 0 24px 56px rgba(0,0,0,0.28)'
-  const gold      = 'var(--color-gold)'
 
   return (
     <div dir="rtl" className="flex min-h-screen bg-gray-50" data-admin="true">
@@ -403,107 +421,68 @@ export function AdminLayout({ children }) {
         </main>
       </div>
 
-      {/* ── Mobile Floating Bottom Bar ────────────────────────────────── */}
-      {/* Matches the style of BookingLayout's mobile bottom bar */}
+      {/* ── Mobile Bottom Bar — v6 style (matches BookingLayout customer bar) ── */}
       <div
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
-        style={{ padding: '0 12px calc(10px + env(safe-area-inset-bottom, 0px))' }}
-      >
-        <nav style={{
-          background: barBg,
-          backdropFilter: barBlur,
-          WebkitBackdropFilter: barBlur,
-          border: `1px solid ${barBorder}`,
-          borderRadius: 26,
-          boxShadow: barShadow,
+        style={{
+          background: isDark ? 'rgba(12,12,12,0.92)' : 'rgba(255,255,255,0.94)',
+          backdropFilter: 'blur(36px) saturate(2)',
+          WebkitBackdropFilter: 'blur(36px) saturate(2)',
+          borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.07)',
+          boxShadow: isDark
+            ? '0 -1px 0 rgba(255,255,255,0.05), 0 -8px 40px rgba(0,0,0,0.55)'
+            : '0 -1px 0 rgba(0,0,0,0.05), 0 -4px 20px rgba(0,0,0,0.07)',
+          borderRadius: '22px 22px 0 0',
+          padding: `10px 6px calc(10px + env(safe-area-inset-bottom, 0px))`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-around',
-          padding: '10px 6px',
-        }}>
-          {/* Left items */}
-          {BOTTOM_LEFT.map(link => {
-            const active = location.pathname === link.to
-            const iconColor = active ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
-                style={{ minWidth: 52, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
-              >
-                {active && (
-                  <span className="absolute left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full" style={{ background: gold, top: -1 }} />
-                )}
-                <AdminBarIcon name={link.svgIcon} size={22} color={iconColor} />
-                <span className="text-[10px] font-semibold leading-none" style={{ color: iconColor }}>{link.label}</span>
-              </Link>
-            )
-          })}
+        }}
+      >
+        {/* Left items */}
+        {BOTTOM_LEFT.map(link => (
+          <AdminV6Btn key={link.to} link={link} active={location.pathname === link.to} isDark={isDark} />
+        ))}
 
-          {/* Center — elevated calendar button (like FAB) */}
-          {(() => {
-            const active = location.pathname === BOTTOM_CENTER.to
-            return (
-              <Link
-                to={BOTTOM_CENTER.to}
-                className="flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl relative"
-                style={{
-                  background: active
-                    ? 'var(--color-gold)'
-                    : 'linear-gradient(145deg, rgba(201,169,110,0.22), rgba(201,169,110,0.12))',
-                  border: `1.5px solid ${active ? 'var(--color-gold)' : 'rgba(201,169,110,0.35)'}`,
-                  boxShadow: active
-                    ? '0 8px 32px rgba(201,169,110,0.45), 0 2px 12px rgba(0,0,0,0.3)'
-                    : '0 6px 24px rgba(201,169,110,0.2), 0 2px 8px rgba(0,0,0,0.25)',
-                  transform: 'translateY(-8px)',
-                  minWidth: 64,
-                  textAlign: 'center',
-                }}
-              >
-                <AdminBarIcon name={BOTTOM_CENTER.svgIcon} size={26} color={active ? '#fff' : 'var(--color-gold)'} />
-                <span className="text-[10px] font-black leading-none" style={{ color: active ? '#fff' : 'var(--color-gold)' }}>
-                  {BOTTOM_CENTER.label}
-                </span>
-              </Link>
-            )
-          })()}
+        {/* Center — FAB circle (calendar) */}
+        {(() => {
+          const active = location.pathname === BOTTOM_CENTER.to
+          return (
+            <Link
+              to={BOTTOM_CENTER.to}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: -24, textDecoration: 'none' }}
+            >
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: `linear-gradient(145deg, var(--color-gold-light, #c9a96e), var(--color-gold-dark, #a07840))`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: `3px solid ${isDark ? 'rgba(12,12,12,0.92)' : 'rgba(255,255,255,0.94)'}`,
+                boxShadow: active
+                  ? '0 4px 24px rgba(201,169,110,0.55), 0 2px 8px rgba(0,0,0,0.3)'
+                  : '0 4px 20px rgba(201,169,110,0.35), 0 2px 8px rgba(0,0,0,0.2)',
+              }}>
+                <AdminBarIcon name="calendar" size={22} color="#fff" />
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.04em', color: isDark ? 'rgba(255,255,255,0.5)' : 'var(--color-gold)' }}>
+                {BOTTOM_CENTER.label}
+              </span>
+            </Link>
+          )
+        })()}
 
-          {/* Right items */}
-          {BOTTOM_RIGHT.map(link => {
-            const active = location.pathname === link.to
-            const iconColor = active ? 'var(--color-gold)' : 'rgba(255,255,255,0.55)'
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
-                style={{ minWidth: 52, background: active ? 'rgba(255,255,255,0.08)' : 'transparent' }}
-              >
-                {active && (
-                  <span className="absolute left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full" style={{ background: gold, top: -1 }} />
-                )}
-                <AdminBarIcon name={link.svgIcon} size={22} color={iconColor} />
-                <span className="text-[10px] font-semibold leading-none" style={{ color: iconColor }}>{link.label}</span>
-              </Link>
-            )
-          })}
+        {/* Right items */}
+        {BOTTOM_RIGHT.map(link => (
+          <AdminV6Btn key={link.to} link={link} active={location.pathname === link.to} isDark={isDark} />
+        ))}
 
-          {/* "More" button */}
-          <button
-            onClick={() => setSheetOpen(true)}
-            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl relative"
-            style={{ minWidth: 52, background: sheetOpen ? 'rgba(255,255,255,0.08)' : 'transparent' }}
-          >
-            {sheetOpen && (
-              <span className="absolute left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full" style={{ background: gold, top: -1 }} />
-            )}
-            <AdminBarIcon name="menu" size={22} color={sheetOpen ? gold : 'rgba(255,255,255,0.55)'} />
-            <span className="text-[10px] font-semibold leading-none" style={{ color: sheetOpen ? gold : 'rgba(255,255,255,0.55)' }}>
-              עוד
-            </span>
-          </button>
-        </nav>
+        {/* "More" button */}
+        <AdminV6Btn
+          link={{ svgIcon: 'menu', label: 'עוד' }}
+          active={sheetOpen}
+          isDark={isDark}
+          onClick={() => setSheetOpen(true)}
+          asButton
+        />
       </div>
     </div>
   )
