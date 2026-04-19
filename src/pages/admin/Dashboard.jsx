@@ -25,10 +25,17 @@ export function Dashboard() {
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { settings, saveSettings } = useBusinessSettings()
 
-  // Today + week appointments (realtime built in)
+  // Today's appointments — for KPI stats
   const { appointments: todayAppts, loading: loadingToday, refetch: refetchAppts } = useAllAppointments({
     startDate: startOfDay(today),
     endDate: endOfDay(today),
+    branchId: currentBranch?.id ?? null,
+  })
+
+  // Next 4 upcoming from any date (for the appointments list)
+  const { appointments: futureAppts, refetch: refetchFuture } = useAllAppointments({
+    startDate: new Date(),
+    endDate: addDays(today, 60),
     branchId: currentBranch?.id ?? null,
   })
 
@@ -118,7 +125,7 @@ export function Dashboard() {
   }, [fetchInbox])
 
   // ── Derived: the "next" appointment + upcoming ──
-  const { nextApt, upcoming, upcoming4, stats } = useMemo(() => {
+  const { nextApt, upcoming, stats } = useMemo(() => {
     const now = Date.now()
     const future = todayAppts
       .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
@@ -126,7 +133,6 @@ export function Dashboard() {
       .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
     const [next, ...rest] = future
-    const upcoming4 = future.slice(0, 4)
 
     // Today stats
     const completed = todayAppts.filter(a => a.status === 'completed' && !a.no_show)
@@ -232,7 +238,7 @@ export function Dashboard() {
       },
     ]
 
-    return { nextApt: next, upcoming: rest, upcoming4, stats }
+    return { nextApt: next, upcoming: rest, stats }
   }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff])
 
   // ── Handle schedule from waitlist ──
@@ -252,7 +258,14 @@ export function Dashboard() {
     navigate('/admin/appointments')
   }
 
-  const refreshAll = () => { refetchAppts(); fetchInbox() }
+  // Next 4 upcoming appointments from any date
+  const upcoming4 = useMemo(() =>
+    futureAppts
+      .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
+      .slice(0, 4)
+  , [futureAppts])
+
+  const refreshAll = () => { refetchAppts(); refetchFuture(); fetchInbox() }
 
   return (
     <div className="max-w-full overflow-x-hidden">

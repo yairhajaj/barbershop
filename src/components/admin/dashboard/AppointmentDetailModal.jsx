@@ -6,22 +6,33 @@ import { Spinner } from '../../ui/Spinner'
 import { StatusBadge } from '../../ui/Badge'
 import { useToast } from '../../ui/Toast'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
+import { useProducts } from '../../../hooks/useProducts'
 import { BUSINESS } from '../../../config/business'
 import { printInvoice } from '../../../lib/invoice'
 import { formatDate, formatTime } from '../../../lib/utils'
 
 const PAYMENT_LABELS = { cash: 'מזומן', credit: 'כרטיס אשראי', bit: 'ביט', paybox: 'Paybox', transfer: 'העברה בנקאית' }
 
-export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
+export function AppointmentDetailModal({ apt, open, onClose, onChange, onReschedule }) {
   const toast = useToast()
   const { settings } = useBusinessSettings()
-  const [invoiceStep, setInvoiceStep] = useState(null) // null | 'paying' | 'done'
+  const { products } = useProducts({ activeOnly: true })
+
+  const [invoiceStep, setInvoiceStep] = useState(null)  // null | 'paying' | 'done'
   const [invoiceData, setInvoiceData] = useState(null)
+  const [invoiceProducts, setInvoiceProducts] = useState([])
+  const [showAddProduct, setShowAddProduct] = useState(false)
   const [apptDebtTotal, setApptDebtTotal] = useState(0)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (open) { setInvoiceStep(null); setInvoiceData(null); setApptDebtTotal(0) }
+    if (open) {
+      setInvoiceStep(null)
+      setInvoiceData(null)
+      setInvoiceProducts([])
+      setShowAddProduct(false)
+      setApptDebtTotal(0)
+    }
   }, [open, apt?.id])
 
   useEffect(() => {
@@ -36,7 +47,9 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
     try {
       const vatRate = settings?.vat_rate || 18
       const isPatur = settings?.business_type === 'osek_patur'
-      const price = Number(apt.services?.price) || 0
+      const servicePrice = Number(apt.services?.price) || 0
+      const productsTotal = invoiceProducts.reduce((s, p) => s + Number(p.unit_price) * Number(p.quantity || 1), 0)
+      const price = servicePrice + productsTotal
       const priceBeforeVat = isPatur ? price : Math.round((price / (1 + vatRate / 100)) * 100) / 100
       const vatAmount = isPatur ? 0 : Math.round((price - priceBeforeVat) * 100) / 100
 
@@ -45,7 +58,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
         .eq('id', apt.id)
 
       await supabase.from('manual_income').insert({
-        amount: price, vat_amount: vatAmount,
+        amount: servicePrice, vat_amount: isPatur ? 0 : Math.round((servicePrice - servicePrice / (1 + vatRate / 100)) * 100) / 100,
         description: apt.services?.name || 'תור',
         customer_name: apt.profiles?.name || '',
         staff_id: apt.staff_id, service_id: apt.service_id, appointment_id: apt.id,
@@ -54,12 +67,13 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
       })
 
       const { data: invoiceNum } = await supabase.rpc('next_invoice_number')
+      const serviceNames = [apt.services?.name, ...invoiceProducts.map(p => p.name)].filter(Boolean).join(' + ')
       const { data: inv } = await supabase.from('invoices').insert({
         invoice_number: invoiceNum,
         appointment_id: apt.id,
         customer_name: apt.profiles?.name || '',
         customer_phone: apt.profiles?.phone || '',
-        service_name: apt.services?.name || '',
+        service_name: serviceNames,
         staff_name: apt.staff?.name || '',
         service_date: apt.start_at,
         amount_before_vat: priceBeforeVat,
@@ -67,7 +81,15 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
         status: 'paid', paid_at: new Date().toISOString(), notes: method,
       }).select().single()
 
-      setInvoiceData({ ...inv, paymentMethod: method, appointment: apt })
+      if (inv?.id) {
+        const items = [
+          { invoice_id: inv.id, kind: 'service', service_id: apt.service_id, name: apt.services?.name || 'שירות', quantity: 1, unit_price: servicePrice, line_total: servicePrice, staff_id: apt.staff_id },
+          ...invoiceProducts.map(p => ({ invoice_id: inv.id, kind: 'product', product_id: p.product_id, name: p.name, quantity: Number(p.quantity || 1), unit_price: Number(p.unit_price), line_total: Number(p.unit_price) * Number(p.quantity || 1), staff_id: p.staff_id || apt.staff_id })),
+        ]
+        await supabase.from('invoice_items').insert(items)
+      }
+
+      setInvoiceData({ ...inv, paymentMethod: method, appointment: apt, items: [] })
       setInvoiceStep('done')
       onChange?.()
       toast({ message: 'תשלום נרשם וחשבונית נוצרה ✓', type: 'success' })
@@ -88,18 +110,54 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
     finally { setBusy(false) }
   }
 
-  function doPrint() {
+  async function handleCancel() {
+    if (!confirm(`לבטל את התור של ${apt.profiles?.name || 'הלקוח'}?`)) return
+    setBusy(true)
+    try {
+      await supabase.from('appointments')
+        .update({ status: 'cancelled', cancelled_by: 'admin', cancelled_at: new Date().toISOString() })
+        .eq('id', apt.id)
+      toast({ message: 'תור בוטל', type: 'success' })
+      onChange?.(); onClose()
+    } catch (e) { toast({ message: e.message, type: 'error' }) }
+    finally { setBusy(false) }
+  }
+
+  function doPrint(inv) {
     printInvoice({
       appointment: apt, business: BUSINESS,
       footerText: settings?.invoice_footer_text,
       vatRate: settings?.vat_rate || 18,
       businessType: settings?.business_type || 'osek_morsheh',
-      invoiceNumber: invoiceData?.invoice_number,
+      invoiceNumber: inv?.invoice_number,
       businessTaxId: settings?.business_tax_id,
-      paymentMethod: invoiceData?.notes,
-      invoiceDate: invoiceData?.created_at,
+      paymentMethod: inv?.notes,
+      invoiceDate: inv?.created_at,
       logoUrl: settings?.logo_url,
+      items: inv?.items,
     })
+  }
+
+  async function handlePrintExisting() {
+    const { data: inv } = await supabase.from('invoices').select('*').eq('appointment_id', apt.id).maybeSingle()
+    let items
+    if (inv?.id) {
+      const { data: rows } = await supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('created_at')
+      if (rows?.length) items = rows
+    }
+    doPrint({ ...(inv || {}), items })
+  }
+
+  function shareInvoiceWhatsApp(inv, phone) {
+    const invoiceUrl = `${window.location.origin}/invoice/${inv?.id}`
+    const rawPhone = (phone || '').replace(/\D/g, '')
+    const waPhone = rawPhone.startsWith('0') ? '972' + rawPhone.slice(1) : rawPhone
+    const msg = encodeURIComponent(
+      `שלום ${apt.profiles?.name || ''}! 🧾\n` +
+      `חשבונית מס׳ ${inv?.invoice_number} עבור ${apt.services?.name}.\n` +
+      `לצפייה בחשבונית: ${invoiceUrl}\nתודה על הביקור! 💈`
+    )
+    window.open(`https://wa.me/${waPhone}?text=${msg}`, '_blank')
   }
 
   if (!apt) return null
@@ -112,10 +170,15 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
   const waMsg = encodeURIComponent(
     `שלום ${apt.profiles?.name ?? ''}, רצינו להזכיר לך את התור שלך ל${svcName} בתאריך ${formatDate(apt.start_at)} בשעה ${formatTime(apt.start_at)}. נתראה! 💈`
   )
+  const servicePrice = Number(apt.services?.price) || 0
+  const productsTotal = invoiceProducts.reduce((s, p) => s + Number(p.unit_price) * Number(p.quantity || 1), 0)
+  const invoiceTotal = servicePrice + productsTotal
 
   return (
     <Modal open={open} onClose={onClose} title="פרטי תור">
       <div className="space-y-4">
+
+        {/* Debt warning */}
         {apptDebtTotal > 0 && (
           <div className="text-center text-sm py-1.5 rounded-xl font-bold"
             style={{ background: 'var(--color-danger-tint)', color: '#dc2626', border: '1.5px solid var(--color-danger-ring)' }}>
@@ -123,16 +186,17 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
           </div>
         )}
 
+        {/* Info grid */}
         <div className="grid grid-cols-2 gap-3 text-sm">
           {[
-            { label: 'לקוח',   value: apt.profiles?.name },
-            { label: 'טלפון',  value: apt.profiles?.phone },
-            { label: 'שירות',  value: apt.services?.name },
-            { label: 'ספר',    value: apt.staff?.name },
-            { label: 'תאריך',  value: formatDate(apt.start_at) },
-            { label: 'שעה',    value: `${formatTime(apt.start_at)} — ${formatTime(apt.end_at)}` },
-            { label: 'מחיר',   value: apt.services?.price ? `₪${apt.services.price}` : '-' },
-            { label: 'סטטוס',  value: <StatusBadge status={apt.status} /> },
+            { label: 'לקוח',  value: apt.profiles?.name },
+            { label: 'טלפון', value: apt.profiles?.phone },
+            { label: 'שירות', value: apt.services?.name },
+            { label: 'ספר',   value: apt.staff?.name },
+            { label: 'תאריך', value: formatDate(apt.start_at) },
+            { label: 'שעה',   value: `${formatTime(apt.start_at)} — ${formatTime(apt.end_at)}` },
+            { label: 'מחיר',  value: apt.services?.price ? `₪${apt.services.price}` : '-' },
+            { label: 'סטטוס', value: <StatusBadge status={apt.status} /> },
           ].map(row => (
             <div key={row.label}>
               <span className="text-muted">{row.label}: </span>
@@ -141,6 +205,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
           ))}
         </div>
 
+        {/* Notes */}
         {apt.notes && (
           <p className="text-sm rounded-lg p-3"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -148,6 +213,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
           </p>
         )}
 
+        {/* Phone + WhatsApp */}
         {phone && (
           <div className="flex gap-2">
             <a href={`tel:${phone}`}
@@ -171,30 +237,100 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
           </div>
         )}
 
-        {/* Payment panel */}
+        {/* Reschedule */}
+        {apt.status !== 'cancelled' && (
+          <button
+            onClick={() => onReschedule ? onReschedule(apt) : window.open('/admin/appointments', '_self')}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+            style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}>
+            📅 שנה מועד התור
+          </button>
+        )}
+
+        {/* Payment + Invoice panel */}
         {invoiceStep === 'done' && invoiceData ? (
           <div className="space-y-2">
             <div className="text-center text-sm py-2 rounded-xl font-bold"
               style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
               ✅ שולם ב{PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod} · חשבונית {invoiceData.invoice_number}
             </div>
-            <button onClick={doPrint}
-              className="w-full py-2.5 rounded-xl font-bold text-sm"
-              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}>
-              🖨 הדפס חשבונית
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => doPrint(invoiceData)}
+                className="flex-1 py-2.5 rounded-xl font-bold text-sm"
+                style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}>
+                🖨 הדפס חשבונית
+              </button>
+              {phone && (
+                <button onClick={() => shareInvoiceWhatsApp(invoiceData, phone)}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center"
+                  style={{ background: '#25D366', color: '#fff' }}>
+                  📱 שלח ללקוח
+                </button>
+              )}
+            </div>
           </div>
         ) : invoiceStep === 'paying' ? (
           <div className="flex items-center justify-center gap-2 py-3 text-sm" style={{ color: 'var(--color-muted)' }}>
             <Spinner size="sm" /> רושם תשלום ומפיק חשבונית...
           </div>
         ) : isPaid ? (
-          <div className="text-center text-sm py-2 rounded-xl font-bold"
-            style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
-            ✅ שולם
+          <div className="flex items-center gap-2">
+            <div className="flex-1 text-center text-sm py-2 rounded-xl font-bold"
+              style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
+              ✅ שולם
+            </div>
+            <button onClick={handlePrintExisting}
+              className="py-2 px-3 rounded-xl font-bold text-sm"
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}>
+              🖨 חשבונית
+            </button>
           </div>
         ) : apt.status === 'confirmed' ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {/* Invoice preview */}
+            <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold" style={{ color: 'var(--color-text)' }}>פרטי חשבונית</span>
+                <span className="font-black" style={{ color: 'var(--color-gold)' }}>סה"כ ₪{invoiceTotal.toLocaleString('he-IL')}</span>
+              </div>
+              <div className="flex items-center justify-between py-1" style={{ color: 'var(--color-muted)' }}>
+                <span>{apt.services?.name || 'שירות'}</span>
+                <span>₪{servicePrice.toLocaleString('he-IL')}</span>
+              </div>
+              {invoiceProducts.map((p, idx) => (
+                <div key={idx} className="flex items-center justify-between py-1 gap-2" style={{ color: 'var(--color-muted)' }}>
+                  <span className="flex-1 truncate">📦 {p.name} × {p.quantity}</span>
+                  <span>₪{(Number(p.unit_price) * Number(p.quantity || 1)).toLocaleString('he-IL')}</span>
+                  <button onClick={() => setInvoiceProducts(prev => prev.filter((_, i) => i !== idx))}
+                    className="text-red-500 px-1">✕</button>
+                </div>
+              ))}
+              {showAddProduct ? (
+                <div className="mt-2 pt-2 space-y-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                  <select className="input-field w-full text-xs" defaultValue=""
+                    onChange={e => {
+                      const p = products.find(x => x.id === e.target.value)
+                      if (!p) return
+                      setInvoiceProducts(prev => [...prev, { product_id: p.id, name: p.name, unit_price: Number(p.price) || 0, quantity: 1, staff_id: apt.staff_id }])
+                      setShowAddProduct(false)
+                    }}>
+                    <option value="" disabled>בחר מוצר...</option>
+                    {products.map(p => <option key={p.id} value={p.id}>{p.name} — ₪{p.price}</option>)}
+                  </select>
+                  <button onClick={() => setShowAddProduct(false)}
+                    className="w-full py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: 'var(--color-card)', color: 'var(--color-muted)', border: '1px solid var(--color-border)' }}>
+                    ביטול
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowAddProduct(true)}
+                  className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px dashed var(--color-success-ring)' }}>
+                  ➕ הוסף מוצר לחשבונית
+                </button>
+              )}
+            </div>
             <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>בחר אמצעי תשלום להפקת חשבונית:</p>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -215,12 +351,20 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
           </div>
         ) : null}
 
+        {/* No-show + Cancel */}
         {apt.status === 'confirmed' && !isPaid && invoiceStep !== 'done' && (
-          <button onClick={handleNoShow} disabled={busy}
-            className="w-full py-2 px-3 rounded-lg font-medium text-sm"
-            style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-muted)', opacity: busy ? 0.6 : 1 }}>
-            👻 לא הגיע
-          </button>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleNoShow} disabled={busy}
+              className="flex-1 py-2 px-3 rounded-lg font-medium text-sm"
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-muted)', opacity: busy ? 0.6 : 1 }}>
+              👻 לא הגיע
+            </button>
+            <button onClick={handleCancel} disabled={busy}
+              className="flex-1 py-2 px-3 rounded-lg font-medium text-sm"
+              style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.25)', opacity: busy ? 0.6 : 1 }}>
+              ✕ בטל תור
+            </button>
+          </div>
         )}
 
         {apt.no_show && (
@@ -228,6 +372,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange }) {
             ⚠️ לקוח זה סומן כ&quot;לא הגיע&quot;
           </div>
         )}
+
       </div>
     </Modal>
   )
