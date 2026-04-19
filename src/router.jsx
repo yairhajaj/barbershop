@@ -9,6 +9,7 @@ import { AdminSkeleton } from './components/feedback/AdminSkeleton'
 import { HomePage } from './pages/booking/HomePage'
 
 // Booking flow — lazy-loaded so framer-motion stays out of the landing critical path
+const ProductsPage    = lazy(() => import('./pages/booking/ProductsPage').then(m => ({ default: m.ProductsPage })))
 const BookAll         = lazy(() => import('./pages/booking/BookAll').then(m => ({ default: m.BookAll })))
 const SelectBranch    = lazy(() => import('./pages/booking/SelectBranch').then(m => ({ default: m.SelectBranch })))
 const SelectService   = lazy(() => import('./pages/booking/SelectService').then(m => ({ default: m.SelectService })))
@@ -85,6 +86,10 @@ const router = createBrowserRouter([
   {
     path: '/my-appointments',
     element: <BookingRoute><MyAppointments /></BookingRoute>,
+  },
+  {
+    path: '/products',
+    element: <BookingRoute><ProductsPage /></BookingRoute>,
   },
   {
     path: '/book',

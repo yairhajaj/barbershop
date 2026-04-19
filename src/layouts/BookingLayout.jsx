@@ -540,7 +540,7 @@ export function BookingLayout({ children }) {
         }}
       >
         <V6BarBtn to="/" icon="home" label="בית" active={location.pathname === '/'} isDark={isDark} />
-        <V6BarBtn to="/#products" icon="bag" label="מוצרים" active={false} isDark={isDark} />
+        <V6BarBtn to="/products" icon="bag" label="מוצרים" active={location.pathname === '/products'} isDark={isDark} />
 
         {/* CENTER FAB */}
         <Link to={bookHref} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: -24, cursor: 'pointer', textDecoration: 'none' }}>
