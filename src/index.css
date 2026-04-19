@@ -1478,12 +1478,21 @@
 .v6-d6 { transition-delay: .38s }
 
 /* ══ v6 CTA button spring ══════════════════════════════════════ */
+@keyframes cta-heartbeat {
+  0%, 100% { box-shadow: 0 8px 32px rgba(255,122,0,0.18), 0 1px 0 rgba(255,255,255,0.20) inset; }
+  50%       { box-shadow: 0 8px 32px rgba(255,122,0,0.18), 0 1px 0 rgba(255,255,255,0.20) inset,
+                          0 0 0 8px rgba(255,122,0,0.14); }
+}
 .v6-cta-btn {
   transition: all .38s cubic-bezier(.34,1.56,.64,1) !important;
   position: relative;
   overflow: hidden;
+  animation: cta-heartbeat 2.2s ease-in-out infinite;
 }
-.v6-cta-btn:hover { transform: translateY(-2px) scale(1.015) !important; }
+.v6-cta-btn:hover {
+  transform: translateY(-2px) scale(1.015) !important;
+  animation: none;
+}
 .v6-cta-btn:active {
   transform: scale(.97) !important;
   transition-duration: .1s !important;
