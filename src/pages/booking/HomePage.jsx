@@ -520,10 +520,12 @@ export function HomePage() {
           <div className="absolute inset-0 pointer-events-none" style={{
             background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 22%,transparent 58%,rgba(0,0,0,.60) 100%)'
           }} />
-          {/* Bottom fade into surface so glass panel blends in */}
+          {/* Bottom edge softener — just covers the glass panel overlap (56px), no more */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: '32%',
-            background: 'linear-gradient(to top, #f3f0ea 0%, rgba(243,240,234,0.55) 45%, transparent 100%)',
+            height: 56,
+            background: isDark
+              ? 'linear-gradient(to top, rgba(18,14,10,0.72) 0%, transparent 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,0.72) 0%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
