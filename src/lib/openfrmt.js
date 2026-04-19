@@ -6,8 +6,9 @@
  *   A100: 95 | Z900: 110 | C100: 444 | D110: 339 | D120: 222 | M100: 298
  *
  * Key constants:
- *   System constant (fields 1005/1104/1154): 'BKMVHDL ' (8 chars)
- *   Dates: DDMMYYYY format throughout BKMVDATA
+ *   System constant (fields 1005/1104/1154): '&OF1.31&' (8 chars)
+ *   Dates: YYYYMMDD format throughout (fields 1024/1025/1026/1205/1216/1230/1264/1272/1311/1322)
+ *   Monetary fields X9(n)v99: always sign char ('+'/'-') + n integer digits + 2 decimal digits
  *   Encoding: Windows-1255 / ISO-8859-8-I (use ASCII-only for simulator)
  */
 
@@ -16,7 +17,7 @@ import { supabase } from './supabase'
 import { OPERATOR } from '../config/operator'
 
 const CRLF     = '\r\n'
-const BKMV_HDL = 'BKMVHDL ' // 8 chars — field 1005/1104/1154
+const BKMV_HDL = '&OF1.31&' // 8 chars — field 1005/1104/1154
 
 // ── Padding helpers ──────────────────────────────────────────────
 function padRight(val, len) {
@@ -31,24 +32,25 @@ function padText(val, len) {
   const s = (val ?? '').toString().replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
+// X9(n)v99 format: sign char ('+'/'-') + intLen digits + decLen digits = intLen+decLen+1 chars total
 function numField(val, intLen, decLen = 0) {
-  const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(n * Math.pow(10, decLen))
-  const sign = scaled < 0 ? '-' : ''
+  const sign = scaled < 0 ? '-' : '+'
   const abs = Math.abs(scaled).toString()
-  const padded = abs.padStart(totalLen - (sign ? 1 : 0), '0')
-  return (sign + padded).slice(-totalLen)
+  const padded = abs.padStart(intLen + decLen, '0')
+  return sign + padded
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
-// BKMVDATA dates: DDMMYYYY format (Israeli spec)
-function dateDMY(iso) {
+// All BKMVDATA dates: YYYYMMDD format per spec
+function dateYMD(iso) {
   if (!iso) return '00000000'
   const d = (iso instanceof Date) ? iso : new Date(iso)
-  const day = String(d.getDate()).padStart(2, '0')
-  const mon = String(d.getMonth() + 1).padStart(2, '0')
-  return `${day}${mon}${d.getFullYear()}`
+  const year = d.getFullYear()
+  const mon  = String(d.getMonth() + 1).padStart(2, '0')
+  const day  = String(d.getDate()).padStart(2, '0')
+  return `${year}${mon}${day}`
 }
 function timeHM(iso) {
   if (!iso) return '0000'
@@ -102,13 +104,13 @@ export const PAYMENT_CODE = {
 //   9   15  1002 total records in BKMVDATA (num)
 //  24    9  1003 business VAT ID (num)
 //  33   15  1004 primary ID (num)
-//  48    8  1005 'BKMVHDL ' (str)
+//  48    8  1005 '&OF1.31&' (str)
 //  56    8  1006 software reg number (num) — 8 digits from tax authority
 //  64   20  1007 software name (str)
 //  84   20  1008 software version (str)
 // 104    9  1009 manufacturer VAT ID (num)
 // 113   20  1010 manufacturer name (str)
-// 133    1  1011 software type: 1=accounting, 2=docs-only (num)
+// 133    1  1011 software type: 2=multi-year (num)
 // 134   50  1012 file save path (str)
 // 184    1  1013 bookkeeping type: 1=single, 2=double (num)
 // 185    1  1014 accounting balance required: 0=no (num)
@@ -121,12 +123,12 @@ export const PAYMENT_CODE = {
 // 324   30  1021 address city (str)
 // 354    8  1022 postal code (str)
 // 362    4  1023 tax year YYYY (num)
-// 366    8  1024 data start date DDMMYYYY (num)
-// 374    8  1025 data end date DDMMYYYY (num)
-// 382    8  1026 process date DDMMYYYY (num)
+// 366    8  1024 data start date YYYYMMDD (num)
+// 374    8  1025 data end date YYYYMMDD (num)
+// 382    8  1026 process date YYYYMMDD (num)
 // 390    4  1027 process time HHMM (num)
-// 394    1  1028 language code: 1=Hebrew (num)
-// 395    1  1029 character set: 1=Windows ANSI (num)
+// 394    1  1028 language code: 0=Hebrew (num)
+// 395    1  1029 character set: 1=ISO-8859-8-i (num)
 // 396   20  1030 compression software name (str)
 // 416    3  1032 leading currency ISO (str)
 // 419    1  1034 has branches: 0/1 (num)
@@ -161,12 +163,12 @@ function recordA000({
     padText(settings.business_address_city || '', 30),                   // 1021: 30
     padText(settings.business_address_postal || '', 8),                  // 1022: 8
     padLeft(new Date(dataRange.start + 'T00:00:00').getFullYear(), 4),   // 1023: 4 YYYY
-    padLeft(dateDMY(dataRange.start + 'T00:00:00'), 8),                  // 1024: 8 DDMMYYYY
-    padLeft(dateDMY(dataRange.end   + 'T00:00:00'), 8),                  // 1025: 8 DDMMYYYY
-    padLeft(dateDMY(now), 8),                                            // 1026: 8 DDMMYYYY
+    padLeft(dateYMD(dataRange.start + 'T00:00:00'), 8),                  // 1024: 8 YYYYMMDD
+    padLeft(dateYMD(dataRange.end   + 'T00:00:00'), 8),                  // 1025: 8 YYYYMMDD
+    padLeft(dateYMD(now), 8),                                            // 1026: 8 YYYYMMDD
     padLeft(timeHM(now), 4),                                             // 1027: 4 HHMM
-    padLeft('1', 1),                                                     // 1028: 1 Hebrew
-    padLeft('1', 1),                                                     // 1029: 1 Windows ANSI
+    padLeft('0', 1),                                                     // 1028: 0=Hebrew
+    padLeft('1', 1),                                                     // 1029: 1=ISO-8859-8-i
     padText('', 20),                                                     // 1030: 20
     padText(OPERATOR.leading_currency || 'ILS', 3),                      // 1032: 3
     padLeft(settings.has_branches ? '1' : '0', 1),                      // 1034: 1
@@ -265,15 +267,15 @@ function recordC100({
   beforeVat, vatAmount, total, currency = 'ILS',
   isCancelled, generationDate, userId,
 }) {
-  const docDMY = dateDMY(docDate)
-  const genDMY = dateDMY(generationDate || docDate)
+  const docYMD = dateYMD(docDate)
+  const genYMD = dateYMD(generationDate || docDate)
   const parts = [
     'C100',                                    // 1200: 4
     padLeft(serial, 9),                        // 1201: 9
     padLeft(vatId, 9),                         // 1202: 9
     padLeft(docType, 3),                       // 1203: 3
     padText(docNumber, 20),                    // 1204: 20
-    padLeft(docDMY, 8),                        // 1205: 8
+    padLeft(docYMD, 8),                        // 1205: 8 YYYYMMDD
     padLeft(timeHM(docDate), 4),               // 1206: 4
     padText(customerName || '', 50),           // 1207: 50
     padText('', 50),                           // 1208: 50
@@ -284,19 +286,19 @@ function recordC100({
     padText('IL', 2),                          // 1213: 2
     padText(customerPhone || '', 15),          // 1214: 15
     padLeft(customerVatId || '0', 9),          // 1215: 9
-    padLeft(docDMY, 8),                        // 1216: 8 value date
-    numField(0, 13, 2),                        // 1217: 15 FC amount
+    padLeft(docYMD, 8),                        // 1216: 8 value date YYYYMMDD
+    numField(0, 12, 2),                        // 1217: 15 FC amount (+sign+12+2)
     padText(currency, 3),                      // 1218: 3
-    numField(beforeVat, 13, 2),                // 1219: 15 ⚠
-    numField(0, 13, 2),                        // 1220: 15 discount
-    numField(beforeVat, 13, 2),                // 1221: 15 after discount before VAT
-    numField(vatAmount, 13, 2),                // 1222: 15 VAT
-    numField(total, 13, 2),                    // 1223: 15 ⚠
-    numField(0, 10, 2),                        // 1224: 12 withholding
+    numField(beforeVat, 12, 2),                // 1219: 15 ⚠
+    numField(0, 12, 2),                        // 1220: 15 discount (0)
+    numField(beforeVat, 12, 2),                // 1221: 15 after discount before VAT
+    numField(vatAmount, 12, 2),                // 1222: 15 VAT
+    numField(total, 12, 2),                    // 1223: 15 ⚠
+    numField(0, 9, 2),                         // 1224: 12 withholding (+sign+9+2)
     padText('', 15),                           // 1225: 15
     padText('', 10),                           // 1226: 10
     padText(isCancelled ? 'X' : ' ', 1),       // 1228: 1
-    padLeft(genDMY, 8),                        // 1230: 8
+    padLeft(genYMD, 8),                        // 1230: 8 YYYYMMDD
     padText('', 7),                            // 1231: 7
     padText(userId || '', 9),                  // 1233: 9
     padLeft('0', 7),                           // 1234: 7
@@ -353,13 +355,13 @@ function recordD110({
     padText('', 50),                                   // 1261: 50 mfr name
     padText('', 30),                                   // 1262: 30 product serial
     padText('', 20),                                   // 1263: 20 unit
-    numField(quantity, 14, 3),                         // 1264: 17 qty
-    numField(unitPrice, 13, 2),                        // 1265: 15 unit price
-    numField(discount || 0, 13, 2),                    // 1266: 15 discount
-    numField(lineTotal, 13, 2),                        // 1267: 15 ⚠
+    numField(quantity, 13, 3),                         // 1264: 17 qty (+sign+13+3)
+    numField(unitPrice, 12, 2),                        // 1265: 15 unit price (+sign+12+2)
+    numField(discount || 0, 12, 2),                    // 1266: 15 discount (negative if used)
+    numField(lineTotal, 12, 2),                        // 1267: 15 ⚠ (+sign+12+2)
     padLeft(Math.round(Number(vatRate || 0) * 100), 4),// 1268: 4 e.g. 1800
     padText('', 7),                                    // 1270: 7 branch
-    padLeft(dateDMY(docDate), 8),                      // 1272: 8 DDMMYYYY
+    padLeft(dateYMD(docDate), 8),                      // 1272: 8 YYYYMMDD
     padLeft('0', 7),                                   // 1273: 7 link to C100
     padText('', 7),                                    // 1274: 7
     padText('', 21),                                   // 1275: 21 future
@@ -411,13 +413,13 @@ function recordD120({
     padLeft(branchCode || '0', 10),                // 1308: 10
     padLeft(accountNumber || '0', 15),             // 1309: 15
     padLeft(checkNumber || '0', 10),               // 1310: 10
-    padLeft(dateDMY(paymentDate || docDate), 8),   // 1311: 8
-    numField(amount, 13, 2),                       // 1312: 15 ⚠
+    padLeft(dateYMD(paymentDate || docDate), 8),   // 1311: 8 YYYYMMDD
+    numField(amount, 12, 2),                       // 1312: 15 ⚠ (+sign+12+2)
     padLeft('0', 1),                               // 1313: 1
     padText(cardType || '', 20),                   // 1314: 20
     padLeft('0', 1),                               // 1315: 1
     padText('', 7),                                // 1320: 7
-    padLeft(dateDMY(docDate), 8),                  // 1322: 8
+    padLeft(dateYMD(docDate), 8),                  // 1322: 8 YYYYMMDD
     padLeft('0', 7),                               // 1323: 7
     padText('', 60),                               // 1324: 60 future
   ]
@@ -439,10 +441,10 @@ function recordM100({
     padText(itemDescription || '', 50),        // 50 description
     padText('', 15),                           // 15 classification
     padText(unit || '', 20),                   // 20 unit
-    numField(0, 14, 3),                        // 17 opening qty
-    numField(0, 13, 2),                        // 15 opening value
-    numField(unitPrice || 0, 13, 2),           // 15 cost price
-    numField(unitPrice || 0, 13, 2),           // 15 sale price
+    numField(0, 13, 3),                        // 17 opening qty (+sign+13+3)
+    numField(0, 12, 2),                        // 15 opening value (+sign+12+2)
+    numField(unitPrice || 0, 12, 2),           // 15 cost price
+    numField(unitPrice || 0, 12, 2),           // 15 sale price
     padText(currency, 3),                      // 3
     padText('', 50),                           // 50 mfr name
     padText('', 36),                           // 36 future
@@ -556,7 +558,8 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
   return { text: lines.join(CRLF) + CRLF, counts }
 }
 
-// ── Build INI.TXT (A000 only, per spec §5) ───────────────────────
+// ── Build INI.TXT — A000 + summary records (19 chars each) per spec §5 ──────
+// Summary record format: 4-char type code + 15-digit zero-padded count = 19 chars
 export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
   const totalBkmv = 1 + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 1
 
@@ -568,7 +571,15 @@ export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
     dataRange: { start: from, end: to },
   })
 
-  return a000 + CRLF
+  const lines = [a000]
+  for (const type of ['C100', 'D110', 'D120', 'M100']) {
+    const cnt = counts[type] || 0
+    if (cnt > 0) {
+      lines.push(type + padLeft(cnt, 15)) // 4 + 15 = 19 chars
+    }
+  }
+
+  return lines.join(CRLF) + CRLF
 }
 
 // ── Section 2.6 report ───────────────────────────────────────────

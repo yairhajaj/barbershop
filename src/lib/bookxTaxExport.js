@@ -146,7 +146,7 @@ function makeSampleInvoice(i) {
 }
 
 export async function generateSampleFiles(invoiceCount = 500) {
-  const vatId     = '000000001'
+  const vatId     = '123456782' // valid Israeli checksum: sum=40
   const primaryId = randomPrimaryId15()
   const from      = '2024-01-01'
   const to        = '2024-12-31'
