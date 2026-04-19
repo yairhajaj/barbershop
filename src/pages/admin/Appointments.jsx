@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   addDays, startOfWeek, endOfWeek, startOfDay, endOfDay,
@@ -89,6 +90,7 @@ function lsSet(key, value) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export function Appointments() {
+  const [searchParams] = useSearchParams()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('week')
   const [filterStaff, setFilterStaff] = useState('')
@@ -226,6 +228,11 @@ export function Appointments() {
     setSavingHours(true)
     try { await saveBusinessHours(hoursForm) } finally { setSavingHours(false) }
   }
+
+  // ── ?book=1 query param → open book modal directly ───────────────────────────
+  useEffect(() => {
+    if (searchParams.get('book') === '1') setBookOpen(true)
+  }, [searchParams])
 
   // ── Customer prefill: auto-open booking modal with pre-selected customer ──────
   useEffect(() => {

@@ -221,7 +221,7 @@ export function Dashboard() {
             style={{ background: 'var(--color-gold)', color: '#fff' }}>
             💰 תקבול מהיר
           </button>
-          <Link to="/book/service"
+          <Link to="/admin/appointments?book=1"
             className="flex-1 sm:flex-none text-xs font-bold px-3 py-2.5 rounded-xl text-center whitespace-nowrap"
             style={{ background: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
             + תור
