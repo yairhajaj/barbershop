@@ -1319,15 +1319,15 @@ function GridModal({ member, photos, loading, onClose, bookHref }) {
   return createPortal(
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 flex items-end sm:items-center justify-center sm:p-4"
       style={{ zIndex: 9999, background: 'rgba(0,0,0,0.75)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
-        style={{ background: 'var(--color-card)' }}
+        className="w-full sm:max-w-lg overflow-y-auto rounded-t-3xl sm:rounded-3xl"
+        style={{ background: 'var(--color-card)', maxHeight: 'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))', marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-5"

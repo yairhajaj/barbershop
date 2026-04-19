@@ -454,8 +454,8 @@ export function MyAppointments() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.5)' }}
+            className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.5)', padding: '16px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
             onClick={e => e.target === e.currentTarget && setReviewAppt(null)}
           >
             <motion.div
@@ -522,15 +522,16 @@ export function MyAppointments() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.4)' }}
+            className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.4)', padding: '16px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
             onClick={e => e.target === e.currentTarget && setRescheduleAppt(null)}
           >
             <motion.div
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
-              className="rounded-3xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+              className="rounded-3xl w-full max-w-md overflow-y-auto"
+              style={{ maxHeight: 'calc(100dvh - 160px - env(safe-area-inset-bottom, 0px))' }}
               style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
             >
               <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)' }}>

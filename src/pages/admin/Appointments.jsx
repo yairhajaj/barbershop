@@ -2015,7 +2015,7 @@ export function Appointments() {
         {rescheduleOpen && rescheduleAppt && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
             style={{ background: 'var(--color-overlay-md)', backdropFilter: 'blur(2px)' }}
             onClick={e => e.target === e.currentTarget && setRescheduleOpen(false)}
           >
@@ -2023,7 +2023,7 @@ export function Appointments() {
               initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
-              style={{ background: 'var(--color-card)', maxHeight: '92vh', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px var(--color-shadow-lg)' }}
+              style={{ background: 'var(--color-card)', maxHeight: 'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))', marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px var(--color-shadow-lg)' }}
               onClick={e => e.stopPropagation()}
             >
               {/* Drag handle */}
@@ -2179,7 +2179,7 @@ export function Appointments() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
             style={{ background: 'var(--color-overlay-md)', backdropFilter: 'blur(2px)' }}
             onClick={e => { if (e.target === e.currentTarget) { setAddEventOpen(false); setEventForm(EMPTY_EVENT); setEventPreset(''); setEventPickerMode('from') } }}
           >
@@ -2191,7 +2191,8 @@ export function Appointments() {
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
               style={{
                 background:  'var(--color-card)',
-                maxHeight:   '92vh',
+                maxHeight:   'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))',
+                marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
                 border:      '1px solid var(--color-border)',
                 boxShadow:   '0 -8px 40px var(--color-shadow-lg)',
               }}
@@ -2495,7 +2496,7 @@ export function Appointments() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
             style={{ background: 'var(--color-overlay-md)', backdropFilter: 'blur(2px)' }}
             onClick={e => e.target === e.currentTarget && closeBook()}
           >
@@ -2508,7 +2509,8 @@ export function Appointments() {
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
               style={{
                 background:  'var(--color-card)',
-                maxHeight:   '92vh',
+                maxHeight:   'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))',
+                marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
                 border:      '1px solid var(--color-border)',
                 boxShadow:   '0 -8px 40px var(--color-shadow-lg)',
               }}
