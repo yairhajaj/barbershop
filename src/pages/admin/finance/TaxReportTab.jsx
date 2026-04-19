@@ -79,9 +79,6 @@ export function TaxReportTab() {
   const [sampleLoading, setSampleLoading]   = useState(false)
   const [exportWarnings, setExportWarnings] = useState([])
 
-  const exportFrom = currentPeriod?.startDate
-  const exportTo   = currentPeriod?.endDate
-
   const [incomeRows, setIncomeRows]     = useState([])
   const [expenseRows, setExpenseRows]   = useState([])
   const [incomeCount, setIncomeCount]   = useState(0)
@@ -220,13 +217,15 @@ export function TaxReportTab() {
   }
 
   async function handleExportOpenFrmt() {
-    if (!exportFrom || !exportTo) return
+    const from = currentPeriod?.startDate
+    const to   = currentPeriod?.endDate
+    if (!from || !to) return
     const { valid, errors, warnings } = validateOpenFormatSettings(settings || {})
     setExportWarnings(warnings || [])
     if (!valid) { showToast({ message: errors[0], type: 'error' }); return }
     setExportLoading(true)
     try {
-      const { report, primaryId } = await downloadOpenFormat({ from: exportFrom, to: exportTo, settings })
+      const { report } = await downloadOpenFormat({ from, to, settings })
       showToast({ message: `קובץ אחיד הופק בהצלחה — ${report.totals.C100} מסמכים`, type: 'success' })
     } catch (err) {
       showToast({ message: err.message, type: 'error' })
@@ -239,8 +238,8 @@ export function TaxReportTab() {
     if (!settings) return
     const report = buildSection26Report({
       settings,
-      from: exportFrom,
-      to:   exportTo,
+      from: currentPeriod?.startDate,
+      to:   currentPeriod?.endDate,
       counts: { C100: 0, D110: 0, D120: 0, M100: 0 },
       primaryId: '—',
     })
