@@ -9,20 +9,24 @@
  */
 export function KpiStrip({ stats, className = '' }) {
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-2 ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5 ${className}`}>
       {stats.map((s, i) => (
         <div key={i}
-          className="rounded-2xl px-3 py-2.5 min-w-0"
+          className="rounded-2xl px-3.5 py-3 min-w-0"
           style={{
             background: s.tint || 'var(--color-card)',
             border: '1px solid var(--color-border)',
+            borderTop: `3px solid ${s.accent || 'var(--color-border)'}`,
             boxShadow: 'var(--shadow-card)',
           }}>
-          <div className="text-[10px] font-bold uppercase tracking-wider truncate"
-            style={{ color: 'var(--color-muted)' }}>
-            {s.label}
+          <div className="flex items-center gap-1 mb-0.5">
+            {s.icon && <span className="text-sm leading-none">{s.icon}</span>}
+            <div className="text-[10px] font-bold uppercase tracking-wider truncate"
+              style={{ color: 'var(--color-muted)' }}>
+              {s.label}
+            </div>
           </div>
-          <div className="text-lg font-black mt-0.5 truncate"
+          <div className="text-xl font-black truncate"
             style={{ color: s.accent || 'var(--color-text)' }}>
             {s.value}
           </div>

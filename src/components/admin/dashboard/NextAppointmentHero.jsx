@@ -30,11 +30,13 @@ export function NextAppointmentHero({ apt, onChange }) {
 
   if (!apt) {
     return (
-      <div className="rounded-3xl p-8 text-center mb-5"
+      <div className="rounded-2xl p-4 flex items-center gap-3 mb-4"
         style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
-        <div className="text-5xl mb-3">☕</div>
-        <p className="font-bold text-lg" style={{ color: 'var(--color-text)' }}>אין תורים קרובים</p>
-        <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>יום שקט · זמן טוב לתכנן אסטרטגיה</p>
+        <div className="text-2xl">☕</div>
+        <div>
+          <p className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>אין תורים קרובים</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>יום שקט · זמן טוב לתכנן אסטרטגיה</p>
+        </div>
       </div>
     )
   }
@@ -144,19 +146,19 @@ export function NextAppointmentHero({ apt, onChange }) {
   const waNumber = phone?.startsWith('0') ? `972${phone.slice(1)}` : phone
 
   return (
-    <div className="rounded-3xl p-5 mb-5 relative overflow-hidden"
+    <div className="rounded-2xl p-4 mb-4 relative overflow-hidden"
       style={{
         background: isImminent
           ? 'linear-gradient(135deg, rgba(255,122,0,0.12), rgba(255,122,0,0.04))'
           : 'var(--color-card)',
-        border: `2px solid ${isImminent ? 'var(--color-gold)' : 'var(--color-border)'}`,
+        border: `1.5px solid ${isImminent ? 'var(--color-gold)' : 'var(--color-border)'}`,
         boxShadow: 'var(--shadow-card)',
       }}>
 
       {/* Header: countdown + time */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--color-gold)', color: '#fff' }}>
             התור הבא
           </span>
@@ -171,65 +173,42 @@ export function NextAppointmentHero({ apt, onChange }) {
       </div>
 
       {/* Customer info */}
-      <div className="mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-black flex-shrink-0"
-            style={{ background: 'var(--color-gold)', color: '#fff' }}>
-            {apt.profiles?.name?.[0] || '?'}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
+          style={{ background: 'var(--color-gold)', color: '#fff' }}>
+          {apt.profiles?.name?.[0] || '?'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-base truncate" style={{ color: 'var(--color-text)' }}>
+            {apt.profiles?.name || '—'}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-black text-lg truncate" style={{ color: 'var(--color-text)' }}>
-              {apt.profiles?.name || '—'}
-            </div>
-            <div className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>
-              {apt.services?.name} · {apt.staff?.name}
-            </div>
-            {phone && (
-              <div className="flex gap-2 mt-1.5">
-                <a href={`tel:${apt.profiles.phone}`}
-                  className="text-[11px] font-bold px-2 py-1 rounded-lg"
-                  style={{ background: 'rgba(59,130,246,0.1)', color: '#2563eb' }}>
-                  📞 {apt.profiles.phone}
-                </a>
-                {waNumber && (
-                  <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noreferrer"
-                    className="text-[11px] font-bold px-2 py-1 rounded-lg"
-                    style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>
-                    💬 WhatsApp
-                  </a>
-                )}
-              </div>
-            )}
+          <div className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>
+            {apt.services?.name} · {apt.staff?.name}
           </div>
-          <div className="text-left flex-shrink-0">
-            <div className="text-2xl font-black" style={{ color: 'var(--color-gold)' }}>
-              ₪{Number(apt.services?.price || 0).toLocaleString('he-IL')}
-            </div>
+        </div>
+        <div className="text-left flex-shrink-0">
+          <div className="text-xl font-black" style={{ color: 'var(--color-gold)' }}>
+            ₪{Number(apt.services?.price || 0).toLocaleString('he-IL')}
           </div>
         </div>
       </div>
 
-      {/* Quick action buttons — 2x2 grid */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Quick action buttons — row */}
+      <div className="flex gap-2">
         <button onClick={openPay} disabled={busy}
-          className="py-3 rounded-xl text-sm font-black transition-all active:scale-95"
+          className="flex-1 py-2 rounded-xl text-sm font-black transition-all active:scale-95"
           style={{ background: 'var(--color-gold)', color: '#fff', opacity: busy ? 0.6 : 1 }}>
           ✅ הגיע + שולם
         </button>
         <button onClick={markNoShow} disabled={busy}
-          className="py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
-          style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.3)' }}>
-          ❌ לא הגיע
+          className="py-2 px-3 rounded-xl text-xs font-bold transition-all active:scale-95"
+          style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}>
+          ❌
         </button>
         <button onClick={postpone15} disabled={busy}
-          className="py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+          className="py-2 px-3 rounded-xl text-xs font-bold transition-all active:scale-95"
           style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
-          ⏭️ דחה 15 דק
-        </button>
-        <button onClick={openPay} disabled={busy}
-          className="py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
-          style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
-          🧾 חשבונית
+          ⏭️+15
         </button>
       </div>
 

@@ -140,12 +140,14 @@ export function Dashboard() {
 
     const stats = [
       {
+        icon: '📋',
         label: 'תורים היום',
         value: `${doneToday}/${totalToday}`,
         sub: 'הושלמו/סה"כ',
         accent: 'var(--color-text)',
       },
       {
+        icon: '💰',
         label: 'הכנסה בפועל',
         value: `₪${revenuePaid.toLocaleString('he-IL')}`,
         sub: 'שולם היום',
@@ -153,6 +155,7 @@ export function Dashboard() {
         tint: 'var(--color-success-tint)',
       },
       {
+        icon: '📈',
         label: 'צפוי היום',
         value: `₪${revenueExpected.toLocaleString('he-IL')}`,
         sub: `${future.length} תורים נותרו`,
@@ -160,6 +163,7 @@ export function Dashboard() {
         tint: 'var(--color-gold-tint)',
       },
       {
+        icon: '💸',
         label: 'חובות פתוחים',
         value: `₪${debtsSum.toLocaleString('he-IL')}`,
         sub: `${openDebts.length} לקוחות`,
@@ -167,12 +171,14 @@ export function Dashboard() {
         tint: openDebts.length > 0 ? 'var(--color-danger-tint)' : undefined,
       },
       {
+        icon: '🚫',
         label: 'לא הגיעו',
         value: String(noShows.length),
         accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
         tint: noShows.length > 0 ? 'var(--color-danger-tint)' : undefined,
       },
       {
+        icon: '⏳',
         label: 'ממתינים',
         value: String(waitlistActive.length),
         accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
@@ -229,27 +235,22 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Responsive grid: single col on mobile, 3-col (2 main + 1 sidebar) on lg+.
-          Mobile order: Hero → KPIs → Upcoming → Inbox → Staff → GapCloser.
-          Desktop: main content stacked on one side, sidebar on the other. */}
+      {/* Responsive grid: single col on mobile, 3-col on lg+.
+          Mobile order: KPIs → Hero → Upcoming → Inbox → Staff → GapCloser.
+          Desktop: KPIs full row, then Hero+Inbox side by side, Upcoming+GapCloser, Staff. */}
       <div className="grid gap-5 lg:grid-cols-3">
-        {/* Hero — next appointment */}
-        <div className="order-1 lg:col-span-2">
-          <NextAppointmentHero apt={nextApt} onChange={refreshAll} />
-        </div>
-
-        {/* KPI grid */}
-        <div className="order-2 lg:order-3">
+        {/* KPI grid — FULL WIDTH at top */}
+        <div className="order-1 lg:col-span-3">
           <KpiStrip stats={stats} />
         </div>
 
-        {/* 3 upcoming */}
-        <div className="order-3 lg:order-2 lg:col-span-2">
-          <UpcomingAppointmentsList appointments={upcoming} limit={3} />
+        {/* Hero — next appointment (compact) */}
+        <div className="order-2 lg:col-span-2">
+          <NextAppointmentHero apt={nextApt} onChange={refreshAll} />
         </div>
 
         {/* Action inbox */}
-        <div className="order-4 lg:order-5">
+        <div className="order-4 lg:order-3">
           <ActionInbox
             uninvoiced={uninvoiced}
             openDebts={openDebts}
@@ -259,48 +260,53 @@ export function Dashboard() {
           />
         </div>
 
-        {/* Staff compact row */}
-        {staff.length > 0 && (
-          <div className="order-5 lg:order-4 lg:col-span-2">
-            <section className="mb-4">
-          <h2 className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
-            ✂️ הספרים היום
-          </h2>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {staff.map(m => {
-              const mine = todayAppts.filter(a => a.staff_id === m.id)
-              const done = mine.filter(a => a.status === 'completed').length
-              const total = mine.filter(a => a.status !== 'cancelled').length
-              const revenue = mine
-                .filter(a => a.status === 'completed' && !a.no_show)
-                .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
-              return (
-                <div key={m.id} className="flex-shrink-0 rounded-2xl p-3 min-w-[130px]"
-                  style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
-                      style={{ background: 'var(--color-gold)', color: '#fff' }}>
-                      {m.name?.[0] || '?'}
-                    </div>
-                    <div className="text-xs font-bold truncate" style={{ color: 'var(--color-text)' }}>
-                      {m.name}
-                    </div>
-                  </div>
-                  <div className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
-                    {done}/{total} תורים · ₪{revenue.toLocaleString('he-IL')}
-                  </div>
-                </div>
-                )
-              })}
-            </div>
-          </section>
-          </div>
-        )}
+        {/* 3 upcoming */}
+        <div className="order-3 lg:order-4 lg:col-span-2">
+          <UpcomingAppointmentsList appointments={upcoming} limit={3} />
+        </div>
 
         {/* Gap Closer */}
-        <div className="order-6">
+        <div className="order-6 lg:order-5">
           <GapCloserCard settings={settings} saveSettings={saveSettings} />
         </div>
+
+        {/* Staff compact row */}
+        {staff.length > 0 && (
+          <div className="order-5 lg:order-6 lg:col-span-3">
+            <section className="mb-4">
+              <h2 className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
+                ✂️ הספרים היום
+              </h2>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {staff.map(m => {
+                  const mine = todayAppts.filter(a => a.staff_id === m.id)
+                  const done = mine.filter(a => a.status === 'completed').length
+                  const total = mine.filter(a => a.status !== 'cancelled').length
+                  const revenue = mine
+                    .filter(a => a.status === 'completed' && !a.no_show)
+                    .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+                  return (
+                    <div key={m.id} className="flex-shrink-0 rounded-2xl p-3 min-w-[130px]"
+                      style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
+                          style={{ background: 'var(--color-gold)', color: '#fff' }}>
+                          {m.name?.[0] || '?'}
+                        </div>
+                        <div className="text-xs font-bold truncate" style={{ color: 'var(--color-text)' }}>
+                          {m.name}
+                        </div>
+                      </div>
+                      <div className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
+                        {done}/{total} תורים · ₪{revenue.toLocaleString('he-IL')}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          </div>
+        )}
       </div>
 
       {/* Walk-in modal */}
