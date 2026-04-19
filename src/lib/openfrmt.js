@@ -1,41 +1,22 @@
 /**
- * openfrmt.js — Generate Israeli Tax Authority "Unified File" (OPENFRMT / קובץ אחיד).
+ * openfrmt.js — Israeli Tax Authority "Unified File" (OPENFRMT / קובץ אחיד) v1.31
  *
- * Implements מבנה אחיד v1.31 (May 2009) per the official spec.
+ * Record lengths per spec:
+ *   A000 (INI.TXT only): 466
+ *   A100: 95 | Z900: 110 | C100: 444 | D110: 339 | D120: 222 | M100: 298
  *
- * Produces the canonical OPENFRMT package:
- *   OPENFRMT/<9-digit-VAT>.<YY>/<MMDDhhmm>/
- *     INI.TXT        — A000 + A100 + Z900 (length 466/95/110)
- *     BKMVDATA.zip   — ZIP containing BKMVDATA.TXT with C100/D110/D120/M100/B100/B110 + Z900
- *
- * Key spec constants:
- *   - System version string: "&OF1.31&"   (fields 1005, 1104, 1154)
- *   - Primary ID: random 15-digit integer (first digit 1-9); same in 1004/1103/1153
- *   - Encoding: ISO-8859-8-i (Windows-1255) / CP-862; CRLF line terminators
- *   - Numeric fields: fixed-point without decimal point; right-aligned, zero-padded
- *   - Text fields: right-padded with spaces; future fields filled with '!'
- *
- * Spec: הוראת מקצוע 24/2004 + מבנה אחיד 1.31
- *   https://www.gov.il/he/service/download-open-format-files
- *
- * IMPORTANT: validate output against the official simulator before submitting.
+ * Key constants:
+ *   System constant (fields 1005/1104/1154): 'BKMVHDL ' (8 chars)
+ *   Dates: DDMMYYYY format throughout BKMVDATA
+ *   Encoding: Windows-1255 / ISO-8859-8-I (use ASCII-only for simulator)
  */
 
 import JSZip from 'jszip'
 import { supabase } from './supabase'
 import { OPERATOR } from '../config/operator'
 
-const CRLF = '\r\n'
-const OF_VERSION = '&OF1.31&'
-
-// ── Random 15-digit Primary ID ───────────────────────────────────
-// Must start with 1-9; same value goes into A100 field 1004, C100 field 1103, etc.
-export function randomPrimaryId15() {
-  const first = Math.floor(Math.random() * 9) + 1 // 1-9
-  let rest = ''
-  for (let i = 0; i < 14; i++) rest += Math.floor(Math.random() * 10)
-  return String(first) + rest
-}
+const CRLF     = '\r\n'
+const BKMV_HDL = 'BKMVHDL ' // 8 chars — field 1005/1104/1154
 
 // ── Padding helpers ──────────────────────────────────────────────
 function padRight(val, len) {
@@ -47,17 +28,10 @@ function padLeft(val, len) {
   return '0'.repeat(Math.max(0, len - s.length)) + s
 }
 function padText(val, len) {
-  // Text = right-padded with spaces. Strip CRLF/tabs.
   const s = (val ?? '').toString().replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-function padFuture(len) {
-  // Reserved/future fields — fill with '!'
-  return '!'.repeat(len)
-}
 function numField(val, intLen, decLen = 0) {
-  // Fixed-point: no decimal point, right-aligned, zero-padded.
-  // Total length = intLen + decLen. Leading '-' if negative (consumes 1 char).
   const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(n * Math.pow(10, decLen))
@@ -66,50 +40,46 @@ function numField(val, intLen, decLen = 0) {
   const padded = abs.padStart(totalLen - (sign ? 1 : 0), '0')
   return (sign + padded).slice(-totalLen)
 }
-function dateYMD(iso) {
+
+// ── Date helpers ─────────────────────────────────────────────────
+// BKMVDATA dates: DDMMYYYY format (Israeli spec)
+function dateDMY(iso) {
   if (!iso) return '00000000'
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const d = (iso instanceof Date) ? iso : new Date(iso)
   const day = String(d.getDate()).padStart(2, '0')
-  return `${y}${m}${day}`
+  const mon = String(d.getMonth() + 1).padStart(2, '0')
+  return `${day}${mon}${d.getFullYear()}`
 }
 function timeHM(iso) {
   if (!iso) return '0000'
-  const d = new Date(iso)
+  const d = (iso instanceof Date) ? iso : new Date(iso)
   return String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0')
 }
 
-// ── Annex 1 — Document type codes ───────────────────────────────
-// Full list from הוראת מקצוע 36 נספח 1 (27 codes).
+// ── Random 15-digit Primary ID ───────────────────────────────────
+export function randomPrimaryId15() {
+  const first = Math.floor(Math.random() * 9) + 1
+  let rest = ''
+  for (let i = 0; i < 14; i++) rest += Math.floor(Math.random() * 10)
+  return String(first) + rest
+}
+
+// ── Document type codes (Annex 1) ────────────────────────────────
 export const DOC_TYPES = {
   '100': 'הזמנה',
-  '200': 'תעודת משלוח',
-  '205': 'תעודת משלוח/החזרה',
-  '210': 'תעודת החזרה',
   '300': 'חשבונית מס',
   '305': 'חשבונית מס זיכוי',
-  '310': 'דרישת תשלום/חשבון עסקה',
   '320': 'חשבונית מס-קבלה',
   '330': 'חשבונית מס-קבלה זיכוי',
-  '340': 'חשבון זיכוי',
   '400': 'קבלה',
   '405': 'קבלה על תרומה',
-  '410': 'קבלת פיקדון',
-  '420': 'החזרת פיקדון',
-  '500': 'העברה בין מחסנים',
-  '700': 'תעודת משלוח ממחסן',
-  '710': 'תעודת החזרה למחסן',
-  '800': 'הכנסת טובין למחסן',
-  '810': 'הוצאת טובין ממחסן',
-  '820': 'שינוי במלאי',
-  '830': 'ייצור ושינוע',
-  '900': 'הזמנת רכש',
-  '910': 'הזמנת רכש מבוטלת',
+  '410': 'יציאה מקופה',
+  '420': 'הפקדת בנק',
+  '700': 'חשבונית מס רכש',
+  '710': 'זיכוי רכש',
 }
 
 // Payment method codes for D120 field 1306
-// 1=מזומן, 2=שיק, 3=כרטיס אשראי, 4=העברה בנקאית, 5=שובר, 9=אחר
 export const PAYMENT_CODE = {
   cash:     1,
   check:    2,
@@ -124,138 +94,120 @@ export const PAYMENT_CODE = {
   other:    9,
 }
 
-// ── Record A000 — File Header (INI.TXT) — length 466 ─────────────
-// Pos  Len  Field                                      Type
-// 1    4    1000 Code = 'A000'                         text
-// 5    15   1001 File ID (=primaryId)                  num
-// 20   8    1002 Total records in INI.TXT              num
-// 28   1    1003 Reserved                              text
-// 29   8    1009 Manufacturer VAT ID                   num (9 → left-padded)
-// 37   20   1010 Manufacturer name                     text
-// 57   20   1007 Software name                         text
-// 77   8    1008 Software version                      text
-// 85   1    1011 Software type: 1/2                    num
-// 86   1    1012 Reserved                              text
-// 87   1    1013 Bookkeeping type: 0/1/2               num
-// 88   5    1014 Reserved                              text
-// 93   9    1015 Company reg number (ח.פ.)            num
-// 102  9    1016 Deduction file number                 num
-// 111  9    1017 Authorized dealer VAT ID              num
-// 120  50   1018 Business name                         text
-// 170  50   1019 Address — street                      text
-// 220  10   1020 Address — number                      text
-// 230  30   1021 Address — city                        text
-// 260  8    1022 Address — ZIP                         text
-// 268  8    1023 Tax year start YYYYMMDD               num
-// 276  8    1024 Tax year end YYYYMMDD                 num
-// 284  8    1025 Data start date YYYYMMDD              num
-// 292  8    1026 Data end date YYYYMMDD                num
-// 300  8    1027 Creation date YYYYMMDD                num
-// 308  4    1028 Creation time HHMM                    num
-// 312  10   1029 Lang/currency (future)                text
-// 322  3    1030 Code-page (future)                    text
-// 325  5    1031 Compression type (future)             text
-// 330  3    1032 Leading currency ISO (ILS)            text
-// 333  5    1033 Reserved                              text
-// 338  1    1034 Has branches Y/N (0/1)                text
-// 339  15   1035 Reserved                              text
-// 354  8    1036 Reserved                              num
-// 362  10   1037 Reserved                              text
-// 372  95   FILLER                                     text
+// ── Record A000 — INI.TXT header — 466 chars ─────────────────────
+// Per spec §5 (מדריך_רישום_תוכנה_רשות_המסים.md):
+// pos  len  field
+//   0    4  1000 'A000'
+//   4    5  1001 future use (spaces)
+//   9   15  1002 total records in BKMVDATA (num)
+//  24    9  1003 business VAT ID (num)
+//  33   15  1004 primary ID (num)
+//  48    8  1005 'BKMVHDL ' (str)
+//  56    8  1006 software reg number (num) — 8 digits from tax authority
+//  64   20  1007 software name (str)
+//  84   20  1008 software version (str)
+// 104    9  1009 manufacturer VAT ID (num)
+// 113   20  1010 manufacturer name (str)
+// 133    1  1011 software type: 1=accounting, 2=docs-only (num)
+// 134   50  1012 file save path (str)
+// 184    1  1013 bookkeeping type: 1=single, 2=double (num)
+// 185    1  1014 accounting balance required: 0=no (num)
+// 186    9  1015 company reg number (num)
+// 195    9  1016 deduction file number (num)
+// 204   10  1017 future (spaces)
+// 214   50  1018 business name (str)
+// 264   50  1019 address street (str)
+// 314   10  1020 address house number (str)
+// 324   30  1021 address city (str)
+// 354    8  1022 postal code (str)
+// 362    4  1023 tax year YYYY (num)
+// 366    8  1024 data start date DDMMYYYY (num)
+// 374    8  1025 data end date DDMMYYYY (num)
+// 382    8  1026 process date DDMMYYYY (num)
+// 390    4  1027 process time HHMM (num)
+// 394    1  1028 language code: 1=Hebrew (num)
+// 395    1  1029 character set: 1=Windows ANSI (num)
+// 396   20  1030 compression software name (str)
+// 416    3  1032 leading currency ISO (str)
+// 419    1  1034 has branches: 0/1 (num)
+// 420   46  1035 future (spaces)
 // Total: 466
 function recordA000({
-  primaryId,
-  totalIniRecords,
-  manufacturer,
-  software,
-  softwareType,
-  bookkeepingType,
-  companyReg,
-  deductionFile,
-  vatId,
-  businessName,
-  address,
-  taxYear,
-  dataRange,
-  leadingCurrency = 'ILS',
-  hasBranches = false,
+  primaryId, totalBkmvRecords, vatId, settings, dataRange,
 }) {
+  const now = new Date()
   const parts = [
-    'A000',                                                                // 4
-    padLeft(primaryId, 15),                                                // 15
-    padLeft(totalIniRecords, 8),                                           // 8
-    padText('', 1),                                                        // 1 reserved
-    padLeft(manufacturer.vatId || '0', 9),                                 // 9
-    padText(manufacturer.name, 20),                                        // 20
-    padText(software.name, 20),                                            // 20
-    padText(software.version, 8),                                          // 8
-    padLeft(softwareType || '2', 1),                                       // 1
-    padText('', 1),                                                        // 1 reserved
-    padLeft(bookkeepingType || '1', 1),                                    // 1
-    padText('', 5),                                                        // 5 reserved
-    padLeft(companyReg || '0', 9),                                         // 9
-    padLeft(deductionFile || '0', 9),                                      // 9
-    padLeft(vatId, 9),                                                     // 9
-    padText(businessName, 50),                                             // 50
-    padText(address.street, 50),                                           // 50
-    padText(address.number, 10),                                           // 10
-    padText(address.city, 30),                                             // 30
-    padText(address.postal, 8),                                            // 8
-    padLeft(dateYMD(taxYear.start), 8),                                    // 8
-    padLeft(dateYMD(taxYear.end), 8),                                      // 8
-    padLeft(dateYMD(dataRange.start), 8),                                  // 8
-    padLeft(dateYMD(dataRange.end), 8),                                    // 8
-    padLeft(dateYMD(new Date().toISOString()), 8),                         // 8
-    padLeft(timeHM(new Date().toISOString()), 4),                          // 4
-    padFuture(10),                                                         // 10
-    padFuture(3),                                                          // 3
-    padFuture(5),                                                          // 5
-    padText(leadingCurrency, 3),                                           // 3
-    padText('', 5),                                                        // 5 reserved
-    padText(hasBranches ? '1' : '0', 1),                                   // 1
-    padText('', 15),                                                       // 15 reserved
-    padLeft('0', 8),                                                       // 8 reserved
-    padText('', 10),                                                       // 10 reserved
-    padText('', 95),                                                       // 95 filler
+    'A000',                                                              // 1000: 4
+    padText('', 5),                                                      // 1001: 5 future
+    padLeft(totalBkmvRecords, 15),                                       // 1002: 15
+    padLeft(vatId, 9),                                                   // 1003: 9
+    padLeft(primaryId, 15),                                              // 1004: 15
+    padText(BKMV_HDL, 8),                                                // 1005: 8
+    padLeft(OPERATOR.tax_software_reg_number || '0', 8),                 // 1006: 8
+    padText(OPERATOR.software_name, 20),                                 // 1007: 20
+    padText(OPERATOR.software_version, 20),                              // 1008: 20
+    padLeft(OPERATOR.manufacturer_vat_id || '0', 9),                     // 1009: 9
+    padText(OPERATOR.manufacturer_name, 20),                             // 1010: 20
+    padLeft(OPERATOR.software_type || '1', 1),                           // 1011: 1
+    padText('', 50),                                                     // 1012: 50 path
+    padLeft(OPERATOR.bookkeeping_type || '1', 1),                        // 1013: 1
+    padLeft('0', 1),                                                     // 1014: 1
+    padLeft(settings.company_registration_number || '0', 9),             // 1015: 9
+    padLeft(settings.deduction_file_number || '0', 9),                   // 1016: 9
+    padText('', 10),                                                     // 1017: 10 future
+    padText(settings.business_name || '', 50),                           // 1018: 50
+    padText(settings.business_address_street || '', 50),                 // 1019: 50
+    padText(settings.business_address_number || '', 10),                 // 1020: 10
+    padText(settings.business_address_city || '', 30),                   // 1021: 30
+    padText(settings.business_address_postal || '', 8),                  // 1022: 8
+    padLeft(new Date(dataRange.start + 'T00:00:00').getFullYear(), 4),   // 1023: 4 YYYY
+    padLeft(dateDMY(dataRange.start + 'T00:00:00'), 8),                  // 1024: 8 DDMMYYYY
+    padLeft(dateDMY(dataRange.end   + 'T00:00:00'), 8),                  // 1025: 8 DDMMYYYY
+    padLeft(dateDMY(now), 8),                                            // 1026: 8 DDMMYYYY
+    padLeft(timeHM(now), 4),                                             // 1027: 4 HHMM
+    padLeft('1', 1),                                                     // 1028: 1 Hebrew
+    padLeft('1', 1),                                                     // 1029: 1 Windows ANSI
+    padText('', 20),                                                     // 1030: 20
+    padText(OPERATOR.leading_currency || 'ILS', 3),                      // 1032: 3
+    padLeft(settings.has_branches ? '1' : '0', 1),                      // 1034: 1
+    padText('', 46),                                                     // 1035: 46 future
   ]
   const rec = parts.join('')
-  if (rec.length !== 466) {
-    console.warn('[openfrmt] A000 length mismatch:', rec.length, 'expected 466')
-  }
+  // Expected total: 4+5+15+9+15+8+8+20+20+9+20+1+50+1+1+9+9+10+50+50+10+30+8+4+8+8+8+4+1+1+20+3+1+46 = 466
+  if (rec.length !== 466) console.warn('[A000] length', rec.length, 'expected 466')
   return rec.slice(0, 466).padEnd(466, ' ')
 }
 
-// ── Record A100 — INI.TXT opening (BKMVDATA header) — length 95 ──
-// Pos  Len  Field
-// 1    4    1100 Code = 'A100'
-// 5    9    1101 Record sequence (within INI)
-// 14   9    1102 VAT ID
-// 23   15   1103 Primary ID (same as A000 field 1001)
-// 38   8    1104 System constant '&OF1.31&'
-// 46   50   FILLER
+// ── Record A100 — BKMVDATA opening — 95 chars ────────────────────
+// pos  len  field
+//   0    4  1100 'A100'
+//   4    9  1101 record serial (always 1)
+//  13    9  1102 VAT ID
+//  22   15  1103 primary ID
+//  37    8  1104 'BKMVHDL '
+//  45   50  1105 future (spaces)
 // Total: 95
 function recordA100({ serial, vatId, primaryId }) {
   const parts = [
-    'A100',                           // 4
-    padLeft(serial, 9),               // 9
-    padLeft(vatId, 9),                // 9
-    padLeft(primaryId, 15),           // 15
-    padText(OF_VERSION, 8),           // 8
-    padText('', 50),                  // 50 filler
+    'A100',
+    padLeft(serial, 9),
+    padLeft(vatId, 9),
+    padLeft(primaryId, 15),
+    padText(BKMV_HDL, 8),
+    padText('', 50),
   ]
-  const rec = parts.join('')
-  return rec.slice(0, 95).padEnd(95, ' ')
+  return parts.join('').slice(0, 95).padEnd(95, ' ')
 }
 
-// ── Record Z900 — Closing record — length 110 ────────────────────
-// Pos  Len  Field
-// 1    4    Code = 'Z900'
-// 5    9    Record sequence
-// 14   9    VAT ID
-// 23   15   Primary ID
-// 38   8    System constant '&OF1.31&'
-// 46   15   Total records count
-// 61   50   FILLER
+// ── Record Z900 — BKMVDATA closing — 110 chars ───────────────────
+// pos  len  field
+//   0    4  1150 'Z900'
+//   4    9  1151 record serial (last)
+//  13    9  1152 VAT ID
+//  22   15  1153 primary ID
+//  37    8  1154 'BKMVHDL '
+//  45   15  1155 total records in file (incl. A100 and Z900)
+//  60   50  1156 future (spaces)
 // Total: 110
 function recordZ900({ serial, vatId, primaryId, totalRecords }) {
   const parts = [
@@ -263,107 +215,184 @@ function recordZ900({ serial, vatId, primaryId, totalRecords }) {
     padLeft(serial, 9),
     padLeft(vatId, 9),
     padLeft(primaryId, 15),
-    padText(OF_VERSION, 8),
+    padText(BKMV_HDL, 8),
     padLeft(totalRecords, 15),
     padText('', 50),
   ]
-  const rec = parts.join('')
-  return rec.slice(0, 110).padEnd(110, ' ')
+  return parts.join('').slice(0, 110).padEnd(110, ' ')
 }
 
-// ── Record C100 — Document Header (BKMVDATA) — length 444 ─────────
+// ── Record C100 — Document header — 444 chars ────────────────────
+// NOTE: C100 does NOT contain primaryId or BKMVHDL after vatId.
+// pos  len  field
+//   0    4  1200 'C100'
+//   4    9  1201 serial
+//  13    9  1202 VAT ID
+//  22    3  1203 doc type
+//  25   20  1204 doc number (str)
+//  45    8  1205 doc date DDMMYYYY
+//  53    4  1206 doc time HHMM
+//  57   50  1207 customer name
+// 107   50  1208 customer street
+// 157   10  1209 customer house no
+// 167   30  1210 customer city
+// 197    8  1211 customer postal
+// 205   30  1212 customer country
+// 235    2  1213 country code (IL)
+// 237   15  1214 customer phone
+// 252    9  1215 customer VAT ID
+// 261    8  1216 value date DDMMYYYY
+// 269   15  1217 FC amount
+// 284    3  1218 FC currency code
+// 287   15  1219 amount before discount ⚠ must = sum(D110.1267)
+// 302   15  1220 discount
+// 317   15  1221 after discount before VAT
+// 332   15  1222 VAT amount
+// 347   15  1223 total with VAT ⚠ must = sum(D120.1312)
+// 362   12  1224 withholding tax
+// 374   15  1225 customer key
+// 389   10  1226 match field
+// 399    1  1228 cancelled: 'X' or ' '
+// 400    8  1230 doc generation date DDMMYYYY
+// 408    7  1231 branch ID
+// 415    9  1233 operator ID
+// 424    7  1234 link to line
+// 431   13  1235 future
+// Total: 444
 function recordC100({
-  serial, vatId, primaryId, docType, docNumber, docDate, docTime,
+  serial, vatId, docType, docNumber, docDate,
   customerName, customerVatId, customerPhone,
-  beforeVat, vatAmount, total, currency = 'ILS', rate = 1,
+  beforeVat, vatAmount, total, currency = 'ILS',
   isCancelled, generationDate, userId,
 }) {
+  const docDMY = dateDMY(docDate)
+  const genDMY = dateDMY(generationDate || docDate)
   const parts = [
-    'C100',                                    // 4   1150
-    padLeft(serial, 9),                        // 9   1151
-    padLeft(vatId, 9),                         // 9   1152
-    padLeft(primaryId, 15),                    // 15  1153
-    padText(OF_VERSION, 8),                    // 8   1154
-    padLeft(docType, 3),                       // 3   1201 doc type (Annex 1)
-    padText(docNumber, 20),                    // 20  1202 doc number
-    padLeft(isCancelled ? '1' : '0', 1),       // 1   1203 cancelled flag
-    padText('', 20),                           // 20  1204 cancelled-by doc
-    padLeft(dateYMD(docDate), 8),              // 8   1205 doc date
-    padLeft(dateYMD(docDate), 8),              // 8   1206 value date
-    padLeft(timeHM(docDate || docTime), 4),    // 4   1207 doc time
-    padText(customerName || '', 50),           // 50  1208 customer name
-    padText('', 50),                           // 50  1209 customer address street
-    padText('', 10),                           // 10  1210 customer address number
-    padText('', 30),                           // 30  1211 customer city
-    padText('', 8),                            // 8   1212 customer ZIP
-    padText('', 10),                           // 10  1213 country code
-    padText('', 30),                           // 30  1214 country name
-    padText(customerVatId || '', 9),           // 9   1215 customer VAT ID
-    padText(customerPhone || '', 15),          // 15  1216 customer phone
-    numField(beforeVat, 13, 2),                // 15  1217 amount before discount
-    numField(0, 13, 2),                        // 15  1218 discount
-    numField(beforeVat, 13, 2),                // 15  1219 amount after discount before VAT
-    numField(vatAmount, 13, 2),                // 15  1220 VAT amount
-    numField(total, 13, 2),                    // 15  1221 amount after VAT
-    numField(0, 13, 2),                        // 15  1222 income-tax withheld
-    padText(currency, 3),                      // 3   1223 currency ISO
-    numField(beforeVat, 13, 2),                // 15  1224 amount in foreign currency
-    numField(rate, 6, 4),                      // 10  1225 exchange rate
-    numField(0, 13, 2),                        // 15  1226 VAT rate applied (e.g. 1800=18%)
-    padLeft(dateYMD(generationDate || docDate), 8),   // 8   1227 generation date
-    padLeft(timeHM(generationDate || docDate), 4),    // 4   1228 generation time
-    padText(userId || '', 9),                  // 9   1229 user responsible (ת.ז.)
-    padText('', 8),                            // 8   1230 connected reference doc
-    padLeft('0', 3),                           // 3   1231 connected doc type
-    padText('', 7),                            // 7   1232 reserved
-    padText('', 8),                            // 8   1233 customer branch code
-    padText('', 7),                            // 7   1234 reserved
+    'C100',                                    // 1200: 4
+    padLeft(serial, 9),                        // 1201: 9
+    padLeft(vatId, 9),                         // 1202: 9
+    padLeft(docType, 3),                       // 1203: 3
+    padText(docNumber, 20),                    // 1204: 20
+    padLeft(docDMY, 8),                        // 1205: 8
+    padLeft(timeHM(docDate), 4),               // 1206: 4
+    padText(customerName || '', 50),           // 1207: 50
+    padText('', 50),                           // 1208: 50
+    padText('', 10),                           // 1209: 10
+    padText('', 30),                           // 1210: 30
+    padText('', 8),                            // 1211: 8
+    padText('', 30),                           // 1212: 30
+    padText('IL', 2),                          // 1213: 2
+    padText(customerPhone || '', 15),          // 1214: 15
+    padLeft(customerVatId || '0', 9),          // 1215: 9
+    padLeft(docDMY, 8),                        // 1216: 8 value date
+    numField(0, 13, 2),                        // 1217: 15 FC amount
+    padText(currency, 3),                      // 1218: 3
+    numField(beforeVat, 13, 2),                // 1219: 15 ⚠
+    numField(0, 13, 2),                        // 1220: 15 discount
+    numField(beforeVat, 13, 2),                // 1221: 15 after discount before VAT
+    numField(vatAmount, 13, 2),                // 1222: 15 VAT
+    numField(total, 13, 2),                    // 1223: 15 ⚠
+    numField(0, 10, 2),                        // 1224: 12 withholding
+    padText('', 15),                           // 1225: 15
+    padText('', 10),                           // 1226: 10
+    padText(isCancelled ? 'X' : ' ', 1),       // 1228: 1
+    padLeft(genDMY, 8),                        // 1230: 8
+    padText('', 7),                            // 1231: 7
+    padText(userId || '', 9),                  // 1233: 9
+    padLeft('0', 7),                           // 1234: 7
+    padText('', 13),                           // 1235: 13
   ]
-  const rec = parts.join('')
-  // C100 per spec total = 444
-  return rec.slice(0, 444).padEnd(444, ' ')
+  return parts.join('').slice(0, 444).padEnd(444, ' ')
 }
 
-// ── Record D110 — Document Line Item — length 339 ────────────────
+// ── Record D110 — Document line item — 339 chars ─────────────────
+// NOTE: D110 does NOT contain primaryId or BKMVHDL after vatId.
+// pos  len  field
+//   0    4  1250 'D110'
+//   4    9  1251 serial
+//  13    9  1252 VAT ID
+//  22    3  1253 doc type
+//  25   20  1254 doc number (str)
+//  45    4  1255 line number (0001...)
+//  49    3  1256 base doc type (0=none)
+//  52   20  1257 base doc number
+//  72    1  1258 transaction type: 1=taxable, 2=exempt
+//  73   20  1259 item code (str)
+//  93   30  1260 description (str)
+// 123   50  1261 manufacturer name
+// 173   30  1262 product serial
+// 203   20  1263 unit of measure
+// 223   17  1264 quantity (14 int + 3 dec = 17)
+// 240   15  1265 unit price excl VAT
+// 255   15  1266 line discount
+// 270   15  1267 line total ⚠ sum must = C100.1219
+// 285    4  1268 VAT rate * 100 (1800 = 18%)
+// 289    7  1270 branch ID
+// 296    8  1272 doc date DDMMYYYY
+// 304    7  1273 link to C100 header
+// 311    7  1274 branch for base doc
+// 318   21  1275 future
+// Total: 339
 function recordD110({
-  serial, vatId, primaryId, docType, docNumber, docDate,
+  serial, vatId, docType, docNumber, docDate,
   lineNum, itemCode, itemDescription,
   quantity, unitPrice, discount, lineTotal, vatRate,
 }) {
   const parts = [
-    'D110',                                    // 4
-    padLeft(serial, 9),                        // 9
-    padLeft(vatId, 9),                         // 9
-    padLeft(primaryId, 15),                    // 15
-    padText(OF_VERSION, 8),                    // 8
-    padLeft(docType, 3),                       // 3   doc type
-    padText(docNumber, 20),                    // 20  doc number
-    padLeft(dateYMD(docDate), 8),              // 8   doc date
-    padLeft(lineNum, 4),                       // 4   line number
-    padLeft('1', 3),                           // 3   line type (1=regular)
-    padText(itemCode || '', 20),               // 20  item code
-    padText('', 7),                            // 7   supplier item code
-    padText(itemDescription || '', 50),        // 50  item description
-    padText('', 2),                            // 2   unit of measure
-    numField(quantity, 13, 3),                 // 16  quantity
-    numField(unitPrice, 13, 2),                // 15  unit price (excl VAT)
-    numField(discount, 13, 2),                 // 15  discount
-    numField(lineTotal, 13, 2),                // 15  total before VAT
-    padLeft(vatRate ? '1' : '0', 1),           // 1   VAT indicator
-    padText('', 9),                            // 9   connected customer VAT ID
-    padText('', 15),                           // 15  transaction reference
-    padText('', 8),                            // 8   branch code
-    padText('', 7),                            // 7   reserved
-    padText('', 30),                           // 30  filler
-    padText('', 42),                           // 42  filler
+    'D110',                                            // 1250: 4
+    padLeft(serial, 9),                                // 1251: 9
+    padLeft(vatId, 9),                                 // 1252: 9
+    padLeft(docType, 3),                               // 1253: 3
+    padText(docNumber, 20),                            // 1254: 20
+    padLeft(lineNum, 4),                               // 1255: 4
+    padLeft('0', 3),                                   // 1256: 3 base doc type
+    padText('', 20),                                   // 1257: 20 base doc number
+    padLeft(Number(vatRate) > 0 ? '1' : '2', 1),      // 1258: 1 taxable/exempt
+    padText(itemCode || '', 20),                       // 1259: 20
+    padText(itemDescription || '', 30),                // 1260: 30
+    padText('', 50),                                   // 1261: 50 mfr name
+    padText('', 30),                                   // 1262: 30 product serial
+    padText('', 20),                                   // 1263: 20 unit
+    numField(quantity, 14, 3),                         // 1264: 17 qty
+    numField(unitPrice, 13, 2),                        // 1265: 15 unit price
+    numField(discount || 0, 13, 2),                    // 1266: 15 discount
+    numField(lineTotal, 13, 2),                        // 1267: 15 ⚠
+    padLeft(Math.round(Number(vatRate || 0) * 100), 4),// 1268: 4 e.g. 1800
+    padText('', 7),                                    // 1270: 7 branch
+    padLeft(dateDMY(docDate), 8),                      // 1272: 8 DDMMYYYY
+    padLeft('0', 7),                                   // 1273: 7 link to C100
+    padText('', 7),                                    // 1274: 7
+    padText('', 21),                                   // 1275: 21 future
   ]
-  const rec = parts.join('')
-  return rec.slice(0, 339).padEnd(339, ' ')
+  return parts.join('').slice(0, 339).padEnd(339, ' ')
 }
 
-// ── Record D120 — Payment/Receipt — length 222 ────────────────────
+// ── Record D120 — Payment line — 222 chars ───────────────────────
+// NOTE: D120 does NOT contain primaryId or BKMVHDL after vatId.
+// pos  len  field
+//   0    4  1300 'D120'
+//   4    9  1301 serial
+//  13    9  1302 VAT ID
+//  22    3  1303 doc type
+//  25   20  1304 doc number (str)
+//  45    4  1305 line number
+//  49    1  1306 payment method: 1=cash,2=check,3=credit,4=bank,5=voucher,9=other
+//  50   10  1307 bank number
+//  60   10  1308 branch number
+//  70   15  1309 account number
+//  85   10  1310 check number
+//  95    8  1311 payment date DDMMYYYY
+// 103   15  1312 amount ⚠ sum must = C100.1223
+// 118    1  1313 card company code
+// 119   20  1314 card name
+// 139    1  1315 credit type
+// 140    7  1320 branch ID
+// 147    8  1322 doc date DDMMYYYY
+// 155    7  1323 link to C100 header
+// 162   60  1324 future
+// Total: 222
 function recordD120({
-  serial, vatId, primaryId, docType, docNumber, docDate,
+  serial, vatId, docType, docNumber, docDate,
   lineNum, paymentMethod, bankCode, branchCode, accountNumber,
   checkNumber, paymentDate, amount, cardType,
 }) {
@@ -371,57 +400,55 @@ function recordD120({
     ? paymentMethod
     : (PAYMENT_CODE[paymentMethod] || PAYMENT_CODE.other)
   const parts = [
-    'D120',                                    // 4
-    padLeft(serial, 9),                        // 9
-    padLeft(vatId, 9),                         // 9
-    padLeft(primaryId, 15),                    // 15
-    padText(OF_VERSION, 8),                    // 8
-    padLeft(docType, 3),                       // 3
-    padText(docNumber, 20),                    // 20
-    padLeft(dateYMD(docDate), 8),              // 8
-    padLeft(lineNum, 4),                       // 4
-    padLeft(code, 1),                          // 1   payment method (1/2/3/4/5/9)
-    padText(bankCode || '', 4),                // 4
-    padText(branchCode || '', 4),              // 4
-    padText(accountNumber || '', 15),          // 15
-    padText(checkNumber || '', 10),            // 10
-    padLeft(dateYMD(paymentDate || docDate), 8),// 8
-    numField(amount, 13, 2),                   // 15
-    padText(cardType || '', 4),                // 4   credit card company
-    padText('', 20),                           // 20  last 4 digits / transaction ref
-    padText('', 14),                           // 14  reserved
-    padText('', 39),                           // 39  filler
+    'D120',                                        // 1300: 4
+    padLeft(serial, 9),                            // 1301: 9
+    padLeft(vatId, 9),                             // 1302: 9
+    padLeft(docType, 3),                           // 1303: 3
+    padText(docNumber, 20),                        // 1304: 20
+    padLeft(lineNum, 4),                           // 1305: 4
+    padLeft(code, 1),                              // 1306: 1
+    padLeft(bankCode || '0', 10),                  // 1307: 10
+    padLeft(branchCode || '0', 10),                // 1308: 10
+    padLeft(accountNumber || '0', 15),             // 1309: 15
+    padLeft(checkNumber || '0', 10),               // 1310: 10
+    padLeft(dateDMY(paymentDate || docDate), 8),   // 1311: 8
+    numField(amount, 13, 2),                       // 1312: 15 ⚠
+    padLeft('0', 1),                               // 1313: 1
+    padText(cardType || '', 20),                   // 1314: 20
+    padLeft('0', 1),                               // 1315: 1
+    padText('', 7),                                // 1320: 7
+    padLeft(dateDMY(docDate), 8),                  // 1322: 8
+    padLeft('0', 7),                               // 1323: 7
+    padText('', 60),                               // 1324: 60 future
   ]
-  const rec = parts.join('')
-  return rec.slice(0, 222).padEnd(222, ' ')
+  return parts.join('').slice(0, 222).padEnd(222, ' ')
 }
 
-// ── Record M100 — Inventory/Item master — length 298 ──────────────
+// ── Record M100 — Inventory/Item master — 298 chars ───────────────
+// NOTE: M100 does NOT contain primaryId or BKMVHDL after vatId.
 function recordM100({
-  serial, vatId, primaryId, itemCode, itemDescription,
+  serial, vatId, itemCode, itemDescription,
   unit, unitPrice, currency = 'ILS',
 }) {
   const parts = [
     'M100',                                    // 4
     padLeft(serial, 9),                        // 9
-    padLeft(vatId, 9),                         // 9
-    padLeft(primaryId, 15),                    // 15
-    padText(OF_VERSION, 8),                    // 8
-    padText('', 8),                            // 8   branch
-    padText(itemCode, 20),                     // 20  item code
-    padText('', 20),                           // 20  supplier item code
-    padText(itemDescription || '', 50),        // 50  description
-    padText('', 15),                           // 15  classification
-    padText(unit || '', 20),                   // 20  unit of measure
-    numField(0, 12, 3),                        // 15  opening balance qty
-    numField(unitPrice, 13, 2),                // 15  cost price
-    numField(unitPrice, 13, 2),                // 15  last cost
-    numField(unitPrice, 13, 2),                // 15  sale price
-    padText(currency, 3),                      // 3   currency
-    padText('', 49),                           // 49  filler
+    padLeft(vatId, 9),                         // 9 → pos 22
+    padText(itemCode || '', 20),               // 20 item code
+    padText('', 20),                           // 20 supplier code
+    padText(itemDescription || '', 50),        // 50 description
+    padText('', 15),                           // 15 classification
+    padText(unit || '', 20),                   // 20 unit
+    numField(0, 14, 3),                        // 17 opening qty
+    numField(0, 13, 2),                        // 15 opening value
+    numField(unitPrice || 0, 13, 2),           // 15 cost price
+    numField(unitPrice || 0, 13, 2),           // 15 sale price
+    padText(currency, 3),                      // 3
+    padText('', 50),                           // 50 mfr name
+    padText('', 36),                           // 36 future
   ]
-  const rec = parts.join('')
-  return rec.slice(0, 298).padEnd(298, ' ')
+  // 4+9+9+20+20+50+15+20+17+15+15+15+3+50+36 = 298
+  return parts.join('').slice(0, 298).padEnd(298, ' ')
 }
 
 // ── Data fetch ───────────────────────────────────────────────────
@@ -448,83 +475,78 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
   let serial = 1
   const counts = { C100: 0, D110: 0, D120: 0, M100: 0, Z900: 1 }
 
-  // A100 — חייב להיות הרשומה הראשונה ב-BKMVDATA.TXT לפי מפרט 1.31
+  // A100 — first record in BKMVDATA.TXT per spec §6
   lines.push(recordA100({ serial: serial++, vatId, primaryId }))
 
-  // Invoices → C100 + D110 + D120
   invoices.forEach((inv) => {
     const docType = inv.is_credit_note
       ? (businessType === 'osek_patur' ? '405' : '330')
-      : (businessType === 'osek_patur' ? '400' : '320')  // 320=חשבונית מס-קבלה; 400=קבלה (עוסק פטור)
+      : (businessType === 'osek_patur' ? '400' : '320')
     const beforeVat = Number(inv.amount_before_vat || inv.total_amount || 0)
     const vatAmount = Number(inv.vat_amount || 0)
-    const total = Number(inv.total_amount || 0)
-    const vatRate = Number(inv.vat_rate || 18)
+    const total     = Number(inv.total_amount || 0)
+    const vatRate   = Number(inv.vat_rate || 18)
 
     lines.push(recordC100({
-      serial: serial++, vatId, primaryId, docType,
+      serial: serial++, vatId, docType,
       docNumber: inv.invoice_number,
-      docDate: inv.service_date || inv.created_at,
-      customerName: inv.customer_name,
+      docDate:   inv.service_date || inv.created_at,
+      customerName:  inv.customer_name,
       customerVatId: inv.customer_tax_id,
       customerPhone: inv.customer_phone,
       beforeVat, vatAmount, total,
-      isCancelled: inv.is_cancelled,
+      isCancelled:    inv.is_cancelled,
       generationDate: inv.created_at,
-      userId: inv.created_by,
+      userId:         inv.created_by,
     }))
     counts.C100++
 
-    // D110 — one per invoice_item row, or aggregate if no items table rows
     const lineItems = inv.invoice_items && inv.invoice_items.length > 0
       ? inv.invoice_items
-      : [{ service_id: inv.service_id, name: inv.service_name || 'שירות', quantity: 1, unit_price: beforeVat, line_total: beforeVat }]
+      : [{ service_id: inv.service_id, name: inv.service_name || 'Service', quantity: 1, unit_price: beforeVat, line_total: beforeVat }]
 
     lineItems.forEach((item, idx) => {
       lines.push(recordD110({
-        serial: serial++, vatId, primaryId, docType,
+        serial: serial++, vatId, docType,
         docNumber: inv.invoice_number,
-        docDate: inv.service_date || inv.created_at,
-        lineNum: idx + 1,
-        itemCode: (item.service_id || item.product_id || inv.service_id || 'SVC').toString().slice(0, 20),
-        itemDescription: item.name || inv.service_name || 'שירות',
-        quantity: Number(item.quantity || 1),
+        docDate:   inv.service_date || inv.created_at,
+        lineNum:   idx + 1,
+        itemCode:  (item.service_id || item.product_id || inv.service_id || 'SVC').toString().slice(0, 20),
+        itemDescription: item.name || inv.service_name || 'Service',
+        quantity:  Number(item.quantity || 1),
         unitPrice: Number(item.unit_price || beforeVat),
-        discount: 0,
+        discount:  0,
         lineTotal: Number(item.line_total || beforeVat),
-        vatRate: vatRate > 0,
+        vatRate,
       }))
       counts.D110++
     })
 
-    // Payment (D120) — only when invoice is paid
     if (inv.status === 'paid' || inv.paid_at) {
       lines.push(recordD120({
-        serial: serial++, vatId, primaryId, docType,
+        serial: serial++, vatId, docType,
         docNumber: inv.invoice_number,
-        docDate: inv.service_date || inv.created_at,
-        lineNum: 1,
+        docDate:   inv.service_date || inv.created_at,
+        lineNum:   1,
         paymentMethod: inv.payment_method || 'cash',
-        paymentDate: inv.paid_at || inv.created_at,
+        paymentDate:   inv.paid_at || inv.created_at,
         amount: total,
       }))
       counts.D120++
     }
   })
 
-  // Services → M100
   services.forEach((svc) => {
     lines.push(recordM100({
-      serial: serial++, vatId, primaryId,
-      itemCode: svc.id.slice(0, 20),
+      serial: serial++, vatId,
+      itemCode:        svc.id.slice(0, 20),
       itemDescription: svc.name,
-      unit: 'יח׳',
-      unitPrice: svc.price,
+      unit:            'unit',
+      unitPrice:       svc.price,
     }))
     counts.M100++
   })
 
-  // Z900 — closing record with total count (including Z900 itself)
   const totalSoFar = serial - 1
   lines.push(recordZ900({
     serial, vatId, primaryId,
@@ -535,51 +557,21 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
 }
 
 // ── Build INI.TXT (A000 only, per spec §5) ───────────────────────
-// INI.TXT contains exactly ONE record: A000.
-// A100 belongs in BKMVDATA.TXT (first record there).
-// A000 field 1002 = total records in BKMVDATA (A100 + data + Z900).
 export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
-  const lines = []
-
-  // Total records in BKMVDATA = 1 A100 + C100+D110+D120+M100 + 1 Z900
   const totalBkmv = 1 + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 1
 
-  lines.push(recordA000({
+  const a000 = recordA000({
     primaryId,
-    totalIniRecords: totalBkmv,
-    manufacturer: {
-      vatId: OPERATOR.manufacturer_vat_id,
-      name:  OPERATOR.manufacturer_name,
-    },
-    software: {
-      name:    OPERATOR.software_name,
-      version: OPERATOR.software_version,
-    },
-    softwareType:    OPERATOR.software_type,
-    bookkeepingType: OPERATOR.bookkeeping_type,
-    companyReg:      settings.company_registration_number,
-    deductionFile:   settings.deduction_file_number,
+    totalBkmvRecords: totalBkmv,
     vatId,
-    businessName: settings.business_name,
-    address: {
-      street: settings.business_address_street || '',
-      number: settings.business_address_number || '',
-      city:   settings.business_address_city   || '',
-      postal: settings.business_address_postal || '',
-    },
-    taxYear: {
-      start: `${new Date(from).getFullYear()}-01-01`,
-      end:   `${new Date(to).getFullYear()}-12-31`,
-    },
+    settings,
     dataRange: { start: from, end: to },
-    leadingCurrency: OPERATOR.leading_currency,
-    hasBranches: settings.has_branches,
-  }))
+  })
 
-  return lines.join(CRLF) + CRLF
+  return a000 + CRLF
 }
 
-// ── Section 2.6 — summary report for printing/archiving ──────────
+// ── Section 2.6 report ───────────────────────────────────────────
 export function buildSection26Report({ settings, from, to, counts, primaryId }) {
   return {
     businessName: settings.business_name,
@@ -594,8 +586,7 @@ export function buildSection26Report({ settings, from, to, counts, primaryId }) 
       D120: counts.D120 || 0,
       M100: counts.M100 || 0,
     },
-    iniRecords:  3,
-    ofVersion:   OF_VERSION,
+    ofVersion: BKMV_HDL.trim(),
   }
 }
 
@@ -627,7 +618,7 @@ export function printSection26(report) {
 <h2>ספירות רשומות</h2>
 <table>
   <tr><th>סוג רשומה</th><th>כמות</th><th>תיאור</th></tr>
-  <tr><td>A000/A100/Z900 (INI)</td><td>${report.iniRecords}</td><td>כותרת הקובץ</td></tr>
+  <tr><td>A100+Z900</td><td>2</td><td>כותרת BKMVDATA</td></tr>
   <tr><td>C100</td><td>${report.totals.C100}</td><td>כותרות מסמכים</td></tr>
   <tr><td>D110</td><td>${report.totals.D110}</td><td>שורות מסמך</td></tr>
   <tr><td>D120</td><td>${report.totals.D120}</td><td>שורות תקבול</td></tr>
@@ -643,7 +634,7 @@ export function printSection26(report) {
   w.document.close()
 }
 
-// ── Validation before generation ────────────────────────────────
+// ── Settings validation ──────────────────────────────────────────
 const REQUIRED_SETTINGS_FIELDS = [
   ['business_tax_id',         'מס׳ עוסק מורשה'],
   ['business_name',           'שם העסק'],
@@ -655,14 +646,12 @@ export function validateOpenFormatSettings(settings) {
   const errors = []
   const warnings = []
 
-  // Validate per-business fields from settings
   for (const [key, label] of REQUIRED_SETTINGS_FIELDS) {
     if (!settings[key] || String(settings[key]).trim() === '') {
       errors.push(`חסר שדה חובה: ${label}`)
     }
   }
 
-  // Validate operator (SaaS) fields from OPERATOR config
   if (!OPERATOR.manufacturer_vat_id) errors.push('חסר ת.ז/ח.פ יצרן התוכנה (operator.js)')
   if (!OPERATOR.manufacturer_name)   errors.push('חסר שם יצרן התוכנה (operator.js)')
   if (!OPERATOR.tax_software_reg_number) {
@@ -672,7 +661,7 @@ export function validateOpenFormatSettings(settings) {
   }
 
   if (!settings.tax_office_notified) {
-    warnings.push('לא סומן "עודכנה רשות המיסים" — יש להגיש הודעת שימוש בתוכנה לפני הפעלה (הוראת מקצוע 24/2004 §18ב(ב)).')
+    warnings.push('לא סומן "עודכנה רשות המיסים".')
   }
   if (settings.business_tax_id && !/^\d{9}$/.test(String(settings.business_tax_id).replace(/\D/g, ''))) {
     errors.push('מס׳ עוסק חייב להיות 9 ספרות.')
@@ -680,37 +669,25 @@ export function validateOpenFormatSettings(settings) {
   return { valid: errors.length === 0, errors, warnings }
 }
 
-// ── Main entry — generate the full ZIP ──────────────────────────
-/**
- * Generate OPENFRMT 1.31 ZIP package.
- * Directory structure:
- *   OPENFRMT/
- *     <9-digit-VAT>.<YY>/
- *       <MMDDhhmm>/
- *         INI.TXT
- *         BKMVDATA.zip  (contains BKMVDATA.TXT)
- */
+// ── Main entry — generate ZIP ────────────────────────────────────
 export async function generateOpenFormatZip({ from, to, settings }) {
   const validation = validateOpenFormatSettings(settings)
   if (!validation.valid) {
     throw new Error('הגדרות חסרות:\n' + validation.errors.join('\n'))
   }
 
-  const vatId = String(settings.business_tax_id).replace(/\D/g, '').padStart(9, '0')
-  const primaryId = randomPrimaryId15()
+  const vatId       = String(settings.business_tax_id).replace(/\D/g, '').padStart(9, '0')
+  const primaryId   = randomPrimaryId15()
   const businessType = settings.business_type || 'osek_morsheh'
 
-  // Fetch data
   const { invoices, services } = await fetchDataset({ from, to })
   const { text: bkmvText, counts } = buildBkmvdata({ vatId, primaryId, invoices, services, businessType })
   const iniText = buildIni({ vatId, primaryId, settings, from, to, counts })
 
-  // Inner ZIP containing BKMVDATA.TXT
   const inner = new JSZip()
   inner.file('BKMVDATA.TXT', bkmvText)
   const innerBlob = await inner.generateAsync({ type: 'uint8array' })
 
-  // Outer directory path
   const now = new Date()
   const MMDDhhmm = [
     String(now.getMonth() + 1).padStart(2, '0'),
@@ -721,49 +698,13 @@ export async function generateOpenFormatZip({ from, to, settings }) {
   const yy = String(now.getFullYear()).slice(-2)
   const dirPrefix = `OPENFRMT/${vatId}.${yy}/${MMDDhhmm}/`
 
-  // Outer ZIP
   const outer = new JSZip()
   outer.file(dirPrefix + 'INI.TXT', iniText)
   outer.file(dirPrefix + 'BKMVDATA.zip', innerBlob)
 
-  // Section 2.6 report attachment
   const report = buildSection26Report({ settings, from, to, counts, primaryId })
   outer.file(dirPrefix + 'SECTION_2_6_REPORT.json', JSON.stringify(report, null, 2))
 
-  // Human-readable README
-  const readme = [
-    '# קובץ אחיד (OPENFRMT) — מבנה 1.31',
-    '',
-    `עסק: ${settings.business_name}`,
-    `מס׳ עוסק: ${vatId}`,
-    `תקופה: ${from} עד ${to}`,
-    `מספר רישום תוכנה: ${OPERATOR.tax_software_reg_number || '(טרם הוזן)'}`,
-    `Primary ID: ${primaryId}`,
-    `גרסת מבנה: ${OF_VERSION}`,
-    '',
-    '## מבנה הקובץ:',
-    `- ${dirPrefix}INI.TXT          — כותרת הקובץ (A000 + A100 + Z900)`,
-    `- ${dirPrefix}BKMVDATA.zip     — נתונים (C100/D110/D120/M100/Z900)`,
-    `- ${dirPrefix}SECTION_2_6_REPORT.json — דוח הפקה (סעיף 2.6)`,
-    '',
-    '## ספירות:',
-    `  C100: ${counts.C100}`,
-    `  D110: ${counts.D110}`,
-    `  D120: ${counts.D120}`,
-    `  M100: ${counts.M100}`,
-    '',
-    '## אימות:',
-    'יש להעלות את הקובץ לסימולטור הרשמי של רשות המיסים:',
-    'https://www.gov.il/he/service/download-open-format-files',
-    '',
-    '## הערות:',
-    validation.warnings.length
-      ? validation.warnings.map(w => '⚠️ ' + w).join('\n')
-      : '✓ כל ההגדרות תקינות.',
-  ].join('\r\n')
-  outer.file('README.txt', readme)
-
-  // Touch last_openfrmt_export_at
   try {
     await supabase.from('business_settings')
       .update({ last_openfrmt_export_at: new Date().toISOString() })
