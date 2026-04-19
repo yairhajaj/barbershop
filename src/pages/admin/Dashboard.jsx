@@ -39,6 +39,7 @@ export function Dashboard() {
   const [waitlistActive, setWaitlistActive] = useState([])
   const [nowTick, setNowTick] = useState(Date.now())
   const [manualIncomeToday, setManualIncomeToday] = useState(0)
+  const [manualIncomeBreakdown, setManualIncomeBreakdown] = useState({})
 
   // Tick every minute to re-filter waitlist expirations in-place
   useEffect(() => {
@@ -62,9 +63,12 @@ export function Dashboard() {
     const todayStr = new Date().toISOString().slice(0, 10)
     const { data: mi } = await supabase
       .from('manual_income')
-      .select('amount')
+      .select('amount, payment_method')
       .eq('date', todayStr)
     setManualIncomeToday((mi ?? []).reduce((s, r) => s + Number(r.amount || 0), 0))
+    const brkd = {}
+    ;(mi ?? []).forEach(r => { const m = r.payment_method || 'cash'; brkd[m] = (brkd[m] || 0) + Number(r.amount || 0) })
+    setManualIncomeBreakdown(brkd)
 
     // 2. Open debts
     const { data: debts } = await supabase
@@ -138,6 +142,24 @@ export function Dashboard() {
 
     const debtsSum = openDebts.reduce((s, d) => s + Number(d.amount || 0), 0)
 
+    const METHOD_LABELS = { cash: '💵 מזומן', credit: '💳 אשראי', bit: '📱 ביט', paybox: '📦 Paybox', transfer: '🏦 העברה' }
+
+    // per-staff breakdown (for צפוי + תורים היום details)
+    const staffBreakdown = staff.map(m => {
+      const mine = todayAppts.filter(a => a.staff_id === m.id && a.status !== 'cancelled')
+      const done = mine.filter(a => a.status === 'completed').length
+      const mFuture = future.filter(a => a.staff_id === m.id)
+      const expectedRev = mFuture.reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+      return { name: m.name, total: mine.length, done, futureCount: mFuture.length, expectedRev }
+    }).filter(m => m.total > 0)
+
+    const incomeDetail = Object.entries(manualIncomeBreakdown)
+      .filter(([_, v]) => v > 0)
+      .map(([k, v]) => ({ label: METHOD_LABELS[k] || k, value: `₪${v.toLocaleString('he-IL')}` }))
+    if (!incomeDetail.length) incomeDetail.push({ label: 'אין תקבולים עדיין', value: '' })
+
+    const noShowLostRev = noShows.reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
+
     const stats = [
       {
         icon: '💰',
@@ -146,6 +168,7 @@ export function Dashboard() {
         sub: 'שולם היום',
         accent: '#16a34a',
         tint: 'var(--color-success-tint)',
+        detail: incomeDetail,
       },
       {
         icon: '📈',
@@ -154,6 +177,9 @@ export function Dashboard() {
         sub: `${future.length} תורים נותרו`,
         accent: 'var(--color-gold)',
         tint: 'var(--color-gold-tint)',
+        detail: staffBreakdown.length
+          ? staffBreakdown.map(m => ({ label: m.name, value: `₪${m.expectedRev.toLocaleString('he-IL')}`, sub: `${m.futureCount} תורים` }))
+          : [{ label: 'כל התורים הסתיימו', value: '' }],
       },
       {
         icon: '📋',
@@ -161,6 +187,9 @@ export function Dashboard() {
         value: `${doneToday}/${totalToday}`,
         sub: 'הושלמו/סה"כ',
         accent: 'var(--color-text)',
+        detail: staffBreakdown.length
+          ? staffBreakdown.map(m => ({ label: m.name, value: `${m.done}/${m.total}`, sub: 'הושלמו/סה"כ' }))
+          : [{ label: 'אין תורים היום', value: '' }],
       },
       {
         icon: '💸',
@@ -169,6 +198,9 @@ export function Dashboard() {
         sub: `${openDebts.length} לקוחות`,
         accent: openDebts.length > 0 ? '#dc2626' : 'var(--color-muted)',
         tint: openDebts.length > 0 ? 'var(--color-danger-tint)' : undefined,
+        detail: openDebts.length
+          ? openDebts.map(d => ({ label: d.profiles?.name || 'לקוח', value: `₪${Number(d.amount).toLocaleString('he-IL')}`, sub: d.description || '' }))
+          : [{ label: 'אין חובות פתוחים 🎉', value: '' }],
       },
       {
         icon: '⏳',
@@ -176,6 +208,9 @@ export function Dashboard() {
         value: String(waitlistActive.length),
         accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
         tint: waitlistActive.length > 0 ? 'var(--color-gold-tint)' : undefined,
+        detail: waitlistActive.length
+          ? waitlistActive.map(w => ({ label: w.profiles?.name || 'לקוח', value: w.services?.name || '', sub: w.preferred_date ? new Date(w.preferred_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '' }))
+          : [{ label: 'אין ממתינים', value: '' }],
       },
       {
         icon: '🚫',
@@ -183,11 +218,20 @@ export function Dashboard() {
         value: String(noShows.length),
         accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
         tint: noShows.length > 0 ? 'var(--color-danger-tint)' : undefined,
+        detail: noShows.length
+          ? [
+              ...noShows.map(a => {
+                const t = new Date(a.start_at)
+                return { label: a.profiles?.name || 'לקוח', value: a.services?.name || '', sub: `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}` }
+              }),
+              { label: 'הכנסה שנפספסה', value: `₪${noShowLostRev.toLocaleString('he-IL')}`, sub: 'סה"כ' },
+            ]
+          : [{ label: 'אף לקוח לא החמיץ תור 🎉', value: '' }],
       },
     ]
 
     return { nextApt: next, upcoming: rest, stats }
-  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday])
+  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff])
 
   // ── Handle schedule from waitlist ──
   function handleScheduleWaitlist(entry) {
