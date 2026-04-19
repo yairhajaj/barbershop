@@ -448,6 +448,9 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
   let serial = 1
   const counts = { C100: 0, D110: 0, D120: 0, M100: 0, Z900: 1 }
 
+  // A100 — חייב להיות הרשומה הראשונה ב-BKMVDATA.TXT לפי מפרט 1.31
+  lines.push(recordA100({ serial: serial++, vatId, primaryId }))
+
   // Invoices → C100 + D110 + D120
   invoices.forEach((inv) => {
     const docType = inv.is_credit_note
@@ -531,14 +534,19 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
   return { text: lines.join(CRLF) + CRLF, counts }
 }
 
-// ── Build INI.TXT (A000 + A100 + Z900) ───────────────────────────
+// ── Build INI.TXT (A000 only, per spec §5) ───────────────────────
+// INI.TXT contains exactly ONE record: A000.
+// A100 belongs in BKMVDATA.TXT (first record there).
+// A000 field 1002 = total records in BKMVDATA (A100 + data + Z900).
 export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
   const lines = []
 
-  // A000 — must be first; totalIniRecords includes itself (3)
+  // Total records in BKMVDATA = 1 A100 + C100+D110+D120+M100 + 1 Z900
+  const totalBkmv = 1 + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 1
+
   lines.push(recordA000({
     primaryId,
-    totalIniRecords: 3,
+    totalIniRecords: totalBkmv,
     manufacturer: {
       vatId: OPERATOR.manufacturer_vat_id,
       name:  OPERATOR.manufacturer_name,
@@ -567,12 +575,6 @@ export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
     leadingCurrency: OPERATOR.leading_currency,
     hasBranches: settings.has_branches,
   }))
-
-  // A100 — header of the BKMVDATA block
-  lines.push(recordA100({ serial: 2, vatId, primaryId }))
-
-  // Z900 — INI closing record (count = 3)
-  lines.push(recordZ900({ serial: 3, vatId, primaryId, totalRecords: 3 }))
 
   return lines.join(CRLF) + CRLF
 }

@@ -99,18 +99,10 @@ describe('generateINI', () => {
     expect(a000.length).toBe(466)
   })
 
-  test('A100 record is 95 chars', () => {
+  test('Z900 record is NOT in INI.TXT (INI has only A000)', () => {
     const lines = result.text.split('\r\n').filter(Boolean)
-    const a100 = lines.find(l => l.startsWith('A100'))
-    expect(a100).toBeDefined()
-    expect(a100.length).toBe(95)
-  })
-
-  test('Z900 record is 110 chars', () => {
-    const lines = result.text.split('\r\n').filter(Boolean)
-    const z900 = lines.find(l => l.startsWith('Z900'))
-    expect(z900).toBeDefined()
-    expect(z900.length).toBe(110)
+    expect(lines.find(l => l.startsWith('Z900'))).toBeUndefined()
+    expect(lines.find(l => l.startsWith('A100'))).toBeUndefined()
   })
 
   test('all lines end with CRLF', () => {
@@ -126,9 +118,9 @@ describe('generateINI', () => {
     expect(a000).toContain('BOOKX')
   })
 
-  test('INI contains exactly 3 records (A000 + A100 + Z900)', () => {
+  test('INI contains exactly 1 record (A000 only, per spec §5)', () => {
     const lines = result.text.split('\r\n').filter(Boolean)
-    expect(lines.length).toBe(3)
+    expect(lines.length).toBe(1)
   })
 })
 
@@ -151,6 +143,19 @@ describe('generateBKMV', () => {
     const c100 = lines.find(l => l.startsWith('C100'))
     expect(c100).toBeDefined()
     expect(c100.length).toBe(444)
+  })
+
+  test('A100 record is 95 chars (first record in BKMVDATA)', () => {
+    const lines = result.text.split('\r\n').filter(Boolean)
+    expect(lines[0].startsWith('A100')).toBe(true)
+    expect(lines[0].length).toBe(95)
+  })
+
+  test('Z900 record is 110 chars (last record in BKMVDATA)', () => {
+    const lines = result.text.split('\r\n').filter(Boolean)
+    const last = lines[lines.length - 1]
+    expect(last.startsWith('Z900')).toBe(true)
+    expect(last.length).toBe(110)
   })
 
   test('D110 record is 339 chars', () => {
@@ -184,9 +189,9 @@ describe('generateBKMV', () => {
     expect(bareNewlines).toBe(false)
   })
 
-  test('first data record is C100 (A100 lives in INI.TXT)', () => {
+  test('second record is C100 (after A100)', () => {
     const lines = result.text.split('\r\n').filter(Boolean)
-    expect(lines[0].startsWith('C100')).toBe(true)
+    expect(lines[1].startsWith('C100')).toBe(true)
   })
 
   test('last record is Z900', () => {
