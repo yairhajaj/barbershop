@@ -140,13 +140,6 @@ export function Dashboard() {
 
     const stats = [
       {
-        icon: '📋',
-        label: 'תורים היום',
-        value: `${doneToday}/${totalToday}`,
-        sub: 'הושלמו/סה"כ',
-        accent: 'var(--color-text)',
-      },
-      {
         icon: '💰',
         label: 'הכנסה בפועל',
         value: `₪${revenuePaid.toLocaleString('he-IL')}`,
@@ -163,6 +156,13 @@ export function Dashboard() {
         tint: 'var(--color-gold-tint)',
       },
       {
+        icon: '📋',
+        label: 'תורים היום',
+        value: `${doneToday}/${totalToday}`,
+        sub: 'הושלמו/סה"כ',
+        accent: 'var(--color-text)',
+      },
+      {
         icon: '💸',
         label: 'חובות פתוחים',
         value: `₪${debtsSum.toLocaleString('he-IL')}`,
@@ -171,18 +171,18 @@ export function Dashboard() {
         tint: openDebts.length > 0 ? 'var(--color-danger-tint)' : undefined,
       },
       {
-        icon: '🚫',
-        label: 'לא הגיעו',
-        value: String(noShows.length),
-        accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
-        tint: noShows.length > 0 ? 'var(--color-danger-tint)' : undefined,
-      },
-      {
         icon: '⏳',
         label: 'ממתינים',
         value: String(waitlistActive.length),
         accent: waitlistActive.length > 0 ? 'var(--color-gold)' : 'var(--color-muted)',
         tint: waitlistActive.length > 0 ? 'var(--color-gold-tint)' : undefined,
+      },
+      {
+        icon: '🚫',
+        label: 'לא הגיעו',
+        value: String(noShows.length),
+        accent: noShows.length > 0 ? '#dc2626' : 'var(--color-muted)',
+        tint: noShows.length > 0 ? 'var(--color-danger-tint)' : undefined,
       },
     ]
 

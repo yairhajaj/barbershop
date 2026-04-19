@@ -16,7 +16,6 @@ export function KpiStrip({ stats, className = '' }) {
           style={{
             background: s.tint || 'var(--color-card)',
             border: '1px solid var(--color-border)',
-            borderTop: `3px solid ${s.accent || 'var(--color-border)'}`,
             boxShadow: 'var(--shadow-card)',
           }}>
           <div className="flex items-center gap-1 mb-0.5">
