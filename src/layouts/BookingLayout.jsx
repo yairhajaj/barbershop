@@ -549,7 +549,7 @@ export function BookingLayout({ children }) {
             background: `linear-gradient(145deg, var(--color-gold-light), var(--color-gold-dark))`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: `3px solid var(--color-surface)`,
-            boxShadow: '0 8px 32px var(--color-accent-glow), 0 0 0 4px rgba(255,122,0,0.07)',
+            animation: 'cta-heartbeat 2.2s ease-in-out infinite',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
