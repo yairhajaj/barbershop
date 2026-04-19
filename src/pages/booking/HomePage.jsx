@@ -485,12 +485,12 @@ export function HomePage() {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* ── HERO — always sticky, v6 style ────────────────────────── */}
+      {/* ── HERO — full-screen sticky, v6 style ──────────────────── */}
       <section
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: '60vh', minHeight: 320, maxHeight: 440,
+          height: '100svh',
           overflow: 'hidden',
           background: '#0a0806',
         }}
@@ -516,26 +516,21 @@ export function HomePage() {
                 'linear-gradient(168deg,#1c0d00 0%,#0f0904 50%,#190900 100%)'
             }} />
           )}
-          {/* Top + bottom gradient bars */}
+          {/* Top gradient bar — for readability only */}
           <div className="absolute inset-0 pointer-events-none" style={{
-            background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 22%,transparent 58%,rgba(0,0,0,.60) 100%)'
+            background: 'linear-gradient(180deg,rgba(0,0,0,.62) 0%,transparent 26%,transparent 72%,rgba(0,0,0,.18) 100%)'
           }} />
-          {/* Bottom fade into surface so glass panel blends in */}
+          {/* Bottom vignette — subtle fade into page background */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: '60%',
-            background: 'linear-gradient(to top, #f3f0ea 0%, transparent 100%)',
+            height: '26%',
+            background: 'linear-gradient(to top, var(--color-background) 0%, transparent 100%)',
+            opacity: 0.82,
             zIndex: 3,
           }} />
         </div>
 
-        {/* Scroll indicator */}
-        <div className="v6-scroll-ind">
-          <div className="v6-scroll-ind-line" />
-          <span>גלול</span>
-        </div>
-
-        {/* Hero brand */}
-        <div id="v6-hero-brand" className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5, paddingBottom: 24 }}>
+        {/* Hero brand — upper portion */}
+        <div id="v6-hero-brand" className="absolute inset-0 flex flex-col items-center pointer-events-none" style={{ zIndex: 5, paddingTop: '13vh', justifyContent: 'flex-start' }}>
           {/* Logo mark */}
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
@@ -586,6 +581,34 @@ export function HomePage() {
             transition={{ delay: 1.0, duration: 0.5 }}
             style={{ width: 32, height: 1.5, borderRadius: 1, background: 'var(--color-gold)', marginTop: 14, boxShadow: '0 0 8px rgba(255,122,0,0.35)' }}
           />
+        </div>
+
+        {/* Hero CTA — always visible, floats above toolbar */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9, duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
+          style={{ position: 'absolute', bottom: 104, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 10 }}
+        >
+          <Link
+            to={bookHref}
+            className="v6-cta-btn"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: 'var(--color-gold)', color: '#fff',
+              fontWeight: 700, fontSize: 15, padding: '14px 36px', borderRadius: 9999,
+              backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+              textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            קבע תור עכשיו
+          </Link>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <div className="v6-scroll-ind">
+          <div className="v6-scroll-ind-line" />
+          <span>גלול</span>
         </div>
       </section>
 
