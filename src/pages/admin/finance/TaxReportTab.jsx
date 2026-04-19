@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useBranch } from '../../../contexts/BranchContext'
 import { formatILS, getBiMonthlyPeriods, hasVat, downloadCSV } from '../../../lib/finance'
+import { supabase } from '../../../lib/supabase'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
@@ -247,6 +248,21 @@ export function TaxReportTab() {
     printSection26(report)
   }
 
+  async function handleQuarterlyBackup() {
+    if (!settings) return
+    setExportLoading(true)
+    try {
+      const fullYear = new Date().getFullYear()
+      await downloadOpenFormat({ from: `${fullYear}-01-01`, to: `${fullYear}-12-31`, settings })
+      await supabase.functions.invoke('quarterly-backup')
+      showToast({ message: 'גיבוי רבעוני הורד — שמור במיקום מאובטח בישראל', type: 'success' })
+    } catch (err) {
+      showToast({ message: err.message, type: 'error' })
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   async function handleExportSample() {
     setSampleLoading(true)
     try {
@@ -456,6 +472,28 @@ export function TaxReportTab() {
               </button>
             </div>
           </div>
+          {/* Quarterly backup reminder */}
+          {(() => {
+            const last = settings?.last_quarterly_backup_at ? new Date(settings.last_quarterly_backup_at) : null
+            const daysSince = last ? Math.floor((Date.now() - last) / 86400000) : 999
+            if (daysSince <= 90) return null
+            return (
+              <div className="rounded-2xl p-4 flex items-center justify-between gap-3"
+                style={{ background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.3)' }}>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#dc2626' }}>⚠ גיבוי רבעוני נדרש</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                    {last ? `גיבוי אחרון לפני ${daysSince} יום` : 'לא בוצע גיבוי מעולם'} — חובה לפי הוראת מקצוע 24/2004
+                  </p>
+                </div>
+                <button onClick={handleQuarterlyBackup} disabled={exportLoading}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap disabled:opacity-50"
+                  style={{ background: '#dc2626', color: '#fff' }}>
+                  {exportLoading ? '⏳...' : '💾 גיבוי עכשיו'}
+                </button>
+              </div>
+            )
+          })()}
         </>
       )}
 
