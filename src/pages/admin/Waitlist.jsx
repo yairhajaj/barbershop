@@ -18,12 +18,9 @@ const STATUS_META = {
 }
 
 const STATUS_TABS = [
-  { key: 'all',      label: 'הכל' },
+  { key: 'active',   label: 'כולם' },
   { key: 'pending',  label: 'ממתינים' },
   { key: 'notified', label: 'הופנו' },
-  { key: 'booked',   label: 'הוזמנו' },
-  { key: 'declined', label: 'סירבו' },
-  { key: 'expired',  label: 'פגו' },
 ]
 
 const TIME_OPTIONS = Array.from({ length: 29 }, (_, i) => {
@@ -35,7 +32,7 @@ const TIME_OPTIONS = Array.from({ length: 29 }, (_, i) => {
 
 export function Waitlist() {
   const navigate = useNavigate()
-  const [statusTab, setStatusTab] = useState('all')
+  const [statusTab, setStatusTab] = useState('active')
   const { entries, loading, removeEntry, addEntry, refetch } = useWaitlist({ statusFilter: statusTab })
   const showToast = useToast()
 
@@ -109,7 +106,7 @@ export function Waitlist() {
           <div className="text-5xl mb-3">📋</div>
           <p className="font-bold" style={{ color: 'var(--color-text)' }}>אין רשומות</p>
           <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
-            לקוחות יצטרפו לרשימה כשיום מלא
+            אין לקוחות ברשימת ההמתנה כרגע
           </p>
         </div>
       ) : (
