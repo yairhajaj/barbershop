@@ -7,6 +7,13 @@ import { formatILS, getBiMonthlyPeriods, hasVat, downloadCSV } from '../../../li
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
+import {
+  downloadOpenFormat,
+  validateOpenFormatSettings,
+  printSection26,
+  buildSection26Report,
+  generateSampleFiles,
+} from '../../../lib/bookxTaxExport'
 
 const PERIOD_TYPES = [
   { value: 'monthly',    label: 'חודשי' },
@@ -68,6 +75,12 @@ export function TaxReportTab() {
   const [periodIdx, setPeriodIdx]     = useState(0)
   const [loading, setLoading]         = useState(false)
   const [showAccountant, setShowAccountant] = useState(false)
+  const [exportLoading, setExportLoading]   = useState(false)
+  const [sampleLoading, setSampleLoading]   = useState(false)
+  const [exportWarnings, setExportWarnings] = useState([])
+
+  const exportFrom = currentPeriod?.startDate
+  const exportTo   = currentPeriod?.endDate
 
   const [incomeRows, setIncomeRows]     = useState([])
   const [expenseRows, setExpenseRows]   = useState([])
@@ -204,6 +217,52 @@ export function TaxReportTab() {
     const intl  = phone.startsWith('0') ? `972${phone.slice(1)}` : phone
     window.open(`https://wa.me/${intl}?text=${encodeURIComponent(buildWhatsAppText())}`, '_blank')
     setShowAccountant(false)
+  }
+
+  async function handleExportOpenFrmt() {
+    if (!exportFrom || !exportTo) return
+    const { valid, errors, warnings } = validateOpenFormatSettings(settings || {})
+    setExportWarnings(warnings || [])
+    if (!valid) { showToast({ message: errors[0], type: 'error' }); return }
+    setExportLoading(true)
+    try {
+      const { report, primaryId } = await downloadOpenFormat({ from: exportFrom, to: exportTo, settings })
+      showToast({ message: `קובץ אחיד הופק בהצלחה — ${report.totals.C100} מסמכים`, type: 'success' })
+    } catch (err) {
+      showToast({ message: err.message, type: 'error' })
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  function handlePrintSection26() {
+    if (!settings) return
+    const report = buildSection26Report({
+      settings,
+      from: exportFrom,
+      to:   exportTo,
+      counts: { C100: 0, D110: 0, D120: 0, M100: 0 },
+      primaryId: '—',
+    })
+    printSection26(report)
+  }
+
+  async function handleExportSample() {
+    setSampleLoading(true)
+    try {
+      const { blob, totalRecords } = await generateSampleFiles(500)
+      const url = URL.createObjectURL(blob)
+      const a   = document.createElement('a')
+      a.href    = url
+      a.download = 'BOOKX_DEMO_simulator.zip'
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast({ message: `קובץ דמה הופק — ${totalRecords} רשומות`, type: 'success' })
+    } catch (err) {
+      showToast({ message: err.message, type: 'error' })
+    } finally {
+      setSampleLoading(false)
+    }
   }
 
   return (
@@ -353,6 +412,49 @@ export function TaxReportTab() {
               style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
               📥 ייצוא CSV
             </button>
+          </div>
+
+          {/* OPENFRMT export card */}
+          <div className="card p-4" style={{ border: '1px solid var(--color-border)' }}>
+            <p className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+              📁 ייצוא קובץ אחיד — רשות המסים (OPENFRMT 1.31)
+            </p>
+            <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
+              תקופה: {currentPeriod?.label}
+              {settings?.last_openfrmt_export_at && (
+                <span className="mr-3">• ייצוא אחרון: {new Date(settings.last_openfrmt_export_at).toLocaleDateString('he-IL')}</span>
+              )}
+            </p>
+
+            {exportWarnings.length > 0 && (
+              <div className="rounded-xl p-3 mb-3 text-xs space-y-1"
+                style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', color: '#b45309' }}>
+                {exportWarnings.map((w, i) => <p key={i}>⚠ {w}</p>)}
+              </div>
+            )}
+
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleExportOpenFrmt}
+                disabled={exportLoading}
+                className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: 'var(--color-gold)', color: '#000' }}>
+                {exportLoading ? '⏳ מייצא...' : '⬇ ייצא ZIP'}
+              </button>
+              <button
+                onClick={handlePrintSection26}
+                className="px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                🖨 הדפס דוח 2.6
+              </button>
+              <button
+                onClick={handleExportSample}
+                disabled={sampleLoading}
+                className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                {sampleLoading ? '⏳ מכין...' : '🧪 קובץ דמה לסימולטור'}
+              </button>
+            </div>
           </div>
         </>
       )}

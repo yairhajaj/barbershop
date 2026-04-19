@@ -430,7 +430,7 @@ async function fetchDataset({ from, to }) {
   const endIso   = `${to}T23:59:59`
 
   const [{ data: invoices }, { data: services }] = await Promise.all([
-    supabase.from('invoices').select('*')
+    supabase.from('invoices').select('*, invoice_items(*)')
       .gte('created_at', startIso).lte('created_at', endIso)
       .order('created_at', { ascending: true }),
     supabase.from('services').select('id, name, price').eq('is_active', true),
@@ -443,7 +443,7 @@ async function fetchDataset({ from, to }) {
 }
 
 // ── Build BKMVDATA.TXT ───────────────────────────────────────────
-function buildBkmvdata({ vatId, primaryId, invoices, services, businessType }) {
+export function buildBkmvdata({ vatId, primaryId, invoices, services, businessType }) {
   const lines = []
   let serial = 1
   const counts = { C100: 0, D110: 0, D120: 0, M100: 0, Z900: 1 }
@@ -472,21 +472,27 @@ function buildBkmvdata({ vatId, primaryId, invoices, services, businessType }) {
     }))
     counts.C100++
 
-    // Single aggregate line item
-    lines.push(recordD110({
-      serial: serial++, vatId, primaryId, docType,
-      docNumber: inv.invoice_number,
-      docDate: inv.service_date || inv.created_at,
-      lineNum: 1,
-      itemCode: (inv.service_id || 'SVC').toString().slice(0, 20),
-      itemDescription: inv.service_name || 'שירות ספרות',
-      quantity: 1,
-      unitPrice: beforeVat,
-      discount: 0,
-      lineTotal: beforeVat,
-      vatRate: vatRate > 0,
-    }))
-    counts.D110++
+    // D110 — one per invoice_item row, or aggregate if no items table rows
+    const lineItems = inv.invoice_items && inv.invoice_items.length > 0
+      ? inv.invoice_items
+      : [{ service_id: inv.service_id, name: inv.service_name || 'שירות', quantity: 1, unit_price: beforeVat, line_total: beforeVat }]
+
+    lineItems.forEach((item, idx) => {
+      lines.push(recordD110({
+        serial: serial++, vatId, primaryId, docType,
+        docNumber: inv.invoice_number,
+        docDate: inv.service_date || inv.created_at,
+        lineNum: idx + 1,
+        itemCode: (item.service_id || item.product_id || inv.service_id || 'SVC').toString().slice(0, 20),
+        itemDescription: item.name || inv.service_name || 'שירות',
+        quantity: Number(item.quantity || 1),
+        unitPrice: Number(item.unit_price || beforeVat),
+        discount: 0,
+        lineTotal: Number(item.line_total || beforeVat),
+        vatRate: vatRate > 0,
+      }))
+      counts.D110++
+    })
 
     // Payment (D120) — only when invoice is paid
     if (inv.status === 'paid' || inv.paid_at) {
@@ -526,7 +532,7 @@ function buildBkmvdata({ vatId, primaryId, invoices, services, businessType }) {
 }
 
 // ── Build INI.TXT (A000 + A100 + Z900) ───────────────────────────
-function buildIni({ vatId, primaryId, settings, from, to, counts }) {
+export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
   const lines = []
 
   // A000 — must be first; totalIniRecords includes itself (3)

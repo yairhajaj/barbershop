@@ -2,9 +2,9 @@
 // These values are baked into every build and appear in the A000 record of OPENFRMT files.
 // Fill in manufacturer_vat_id and tax_software_reg_number once you receive them.
 export const OPERATOR = {
-  manufacturer_name:        'יאיר חגג',    // שם יצרן התוכנה
-  manufacturer_vat_id:      '322605098',   // ת.ז יצרן
-  software_name:            'Hajaj Booking',
+  manufacturer_name:        'BOOKX Ltd',    // שם יצרן התוכנה (SaaS)
+  manufacturer_vat_id:      '322605098',   // ת.ז יצרן — יש להחליף במספר עוסק מורשה של BOOKX
+  software_name:            'BOOKX',
   software_version:         '1.0',
   software_type:            2,             // 2 = רב-שנתי
   bookkeeping_type:         1,             // 1 = חד-צדית
