@@ -37,6 +37,21 @@ import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
 
+const FAN_OPEN = {
+  1: [0],
+  2: [-15, 15],
+  3: [-20, 0, 20],
+  4: [-30, -10, 10, 30],
+  5: [-35, -17, 0, 17, 35],
+}
+const FAN_CLOSED = {
+  1: [0],
+  2: [-4, 4],
+  3: [-6, 0, 6],
+  4: [-7, -2, 2, 7],
+  5: [-8, -4, 0, 4, 8],
+}
+
 function FanGallery({ items }) {
   const stageRef = useRef(null)
   const [open, setOpen] = useState(false)
@@ -56,25 +71,44 @@ function FanGallery({ items }) {
   }, [])
 
   const cards = items.slice(0, 5)
+  const n = cards.length
+  const centerIdx = Math.floor(n / 2)
+  const openAngles   = FAN_OPEN[n]   ?? FAN_OPEN[5]
+  const closedAngles = FAN_CLOSED[n] ?? FAN_CLOSED[5]
+
   return (
     <>
-      <div
-        ref={stageRef}
-        className={`v6-fan-stage${open ? ' open' : ''}`}
-        onClick={() => setOpen(o => !o)}
-      >
-        {cards.map((item, i) => (
-          <div
-            key={item.id ?? i}
-            className="v6-fan-card"
-            onClick={open ? e => { e.stopPropagation(); setLightboxIdx(i) } : undefined}
-          >
-            <img className="v6-fan-img" src={item.url} alt={item.caption || ''} loading="lazy" />
-            <div className="v6-fan-overlay">
-              <span className="v6-fan-lbl">{item.caption || ''}</span>
-            </div>
-          </div>
-        ))}
+      <div className="v6-fan-wrap">
+        <div
+          ref={stageRef}
+          className="v6-fan-stage"
+          onClick={() => setOpen(o => !o)}
+        >
+          {cards.map((item, i) => {
+            const angle = open ? openAngles[i] : closedAngles[i]
+            const isCenter = open && i === centerIdx
+            const zIdx = open
+              ? (centerIdx + 1) - Math.abs(i - centerIdx)
+              : n - i
+            return (
+              <div
+                key={item.id ?? i}
+                className={`v6-fan-card${isCenter ? ' v6-fan-card--center' : ''}`}
+                style={{
+                  transform: `translateX(-50%) rotate(${angle}deg)${isCenter ? ' scale(1.05)' : ''}`,
+                  zIndex: zIdx,
+                  transitionDelay: open ? `${i * 0.06}s` : '0s',
+                }}
+                onClick={open ? e => { e.stopPropagation(); setLightboxIdx(i) } : undefined}
+              >
+                <img className="v6-fan-img" src={item.url} alt={item.caption || ''} loading="lazy" />
+                <div className="v6-fan-overlay">
+                  <span className="v6-fan-lbl">{item.caption || ''}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <AnimatePresence>
