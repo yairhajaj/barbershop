@@ -37,25 +37,27 @@ import { format } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 
 
-const FAN_OPEN = {
+const FAN_ANGLES = {
   1: [0],
-  2: [-15, 15],
-  3: [-20, 0, 20],
-  4: [-30, -10, 10, 30],
-  5: [-35, -17, 0, 17, 35],
+  2: [-25, 25],
+  3: [-25, 0, 25],
+  4: [-37, -12, 12, 37],
+  5: [-45, -22, 0, 22, 45],
 }
-const FAN_CLOSED = {
-  1: [0],
-  2: [-4, 4],
-  3: [-6, 0, 6],
-  4: [-7, -2, 2, 7],
-  5: [-8, -4, 0, 4, 8],
+
+const LB_BTN = {
+  background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%',
+  width: 48, height: 48, color: '#fff', fontSize: 22, cursor: 'pointer',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  flexShrink: 0,
 }
 
 function FanGallery({ items }) {
   const stageRef = useRef(null)
   const [open, setOpen] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState(null)
+  const [dir, setDir] = useState(0)
+  const touchStartX = useRef(null)
 
   useEffect(() => {
     if (!stageRef.current) return
@@ -65,7 +67,7 @@ function FanGallery({ items }) {
         setTimeout(() => setOpen(true), 350)
         io.unobserve(el)
       }
-    }, { threshold: 0.38 })
+    }, { threshold: 0.25 })
     io.observe(el)
     return () => io.disconnect()
   }, [])
@@ -73,42 +75,51 @@ function FanGallery({ items }) {
   const cards = items.slice(0, 5)
   const n = cards.length
   const centerIdx = Math.floor(n / 2)
-  const openAngles   = FAN_OPEN[n]   ?? FAN_OPEN[5]
-  const closedAngles = FAN_CLOSED[n] ?? FAN_CLOSED[5]
+  const angles = FAN_ANGLES[n] ?? FAN_ANGLES[5]
+
+  function navigate(delta) {
+    setDir(delta)
+    setLightboxIdx(i => ((i + delta) + n) % n)
+  }
+
+  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return
+    const dx = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(dx) > 40) navigate(dx > 0 ? 1 : -1)
+    touchStartX.current = null
+  }
 
   return (
     <>
       <div className="v6-fan-wrap">
-        <div
-          ref={stageRef}
-          className="v6-fan-stage"
-          onClick={() => setOpen(o => !o)}
-        >
+        <div ref={stageRef} className="v6-fan-stage" onClick={() => setOpen(o => !o)}>
           {cards.map((item, i) => {
-            const angle = open ? openAngles[i] : closedAngles[i]
+            const angle = open ? angles[i] : 0
             const isCenter = open && i === centerIdx
-            const zIdx = open
-              ? (centerIdx + 1) - Math.abs(i - centerIdx)
-              : n - i
+            const zIdx = open ? (centerIdx + 1) - Math.abs(i - centerIdx) : n - i
             return (
-              <div
+              <motion.div
                 key={item.id ?? i}
-                className={`v6-fan-card${isCenter ? ' v6-fan-card--center' : ''}`}
-                style={{
-                  transform: `translateX(-50%) rotate(${angle}deg)${isCenter ? ' scale(1.05)' : ''}`,
-                  zIndex: zIdx,
-                  transitionDelay: open ? `${i * 0.06}s` : '0s',
+                className="v6-fan-card"
+                style={{ transformOrigin: 'bottom center', zIndex: zIdx,
+                  boxShadow: isCenter
+                    ? '0 16px 48px rgba(0,0,0,.55), 0 4px 16px rgba(0,0,0,.30)'
+                    : '0 8px 32px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.18)'
                 }}
-                onClick={open ? e => { e.stopPropagation(); setLightboxIdx(i) } : undefined}
+                animate={{ x: '-50%', rotate: angle, scale: isCenter ? 1.06 : 1 }}
+                transition={{ type: 'spring', stiffness: 180, damping: 22, delay: open ? i * 0.055 : 0 }}
+                onClick={open ? e => { e.stopPropagation(); setDir(0); setLightboxIdx(i) } : undefined}
               >
                 <img className="v6-fan-img" src={item.url} alt={item.caption || ''} loading="lazy" />
                 <div className="v6-fan-overlay">
                   <span className="v6-fan-lbl">{item.caption || ''}</span>
                 </div>
-              </div>
+              </motion.div>
             )
           })}
         </div>
+        <p className="v6-fan-hint">{open ? 'לחץ על תמונה לפתיחה' : 'לחץ לפתיחת הגלריה'}</p>
       </div>
 
       <AnimatePresence>
@@ -116,29 +127,54 @@ function FanGallery({ items }) {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setLightboxIdx(null)}
+            onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
             style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)',
-              zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <button
-              onClick={() => setLightboxIdx(null)}
-              style={{
-                position: 'absolute', top: 16, right: 16,
-                background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%',
-                width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >✕</button>
-            <motion.img
-              src={cards[lightboxIdx]?.url}
-              alt={cards[lightboxIdx]?.caption || ''}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={e => e.stopPropagation()}
-              style={{ maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12 }}
-            />
+            {/* Close */}
+            <button onClick={e => { e.stopPropagation(); setLightboxIdx(null) }}
+              style={{ ...LB_BTN, position: 'absolute', top: 16, right: 16 }}>✕</button>
+
+            {/* Nav row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center' }}
+              onClick={e => e.stopPropagation()}>
+              {n > 1 && <button style={LB_BTN} onClick={() => navigate(-1)}>→</button>}
+
+              <AnimatePresence mode="wait" custom={dir}>
+                <motion.img
+                  key={lightboxIdx}
+                  src={cards[lightboxIdx]?.url}
+                  alt={cards[lightboxIdx]?.caption || ''}
+                  custom={dir}
+                  variants={{
+                    enter: d => ({ opacity: 0, x: d * 80 }),
+                    center: { opacity: 1, x: 0 },
+                    exit: d => ({ opacity: 0, x: d * -80 }),
+                  }}
+                  initial="enter" animate="center" exit="exit"
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ maxWidth: '80vw', maxHeight: '74vh', objectFit: 'contain',
+                    borderRadius: 14, boxShadow: '0 24px 80px rgba(0,0,0,0.6)', flexShrink: 0 }}
+                />
+              </AnimatePresence>
+
+              {n > 1 && <button style={LB_BTN} onClick={() => navigate(1)}>←</button>}
+            </div>
+
+            {/* Caption + counter */}
+            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+              onClick={e => e.stopPropagation()}>
+              {cards[lightboxIdx]?.caption && (
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                  {cards[lightboxIdx].caption}
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>
+                {lightboxIdx + 1} / {n}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -935,11 +971,6 @@ export function HomePage() {
           {/* Fan gallery */}
           {galleryItems.filter(g => g.type === 'image').length > 0 && (
             <FanGallery items={galleryItems.filter(g => g.type === 'image')} />
-          )}
-          {galleryItems.filter(g => g.type === 'image').length > 0 && (
-            <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-muted)', marginBottom: 24, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' }}>
-              לחץ לפתיחה · לחץ שוב לסגירה
-            </p>
           )}
 
           {/* v6 location card */}
