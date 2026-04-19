@@ -305,8 +305,8 @@ export function AdminLayout({ children }) {
             className="fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-3xl overflow-hidden"
             style={{
               background: 'rgba(10,10,10,0.97)',
-              backdropFilter: barBlur,
-              WebkitBackdropFilter: barBlur,
+              backdropFilter: 'blur(32px) saturate(1.8)',
+              WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
               border: '1px solid rgba(255,255,255,0.08)',
               borderBottom: 'none',
               boxShadow: '0 -8px 48px rgba(0,0,0,0.5)',
