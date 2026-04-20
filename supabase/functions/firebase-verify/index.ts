@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const salt        = Deno.env.get('SUPABASE_AUTH_SALT')!
+    const salt        = Deno.env.get('AUTH_SALT')!
     const projectId   = Deno.env.get('FIREBASE_PROJECT_ID')!
 
     // 1. Verify Firebase token
