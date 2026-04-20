@@ -189,9 +189,21 @@ describe('generateBKMV', () => {
     expect(bareNewlines).toBe(false)
   })
 
-  test('second record is C100 (after A100)', () => {
+  test('B110 record is 376 chars', () => {
     const lines = result.text.split('\r\n').filter(Boolean)
-    expect(lines[1].startsWith('C100')).toBe(true)
+    const b110 = lines.find(l => l.startsWith('B110'))
+    expect(b110).toBeDefined()
+    expect(b110.length).toBe(376)
+  })
+
+  test('generates 1 B110 record', () => {
+    expect(result.counts.B110).toBe(1)
+  })
+
+  test('second record is B110, third is C100', () => {
+    const lines = result.text.split('\r\n').filter(Boolean)
+    expect(lines[1].startsWith('B110')).toBe(true)
+    expect(lines[2].startsWith('C100')).toBe(true)
   })
 
   test('last record is Z900', () => {

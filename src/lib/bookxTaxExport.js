@@ -187,7 +187,7 @@ export async function generateSampleFiles(invoiceCount = 500) {
   const yy        = String(now.getFullYear()).slice(-2)
   const dirPrefix = `OPENFRMT/${vatId}.${yy}/${MMDDhhmm}/`
 
-  const totalRecords = counts.C100 + counts.D110 + counts.D120 + counts.M100 + 2 // +A100 +Z900
+  const totalRecords = (counts.B110 || 0) + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 2 // +A100 +Z900
 
   const outer = new JSZip()
   outer.file(dirPrefix + 'INI.TXT',      iniText)

@@ -36,20 +36,15 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// EBCDIC overpunch: last digit encodes value+sign per Israeli Tax Authority convention
-// Positive last-digit 0-9 → { A B C D E F G H I
-// Negative last-digit 0-9 → } J K L M N O P Q R
-const OVERPUNCH_POS = '{ABCDEFGHI'
-const OVERPUNCH_NEG = '}JKLMNOPQR'
+// Numeric monetary field: (length-1) zero-padded digits + sign char (' '=positive, '-'=negative)
+// Example: value=8000, length=15 → "00000000008000 "
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(n * Math.pow(10, decLen))
-  const isNeg = scaled < 0
-  const str = Math.abs(scaled).toString().padStart(totalLen, '0').slice(-totalLen)
-  const lastDigit = parseInt(str[totalLen - 1])
-  const punch = isNeg ? OVERPUNCH_NEG[lastDigit] : OVERPUNCH_POS[lastDigit]
-  return str.slice(0, totalLen - 1) + punch
+  const sign = scaled < 0 ? '-' : ' '
+  const digits = totalLen - 1
+  return Math.abs(scaled).toString().padStart(digits, '0').slice(-digits) + sign
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
@@ -436,6 +431,62 @@ function recordD120({
   return parts.join('').slice(0, 222).padEnd(222, ' ')
 }
 
+// ── Record B110 — Chart of accounts — 376 chars ─────────────────────
+// pos  len  field
+//   0    4  1400 'B110'
+//   4    9  1401 serial
+//  13    9  1402 VAT ID
+//  22   15  1403 account key (str)
+//  37   50  1404 account name (str)
+//  87   15  1405 trial balance code (str)
+// 102   30  1406 trial balance desc (str)
+// 132   50  1407 street (str)
+// 182   10  1408 house no (str)
+// 192   30  1409 city (str)
+// 222    8  1410 postal (str)
+// 230   30  1411 country (str)
+// 260    2  1412 country code (str)
+// 262   15  1413 parent account (str)
+// 277   15  1414 opening balance (num)
+// 292   15  1415 total debit (num)
+// 307   15  1416 total credit (num)
+// 322    4  1417 classification code (num)
+// 326    9  1419 customer/supplier VAT (num)
+// 335    7  1421 branch (str)
+// 342   15  1422 FC balance (num)
+// 357    3  1423 currency code (str)
+// 360   16  1424 future (str)
+// Total: 376
+function recordB110({ serial, vatId, accountKey, accountName }) {
+  const parts = [
+    'B110',                         // 1400: 4
+    padLeft(serial, 9),             // 1401: 9
+    padLeft(vatId, 9),              // 1402: 9
+    padText(accountKey || '', 15),  // 1403: 15
+    padText(accountName || '', 50), // 1404: 50
+    padText('', 15),                // 1405: 15
+    padText('', 30),                // 1406: 30
+    padText('', 50),                // 1407: 50
+    padText('', 10),                // 1408: 10
+    padText('', 30),                // 1409: 30
+    padText('', 8),                 // 1410: 8
+    padText('', 30),                // 1411: 30
+    padText('', 2),                 // 1412: 2
+    padText('', 15),                // 1413: 15
+    numField(0, 13, 2),             // 1414: 15
+    numField(0, 13, 2),             // 1415: 15
+    numField(0, 13, 2),             // 1416: 15
+    padLeft('0', 4),                // 1417: 4
+    padLeft('0', 9),                // 1419: 9
+    padText('', 7),                 // 1421: 7
+    numField(0, 13, 2),             // 1422: 15
+    padText('ILS', 3),              // 1423: 3
+    padText('', 16),                // 1424: 16
+  ]
+  // 4+9+9+15+50+15+30+50+10+30+8+30+2+15+15+15+15+4+9+7+15+3+16 = 376
+  return parts.join('').slice(0, 376).padEnd(376, ' ')
+}
+
 // ── Record M100 — Inventory/Item master — 298 chars ───────────────
 // NOTE: M100 does NOT contain primaryId or BKMVHDL after vatId.
 function recordM100({
@@ -485,10 +536,14 @@ async function fetchDataset({ from, to }) {
 export function buildBkmvdata({ vatId, primaryId, invoices, services, businessType }) {
   const lines = []
   let serial = 1
-  const counts = { C100: 0, D110: 0, D120: 0, M100: 0, Z900: 1 }
+  const counts = { B110: 0, C100: 0, D110: 0, D120: 0, M100: 0, Z900: 1 }
 
   // A100 — first record in BKMVDATA.TXT per spec §6
   lines.push(recordA100({ serial: serial++, vatId, primaryId }))
+
+  // B110 — one dummy revenue account (simulator requires chart of accounts)
+  lines.push(recordB110({ serial: serial++, vatId, accountKey: '1000', accountName: 'Revenue' }))
+  counts.B110++
 
   invoices.forEach((inv) => {
     const docType = inv.is_credit_note
@@ -562,7 +617,7 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
 // ── Build INI.TXT — A000 + summary records (19 chars each) per spec §5 ──────
 // Summary record format: 4-char type code + 15-digit zero-padded count = 19 chars
 export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
-  const totalBkmv = 1 + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 1
+  const totalBkmv = 1 + (counts.B110 || 0) + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 1
 
   const a000 = recordA000({
     primaryId,
@@ -573,7 +628,7 @@ export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
   })
 
   const lines = [a000]
-  for (const type of ['C100', 'D110', 'D120', 'M100']) {
+  for (const type of ['B110', 'C100', 'D110', 'D120', 'M100']) {
     const cnt = counts[type] || 0
     if (cnt > 0) {
       lines.push(type + padLeft(cnt, 15)) // 4 + 15 = 19 chars
