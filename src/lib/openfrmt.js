@@ -8,7 +8,7 @@
  * Key constants:
  *   System constant (fields 1005/1104/1154): '&OF1.31&' (8 chars)
  *   Dates: YYYYMMDD format throughout (fields 1024/1025/1026/1205/1216/1230/1264/1272/1311/1322)
- *   Monetary fields X9(n)v99: always sign char ('+'/'-') + n integer digits + 2 decimal digits
+ *   Numeric fields: n integer digits + decimal digits (zero-padded, no sign character)
  *   Encoding: Windows-1255 / ISO-8859-8-I (use ASCII-only for simulator)
  */
 
@@ -32,14 +32,14 @@ function padText(val, len) {
   const s = (val ?? '').toString().replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// X9(n)v99 format: sign char ('+'/'-') + intLen digits + decLen digits = intLen+decLen+1 chars total
+// Numeric field: intLen integer digits + decLen decimal digits (no decimal point, no sign)
 function numField(val, intLen, decLen = 0) {
+  const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(n * Math.pow(10, decLen))
-  const sign = scaled < 0 ? '-' : '+'
   const abs = Math.abs(scaled).toString()
-  const padded = abs.padStart(intLen + decLen, '0')
-  return sign + padded
+  const padded = abs.padStart(totalLen, '0')
+  return padded.slice(-totalLen)
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
@@ -287,14 +287,14 @@ function recordC100({
     padText(customerPhone || '', 15),          // 1214: 15
     padLeft(customerVatId || '0', 9),          // 1215: 9
     padLeft(docYMD, 8),                        // 1216: 8 value date YYYYMMDD
-    numField(0, 12, 2),                        // 1217: 15 FC amount (+sign+12+2)
+    numField(0, 13, 2),                        // 1217: 15 FC amount
     padText(currency, 3),                      // 1218: 3
-    numField(beforeVat, 12, 2),                // 1219: 15 ⚠
-    numField(0, 12, 2),                        // 1220: 15 discount (0)
-    numField(beforeVat, 12, 2),                // 1221: 15 after discount before VAT
-    numField(vatAmount, 12, 2),                // 1222: 15 VAT
-    numField(total, 12, 2),                    // 1223: 15 ⚠
-    numField(0, 9, 2),                         // 1224: 12 withholding (+sign+9+2)
+    numField(beforeVat, 13, 2),                // 1219: 15 ⚠
+    numField(0, 13, 2),                        // 1220: 15 discount
+    numField(beforeVat, 13, 2),                // 1221: 15 after discount before VAT
+    numField(vatAmount, 13, 2),                // 1222: 15 VAT
+    numField(total, 13, 2),                    // 1223: 15 ⚠
+    numField(0, 10, 2),                        // 1224: 12 withholding
     padText('', 15),                           // 1225: 15
     padText('', 10),                           // 1226: 10
     padText(isCancelled ? 'X' : ' ', 1),       // 1228: 1
@@ -355,10 +355,10 @@ function recordD110({
     padText('', 50),                                   // 1261: 50 mfr name
     padText('', 30),                                   // 1262: 30 product serial
     padText('', 20),                                   // 1263: 20 unit
-    numField(quantity, 13, 3),                         // 1264: 17 qty (+sign+13+3)
-    numField(unitPrice, 12, 2),                        // 1265: 15 unit price (+sign+12+2)
-    numField(discount || 0, 12, 2),                    // 1266: 15 discount (negative if used)
-    numField(lineTotal, 12, 2),                        // 1267: 15 ⚠ (+sign+12+2)
+    numField(quantity, 14, 3),                         // 1264: 17 qty
+    numField(unitPrice, 13, 2),                        // 1265: 15 unit price
+    numField(discount || 0, 13, 2),                    // 1266: 15 discount
+    numField(lineTotal, 13, 2),                        // 1267: 15 ⚠
     padLeft(Math.round(Number(vatRate || 0) * 100), 4),// 1268: 4 e.g. 1800
     padText('', 7),                                    // 1270: 7 branch
     padLeft(dateYMD(docDate), 8),                      // 1272: 8 YYYYMMDD
@@ -414,7 +414,7 @@ function recordD120({
     padLeft(accountNumber || '0', 15),             // 1309: 15
     padLeft(checkNumber || '0', 10),               // 1310: 10
     padLeft(dateYMD(paymentDate || docDate), 8),   // 1311: 8 YYYYMMDD
-    numField(amount, 12, 2),                       // 1312: 15 ⚠ (+sign+12+2)
+    numField(amount, 13, 2),                       // 1312: 15 ⚠
     padLeft('0', 1),                               // 1313: 1
     padText(cardType || '', 20),                   // 1314: 20
     padLeft('0', 1),                               // 1315: 1
@@ -441,10 +441,10 @@ function recordM100({
     padText(itemDescription || '', 50),        // 50 description
     padText('', 15),                           // 15 classification
     padText(unit || '', 20),                   // 20 unit
-    numField(0, 13, 3),                        // 17 opening qty (+sign+13+3)
-    numField(0, 12, 2),                        // 15 opening value (+sign+12+2)
-    numField(unitPrice || 0, 12, 2),           // 15 cost price
-    numField(unitPrice || 0, 12, 2),           // 15 sale price
+    numField(0, 14, 3),                        // 17 opening qty
+    numField(0, 13, 2),                        // 15 opening value
+    numField(unitPrice || 0, 13, 2),           // 15 cost price
+    numField(unitPrice || 0, 13, 2),           // 15 sale price
     padText(currency, 3),                      // 3
     padText('', 50),                           // 50 mfr name
     padText('', 36),                           // 36 future
