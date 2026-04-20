@@ -36,21 +36,14 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric monetary/quantity field — EBCDIC overpunch sign encoding.
-// The LAST character encodes both the final digit AND the sign:
-//   Positive: 0→{  1→A  2→B  3→C  4→D  5→E  6→F  7→G  8→H  9→I
-//   Negative: 0→}  1→J  2→K  3→L  4→M  5→N  6→O  7→P  8→Q  9→R
-// Example: numField(8000, 13, 2) → "00000000000800{" (15 chars)
-const OVERPUNCH_POS = ['{', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
-const OVERPUNCH_NEG = ['}', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']
+// Numeric monetary/quantity field — pure zero-padded digits, no sign character.
+// Spec: "שדות Num — ממולאים באפסים" (fields filled with zeros).
+// Credit notes use doc type 330/305 to indicate sign; amounts are always absolute.
+// Example: numField(80, 13, 2) → "000000000008000" (15 chars, 80.00 ILS)
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
-  const n = Number(val || 0)
-  const scaled = Math.round(n * Math.pow(10, decLen))
-  const isNeg = scaled < 0
-  const digits = Math.abs(scaled).toString().padStart(totalLen, '0').slice(-totalLen)
-  const lastDigit = parseInt(digits[digits.length - 1], 10)
-  return digits.slice(0, -1) + (isNeg ? OVERPUNCH_NEG[lastDigit] : OVERPUNCH_POS[lastDigit])
+  const scaled = Math.round(Math.abs(Number(val || 0)) * Math.pow(10, decLen))
+  return scaled.toString().padStart(totalLen, '0').slice(-totalLen)
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
