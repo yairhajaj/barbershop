@@ -46,6 +46,9 @@ export function AuthProvider({ children }) {
     if (!container) {
       container = document.createElement('div')
       container.id = 'firebase-recaptcha'
+      container.style.position = 'fixed'
+      container.style.top = '-9999px'
+      container.style.left = '-9999px'
       document.body.appendChild(container)
     }
     recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, container, { size: 'invisible' })
