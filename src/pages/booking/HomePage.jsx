@@ -654,7 +654,7 @@ export function HomePage() {
 
           {/* Show upcoming appointment card when user has one */}
           {user && nextAppointment && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
+            <motion.div initial={{ opacity: 0, scale: 0.6 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.3 }} transition={{ type: 'spring', stiffness: 300, damping: 22, mass: 0.8 }}>
               <div
                 className="rounded-3xl p-5"
                 style={
