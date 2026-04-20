@@ -36,13 +36,20 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric field: intLen + decLen digits, zero-padded (Num = ספרות בלבד per spec §4)
+// EBCDIC overpunch: last digit encodes value+sign per Israeli Tax Authority convention
+// Positive last-digit 0-9 → { A B C D E F G H I
+// Negative last-digit 0-9 → } J K L M N O P Q R
+const OVERPUNCH_POS = '{ABCDEFGHI'
+const OVERPUNCH_NEG = '}JKLMNOPQR'
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
-  const scaled = Math.round(Math.abs(n) * Math.pow(10, decLen))
-  const abs = scaled.toString()
-  return abs.padStart(totalLen, '0').slice(-totalLen)
+  const scaled = Math.round(n * Math.pow(10, decLen))
+  const isNeg = scaled < 0
+  const str = Math.abs(scaled).toString().padStart(totalLen, '0').slice(-totalLen)
+  const lastDigit = parseInt(str[totalLen - 1])
+  const punch = isNeg ? OVERPUNCH_NEG[lastDigit] : OVERPUNCH_POS[lastDigit]
+  return str.slice(0, totalLen - 1) + punch
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
