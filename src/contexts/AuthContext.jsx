@@ -1,18 +1,22 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
+import { firebaseAuth } from '../lib/firebase'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
-// Generate a deterministic email from phone number for Supabase auth
-function phoneToEmail(phone) {
-  const clean = phone.replace(/[^0-9]/g, '')
-  return `${clean}@barbershop.users`
+function formatPhoneForFirebase(phone) {
+  const digits = phone.replace(/[^0-9]/g, '')
+  if (digits.startsWith('0')) return '+972' + digits.slice(1)
+  if (digits.startsWith('972')) return '+' + digits
+  return '+' + digits
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const recaptchaRef          = useRef(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,38 +40,55 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }
 
-  async function signUp({ phone, password, name, birthDate, gender, termsAccepted }) {
-    const email = phoneToEmail(phone)
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id, name, phone, role: 'customer',
-        birth_date: birthDate || null,
-        gender: gender || null,
-        terms_accepted: termsAccepted || false,
-        terms_accepted_at: termsAccepted ? new Date().toISOString() : null,
-        password_plain: password,
-      })
+  function getRecaptchaVerifier() {
+    if (recaptchaRef.current) return recaptchaRef.current
+    let container = document.getElementById('firebase-recaptcha')
+    if (!container) {
+      container = document.createElement('div')
+      container.id = 'firebase-recaptcha'
+      document.body.appendChild(container)
     }
-    return data
+    recaptchaRef.current = new RecaptchaVerifier(firebaseAuth, container, { size: 'invisible' })
+    return recaptchaRef.current
   }
 
-  async function signIn({ phone, password }) {
-    const email = phoneToEmail(phone)
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-    return data
+  async function sendOtp(phone) {
+    const formatted = formatPhoneForFirebase(phone)
+    const verifier  = getRecaptchaVerifier()
+    const confirmation = await signInWithPhoneNumber(firebaseAuth, formatted, verifier)
+    return confirmation
+  }
+
+  async function verifyOtpAndLogin(confirmationResult, code, profileData = null) {
+    const { user: fbUser } = await confirmationResult.confirm(code)
+    const idToken = await fbUser.getIdToken()
+
+    const { data, error } = await supabase.functions.invoke('firebase-verify', {
+      body: { idToken, profileData },
+    })
+    if (error) {
+      let msg = 'שגיאת התחברות'
+      try { const b = await error.context?.json(); msg = b?.error || msg } catch {}
+      throw new Error(msg)
+    }
+    if (data?.error) throw new Error(data.error)
+
+    const { error: sessionErr } = await supabase.auth.setSession({
+      access_token:  data.access_token,
+      refresh_token: data.refresh_token,
+    })
+    if (sessionErr) throw sessionErr
   }
 
   async function signOut() {
     await supabase.auth.signOut()
+    await firebaseAuth.signOut()
   }
 
   const isAdmin = profile?.role === 'admin'
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, sendOtp, verifyOtpAndLogin, signOut, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   )

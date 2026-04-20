@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../components/ui/Toast'
 import { Spinner } from '../../components/ui/Spinner'
 import { BUSINESS } from '../../config/business'
-import { supabase } from '../../lib/supabase'
 
 const GENDERS = [
   { value: 'male',   label: 'זכר' },
@@ -16,47 +15,30 @@ const GENDERS = [
 export function Register() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
-    name: '', phone: '', password: '', confirmPassword: '',
-    birthDate: '', gender: '', termsAccepted: false,
+    name: '', phone: '', birthDate: '', gender: '', termsAccepted: false,
   })
-  const [code, setCode]         = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [cooldown, setCooldown] = useState(0)
-  const cooldownRef             = useRef(null)
+  const [code, setCode]             = useState('')
+  const [confirmation, setConfirmation] = useState(null)
+  const [loading, setLoading]       = useState(false)
 
-  const { signUp }         = useAuth()
-  const navigate           = useNavigate()
-  const [searchParams]     = useSearchParams()
-  const toast              = useToast()
-  const redirect           = searchParams.get('redirect') ?? '/'
-
-  useEffect(() => () => clearInterval(cooldownRef.current), [])
-
-  function startCooldown() {
-    setCooldown(60)
-    cooldownRef.current = setInterval(() => {
-      setCooldown(prev => {
-        if (prev <= 1) { clearInterval(cooldownRef.current); return 0 }
-        return prev - 1
-      })
-    }, 1000)
-  }
+  const { sendOtp, verifyOtpAndLogin } = useAuth()
+  const navigate                       = useNavigate()
+  const [searchParams]                 = useSearchParams()
+  const toast                          = useToast()
+  const redirect                       = searchParams.get('redirect') ?? '/'
 
   async function handleStep1(e) {
     e.preventDefault()
     const cleanPhone = form.phone.replace(/[^0-9]/g, '')
     if (cleanPhone.length < 9) { toast({ message: 'מספר טלפון לא תקין', type: 'error' }); return }
-    if (form.password !== form.confirmPassword) { toast({ message: 'הסיסמאות אינן תואמות', type: 'error' }); return }
-    if (form.password.length < 6) { toast({ message: 'הסיסמה חייבת להכיל לפחות 6 תווים', type: 'error' }); return }
     if (!form.termsAccepted) { toast({ message: 'יש לאשר את תנאי השימוש', type: 'error' }); return }
 
     setLoading(true)
     try {
-      const { error } = await supabase.functions.invoke('send-otp', { body: { phone: form.phone, purpose: 'register' } })
-      if (error) throw error
-      toast({ message: 'קוד אימות נשלח ב-WhatsApp!', type: 'success' })
+      const result = await sendOtp(form.phone)
+      setConfirmation(result)
       setStep(2)
-      startCooldown()
+      toast({ message: 'קוד אימות נשלח ב-SMS', type: 'success' })
     } catch (err) {
       toast({ message: err.message ?? 'שגיאה בשליחת הקוד', type: 'error' })
     } finally {
@@ -65,12 +47,11 @@ export function Register() {
   }
 
   async function handleResend() {
-    if (cooldown > 0) return
     setLoading(true)
     try {
-      await supabase.functions.invoke('send-otp', { body: { phone: form.phone, purpose: 'register' } })
+      const result = await sendOtp(form.phone)
+      setConfirmation(result)
       toast({ message: 'קוד חדש נשלח!', type: 'success' })
-      startCooldown()
     } catch (err) {
       toast({ message: err.message ?? 'שגיאה בשליחת הקוד', type: 'error' })
     } finally {
@@ -84,32 +65,13 @@ export function Register() {
 
     setLoading(true)
     try {
-      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke('verify-otp', {
-        body: { phone: form.phone, code, purpose: 'register' },
-      })
-      if (verifyErr) throw verifyErr
-      if (!verifyData?.valid) throw new Error(verifyData?.error ?? 'קוד שגוי')
-
-      const data = await signUp({
-        name: form.name,
-        phone: form.phone,
-        password: form.password,
-        birthDate: form.birthDate || null,
-        gender: form.gender || null,
+      await verifyOtpAndLogin(confirmation, code, {
+        name:          form.name,
+        phone:         form.phone,
+        birthDate:     form.birthDate || null,
+        gender:        form.gender || null,
         termsAccepted: form.termsAccepted,
       })
-      // Migrate guest profile (manually created by admin) → new auth profile
-      if (data?.user?.id) {
-        const cleanPhone = form.phone.replace(/\D/g, '')
-        const { data: guest } = await supabase.from('profiles').select('id').eq('phone', cleanPhone).eq('is_guest', true).maybeSingle()
-        if (guest) {
-          await Promise.all([
-            supabase.from('appointments').update({ customer_id: data.user.id }).eq('customer_id', guest.id),
-            supabase.from('customer_debts').update({ customer_id: data.user.id }).eq('customer_id', guest.id),
-          ])
-          await supabase.from('profiles').delete().eq('id', guest.id)
-        }
-      }
       toast({ message: 'נרשמת בהצלחה! ברוך הבא 👋', type: 'success' })
       navigate(redirect, { replace: true })
     } catch (err) {
@@ -160,7 +122,7 @@ export function Register() {
           <span className="text-xs text-muted mr-2">שלב {step} מתוך 2</span>
         </div>
 
-        {/* Step 1 */}
+        {/* Step 1 — details */}
         {step === 1 && (
           <form onSubmit={handleStep1} className="flex flex-col gap-4">
             <div>
@@ -173,6 +135,7 @@ export function Register() {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 required
+                autoFocus
               />
             </div>
 
@@ -188,32 +151,6 @@ export function Register() {
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 required
                 dir="ltr"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">סיסמה</label>
-              <input
-                className="input"
-                type="password"
-                autoComplete="new-password"
-                placeholder="לפחות 6 תווים"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">אישור סיסמה</label>
-              <input
-                className="input"
-                type="password"
-                autoComplete="new-password"
-                placeholder="••••••••"
-                value={form.confirmPassword}
-                onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))}
-                required
               />
             </div>
 
@@ -265,19 +202,17 @@ export function Register() {
             </label>
 
             <button type="submit" className="btn-primary justify-center mt-2" disabled={loading}>
-              {loading ? <Spinner size="sm" className="border-white border-t-transparent" /> : 'שלח קוד אימות ב-WhatsApp'}
+              {loading ? <Spinner size="sm" className="border-white border-t-transparent" /> : 'שלח קוד אימות SMS'}
             </button>
           </form>
         )}
 
-        {/* Step 2 */}
+        {/* Step 2 — OTP */}
         {step === 2 && (
           <form onSubmit={handleStep2} className="flex flex-col gap-5">
             <div className="text-center">
-              <div className="text-4xl mb-2">💬</div>
-              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-                שלחנו קוד אימות ב-WhatsApp למספר
-              </p>
+              <div className="text-4xl mb-2">📱</div>
+              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>שלחנו קוד אימות ב-SMS למספר</p>
               <p className="font-semibold mt-1" dir="ltr">{form.phone}</p>
             </div>
 
@@ -301,22 +236,11 @@ export function Register() {
             </button>
 
             <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={cooldown > 0 || loading}
-                className="text-sm"
-                style={{ color: cooldown > 0 ? 'var(--color-muted)' : 'var(--color-gold)' }}
-              >
-                {cooldown > 0 ? `שלח שוב (${cooldown}s)` : 'שלח שוב'}
+              <button type="button" onClick={handleResend} disabled={loading} className="text-sm" style={{ color: 'var(--color-gold)' }}>
+                שלח שוב
               </button>
               <span style={{ color: 'var(--color-border)' }}>|</span>
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="text-sm"
-                style={{ color: 'var(--color-muted)' }}
-              >
+              <button type="button" onClick={() => setStep(1)} className="text-sm" style={{ color: 'var(--color-muted)' }}>
                 ← חזור
               </button>
             </div>
