@@ -539,26 +539,6 @@ export function HomePage() {
 
         {/* Hero brand */}
         <div id="v6-hero-brand" className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5, paddingBottom: 24 }}>
-          {/* Logo mark */}
-          <motion.div
-            initial={{ scale: 0.7, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1], delay: 0.15 }}
-            className="flex items-center justify-center overflow-hidden"
-            style={{
-              width: 60, height: 60, borderRadius: 16, marginBottom: 18,
-              background: 'rgba(255,255,255,0.10)',
-              backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.20)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.20)',
-            }}
-          >
-            {logoUrl
-              ? <img src={logoUrl} alt="logo" style={{ width: 38, height: 38, objectFit: 'contain', borderRadius: 8 }} />
-              : <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.01em', color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,0.4)' }}>{BUSINESS.logoText}</span>
-            }
-          </motion.div>
-
           {/* Eyebrow */}
           <motion.p
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
