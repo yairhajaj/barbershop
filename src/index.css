@@ -1540,3 +1540,5 @@
   transform: scale(.85) rotate(-15deg) !important;
   transition-duration: .1s !important;
 }
+
+.grecaptcha-badge { visibility: hidden !important; }
