@@ -3,6 +3,7 @@
 // Fill in manufacturer_vat_id and tax_software_reg_number once you receive them.
 export const OPERATOR = {
   manufacturer_name:        'חגג יאיר',    // שם יצרן התוכנה
+  manufacturer_name_ascii:  'Hagag Yair',  // ASCII for OPENFRMT A000 field 1010
   manufacturer_vat_id:      '322605098',   // מספר עוסק יצרן התוכנה
   software_name:            'BOOKX',
   software_version:         '1.0',

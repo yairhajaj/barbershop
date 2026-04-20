@@ -20,8 +20,12 @@ const CRLF     = '\r\n'
 const BKMV_HDL = '&OF1.31&' // 8 chars — field 1005/1104/1154
 
 // ── Padding helpers ──────────────────────────────────────────────
+// Strip non-ASCII so Hebrew/Unicode chars don't inflate byte count in UTF-8 output
+function toAscii(s) {
+  return s.replace(/[^\x00-\x7F]/g, ' ')
+}
 function padRight(val, len) {
-  const s = (val ?? '').toString().slice(0, len)
+  const s = toAscii((val ?? '').toString()).slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
 function padLeft(val, len) {
@@ -29,17 +33,19 @@ function padLeft(val, len) {
   return '0'.repeat(Math.max(0, len - s.length)) + s
 }
 function padText(val, len) {
-  const s = (val ?? '').toString().replace(/[\r\n\t]/g, ' ').slice(0, len)
+  const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric field: intLen integer digits + decLen decimal digits (no decimal point, no sign)
+// Numeric field: (intLen + decLen - 1) digits + 1 sign char (' ' positive, '-' negative)
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(n * Math.pow(10, decLen))
+  const sign = scaled < 0 ? '-' : ' '
   const abs = Math.abs(scaled).toString()
-  const padded = abs.padStart(totalLen, '0')
-  return padded.slice(-totalLen)
+  const digits = totalLen - 1
+  const padded = abs.padStart(digits, '0').slice(-digits)
+  return padded + sign
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
@@ -145,11 +151,11 @@ function recordA000({
     padLeft(vatId, 9),                                                   // 1003: 9
     padLeft(primaryId, 15),                                              // 1004: 15
     padText(BKMV_HDL, 8),                                                // 1005: 8
-    padLeft(OPERATOR.tax_software_reg_number || '0', 8),                 // 1006: 8
+    padLeft(OPERATOR.tax_software_reg_number || '1', 8),                 // 1006: 8 (min 00000001)
     padText(OPERATOR.software_name, 20),                                 // 1007: 20
     padText(OPERATOR.software_version, 20),                              // 1008: 20
     padLeft(OPERATOR.manufacturer_vat_id || '0', 9),                     // 1009: 9
-    padText(OPERATOR.manufacturer_name, 20),                             // 1010: 20
+    padText(OPERATOR.manufacturer_name_ascii || OPERATOR.manufacturer_name, 20), // 1010: 20
     padLeft(OPERATOR.software_type || '1', 1),                           // 1011: 1
     padText('', 50),                                                     // 1012: 50 path
     padLeft(OPERATOR.bookkeeping_type || '1', 1),                        // 1013: 1
@@ -295,7 +301,7 @@ function recordC100({
     numField(vatAmount, 13, 2),                // 1222: 15 VAT
     numField(total, 13, 2),                    // 1223: 15 ⚠
     numField(0, 10, 2),                        // 1224: 12 withholding
-    padText('', 15),                           // 1225: 15
+    padLeft(customerVatId || '1', 15),         // 1225: 15 customer key
     padText('', 10),                           // 1226: 10
     padText(isCancelled ? 'X' : ' ', 1),       // 1228: 1
     padLeft(genYMD, 8),                        // 1230: 8 YYYYMMDD
@@ -351,7 +357,7 @@ function recordD110({
     padText('', 20),                                   // 1257: 20 base doc number
     padLeft(Number(vatRate) > 0 ? '1' : '2', 1),      // 1258: 1 taxable/exempt
     padText(itemCode || '', 20),                       // 1259: 20
-    padText(itemDescription || '', 30),                // 1260: 30
+    padText(itemDescription || 'Service', 30),         // 1260: 30
     padText('', 50),                                   // 1261: 50 mfr name
     padText('', 30),                                   // 1262: 30 product serial
     padText('', 20),                                   // 1263: 20 unit
@@ -430,26 +436,26 @@ function recordD120({
 // NOTE: M100 does NOT contain primaryId or BKMVHDL after vatId.
 function recordM100({
   serial, vatId, itemCode, itemDescription,
-  unit, unitPrice, currency = 'ILS',
+  unit, unitPrice,
 }) {
+  const code = itemCode ? itemCode.replace(/[^\x00-\x7F]/g, '').trim() || 'SERVICE001' : 'SERVICE001'
   const parts = [
     'M100',                                    // 4
     padLeft(serial, 9),                        // 9
     padLeft(vatId, 9),                         // 9 → pos 22
-    padText(itemCode || '', 20),               // 20 item code
+    padText(code, 20),                         // 20 item code (field 1455)
     padText('', 20),                           // 20 supplier code
-    padText(itemDescription || '', 50),        // 50 description
+    padText(itemDescription || 'Service', 50), // 50 description
     padText('', 15),                           // 15 classification
     padText(unit || '', 20),                   // 20 unit
-    numField(0, 14, 3),                        // 17 opening qty
-    numField(0, 13, 2),                        // 15 opening value
-    numField(unitPrice || 0, 13, 2),           // 15 cost price
-    numField(unitPrice || 0, 13, 2),           // 15 sale price
-    padText(currency, 3),                      // 3
+    numField(0, 14, 3),                        // 17 opening qty    (field 1460)
+    numField(0, 13, 2),                        // 15 opening value  (field 1461)
+    numField(unitPrice || 0, 13, 2),           // 15 cost price     (field 1462)
+    numField(unitPrice || 0, 13, 2),           // 15 sale price     (field 1463)
     padText('', 50),                           // 50 mfr name
-    padText('', 36),                           // 36 future
+    padText('', 39),                           // 39 future (36 + 3 freed from removed currency)
   ]
-  // 4+9+9+20+20+50+15+20+17+15+15+15+3+50+36 = 298
+  // 4+9+9+20+20+50+15+20+17+15+15+15+50+39 = 298
   return parts.join('').slice(0, 298).padEnd(298, ' ')
 }
 
