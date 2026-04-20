@@ -36,14 +36,16 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric monetary/quantity field — pure zero-padded digits, no sign character.
-// Spec: "שדות Num — ממולאים באפסים" (fields filled with zeros).
-// Credit notes use doc type 330/305 to indicate sign; amounts are always absolute.
-// Example: numField(80, 13, 2) → "000000000008000" (15 chars, 80.00 ILS)
+// Numeric monetary/quantity field: (N-1) zero-padded digits + sign char at end.
+// Sign char: '+' for positive/zero, '-' for negative.
+// Example: numField(80, 13, 2) → "00000000008000+" (14 digits + '+' = 15 chars)
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
-  const scaled = Math.round(Math.abs(Number(val || 0)) * Math.pow(10, decLen))
-  return scaled.toString().padStart(totalLen, '0').slice(-totalLen)
+  const n = Number(val || 0)
+  const scaled = Math.round(n * Math.pow(10, decLen))
+  const isNeg = scaled < 0
+  const digits = totalLen - 1
+  return Math.abs(scaled).toString().padStart(digits, '0').slice(-digits) + (isNeg ? '-' : '+')
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
