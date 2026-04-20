@@ -36,15 +36,21 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric monetary field: (length-1) zero-padded digits + sign char (' '=positive, '-'=negative)
-// Example: value=8000, length=15 → "00000000008000 "
+// Numeric monetary/quantity field — EBCDIC overpunch sign encoding.
+// The LAST character encodes both the final digit AND the sign:
+//   Positive: 0→{  1→A  2→B  3→C  4→D  5→E  6→F  7→G  8→H  9→I
+//   Negative: 0→}  1→J  2→K  3→L  4→M  5→N  6→O  7→P  8→Q  9→R
+// Example: numField(8000, 13, 2) → "00000000000800{" (15 chars)
+const OVERPUNCH_POS = ['{', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
+const OVERPUNCH_NEG = ['}', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(n * Math.pow(10, decLen))
-  const sign = scaled < 0 ? '-' : ' '
-  const digits = totalLen - 1
-  return Math.abs(scaled).toString().padStart(digits, '0').slice(-digits) + sign
+  const isNeg = scaled < 0
+  const digits = Math.abs(scaled).toString().padStart(totalLen, '0').slice(-totalLen)
+  const lastDigit = parseInt(digits[digits.length - 1], 10)
+  return digits.slice(0, -1) + (isNeg ? OVERPUNCH_NEG[lastDigit] : OVERPUNCH_POS[lastDigit])
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
@@ -464,8 +470,8 @@ function recordB110({ serial, vatId, accountKey, accountName }) {
     padLeft(vatId, 9),              // 1402: 9
     padText(accountKey || '', 15),  // 1403: 15
     padText(accountName || '', 50), // 1404: 50
-    padText('', 15),                // 1405: 15
-    padText('', 30),                // 1406: 30
+    padText('1000', 15),            // 1405: 15 trial balance code (mandatory, non-empty)
+    padText('Revenue', 30),        // 1406: 30 trial balance desc (mandatory, non-empty)
     padText('', 50),                // 1407: 50
     padText('', 10),                // 1408: 10
     padText('', 30),                // 1409: 30
