@@ -61,6 +61,13 @@ export function Login() {
     }
   }
 
+  async function extractFnError(err, fallback) {
+    if (err?.context?.json) {
+      try { const b = await err.context.json(); return b.error || fallback } catch {}
+    }
+    return err?.message || fallback
+  }
+
   async function handleFpSendOtp(phone) {
     setFpLoading(true)
     try {
@@ -70,7 +77,7 @@ export function Login() {
       setForgotStep('otp')
       startCooldown()
     } catch (err) {
-      toast({ message: err.message ?? 'שגיאה בשליחת הקוד', type: 'error' })
+      toast({ message: await extractFnError(err, 'שגיאה בשליחת הקוד'), type: 'error' })
     } finally {
       setFpLoading(false)
     }
@@ -88,7 +95,7 @@ export function Login() {
       if (!data?.valid) throw new Error(data?.error ?? 'קוד שגוי')
       setForgotStep('password')
     } catch (err) {
-      toast({ message: err.message ?? 'קוד שגוי', type: 'error' })
+      toast({ message: await extractFnError(err, 'קוד שגוי'), type: 'error' })
     } finally {
       setFpLoading(false)
     }
@@ -107,7 +114,7 @@ export function Login() {
       if (data?.error) throw new Error(data.error)
       setForgotStep('done')
     } catch (err) {
-      toast({ message: err.message ?? 'שגיאה באיפוס הסיסמה', type: 'error' })
+      toast({ message: await extractFnError(err, 'שגיאה באיפוס הסיסמה'), type: 'error' })
     } finally {
       setFpLoading(false)
     }

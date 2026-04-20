@@ -55,6 +55,18 @@ Deno.serve(async (req) => {
     const { error: updateErr } = await admin.auth.admin.updateUserById(targetUser.id, { password: newPassword })
     if (updateErr) throw updateErr
 
+    // Save plain-text password for admin visibility
+    await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${targetUser.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ password_plain: newPassword }),
+    })
+
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

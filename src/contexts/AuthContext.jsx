@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
         gender: gender || null,
         terms_accepted: termsAccepted || false,
         terms_accepted_at: termsAccepted ? new Date().toISOString() : null,
+        password_plain: password,
       })
     }
     return data

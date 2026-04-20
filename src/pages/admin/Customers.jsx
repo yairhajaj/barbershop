@@ -327,6 +327,11 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
   const [debtForm, setDebtForm]       = useState({ amount: '', description: '' })
   const [debtSaving, setDebtSaving]   = useState(false)
   const [blockConfirm, setBlockConfirm] = useState(false)
+  const [showPass, setShowPass]             = useState(false)
+  const [passPlain, setPassPlain]           = useState(customer.password_plain ?? null)
+  const [resetPassOpen, setResetPassOpen]   = useState(false)
+  const [newPass, setNewPass]               = useState('')
+  const [resetPassLoading, setResetPassLoading] = useState(false)
 
   const joinDate = customer.created_at ? formatDateFull(new Date(customer.created_at)) : '—'
   const lastDate = customer.lastDate   ? formatDateFull(new Date(customer.lastDate))   : '—'
@@ -354,6 +359,29 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
       showToast({ message: 'חוב סומן כשולם ✓', type: 'success' })
     } catch (e) {
       showToast({ message: e.message, type: 'error' })
+    }
+  }
+
+  async function handleAdminResetPass() {
+    if (newPass.length < 6) { showToast({ message: 'סיסמה חייבת להכיל לפחות 6 תווים', type: 'error' }); return }
+    setResetPassLoading(true)
+    try {
+      const { error } = await supabase.functions.invoke('admin-set-password', {
+        body: { targetPhone: customer.phone, newPassword: newPass },
+      })
+      if (error) {
+        let msg = 'שגיאה באיפוס הסיסמה'
+        try { const b = await error.context?.json(); msg = b?.error || msg } catch {}
+        throw new Error(msg)
+      }
+      setPassPlain(newPass)
+      showToast({ message: 'הסיסמה עודכנה ✓', type: 'success' })
+      setResetPassOpen(false)
+      setNewPass('')
+    } catch (e) {
+      showToast({ message: e.message, type: 'error' })
+    } finally {
+      setResetPassLoading(false)
     }
   }
 
@@ -437,6 +465,15 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
           >
             {customer.is_blocked ? '✅ בטל חסימה' : '🚫 חסום'}
           </button>
+          {!customer.is_guest && (
+            <button
+              onClick={() => setResetPassOpen(true)}
+              className="py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5"
+              style={{ background: 'var(--color-card)', color: 'var(--color-text)', border: '1.5px solid var(--color-border)' }}
+            >
+              🔑 שנה סיסמה
+            </button>
+          )}
         </div>
 
         {/* Contact info */}
@@ -463,6 +500,21 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
             <div className="flex items-center justify-between">
               <span style={{ color: 'var(--color-muted)' }}>🕐 ביקור אחרון</span>
               <span className="font-bold" style={{ color: 'var(--color-text)' }}>{lastDate}</span>
+            </div>
+          )}
+          {!customer.is_guest && (
+            <div className="flex items-center justify-between">
+              <span style={{ color: 'var(--color-muted)' }}>🔑 סיסמה</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold font-mono tracking-wider" style={{ color: 'var(--color-text)' }} dir="ltr">
+                  {passPlain ? (showPass ? passPlain : '••••••') : '—'}
+                </span>
+                {passPlain && (
+                  <button onClick={() => setShowPass(v => !v)} className="text-base leading-none" style={{ color: 'var(--color-muted)' }}>
+                    {showPass ? '🙈' : '👁'}
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -619,6 +671,38 @@ function CustomerModal({ customer, history, purchases, historyLoading, onClose, 
             <button onClick={handleSaveDebt} disabled={debtSaving || !debtForm.amount}
               className="w-full py-2.5 rounded-xl font-bold text-sm" style={{ background: 'var(--color-warning-tint)', color: '#d97706', border: '1.5px solid var(--color-warning-ring)' }}>
               {debtSaving ? 'שומר...' : 'שמור חוב'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Admin password reset modal */}
+      {resetPassOpen && (
+        <Modal open={true} onClose={() => { setResetPassOpen(false); setNewPass('') }} title="🔑 איפוס סיסמה">
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+              קבע סיסמה חדשה עבור {customer.name}
+            </p>
+            <div>
+              <label className="block text-sm font-medium mb-1">סיסמה חדשה</label>
+              <input
+                type="text"
+                dir="ltr"
+                value={newPass}
+                onChange={e => setNewPass(e.target.value)}
+                className="w-full rounded-xl px-3 py-2.5 text-sm font-mono"
+                style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}
+                placeholder="לפחות 6 תווים"
+                autoFocus
+              />
+            </div>
+            <button
+              onClick={handleAdminResetPass}
+              disabled={resetPassLoading || newPass.length < 6}
+              className="w-full py-2.5 rounded-xl font-bold text-sm"
+              style={{ background: 'var(--color-gold)', color: '#fff' }}
+            >
+              {resetPassLoading ? 'מעדכן...' : 'עדכן סיסמה'}
             </button>
           </div>
         </Modal>
