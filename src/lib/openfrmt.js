@@ -37,20 +37,15 @@ function padText(val, len) {
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
 // Numeric monetary/quantity field — EBCDIC Overpunch (as required by Israeli Tax Authority).
-// The LAST character encodes both the final digit AND the sign:
-//   Positive: 0→{  1→A  2→B  3→C  4→D  5→E  6→F  7→G  8→H  9→I
-//   Negative: 0→}  1→J  2→K  3→L  4→M  5→N  6→O  7→P  8→Q  9→R
-// Example: numField(80, 13, 2) → "00000000000800{" (14 digits + '{' = 15 chars, 80.00 ILS)
-const OVERPUNCH_POS = ['{', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
-const OVERPUNCH_NEG = ['}', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']
+// Per spec §4: "שדות Num — ממולאים באפסים מימין" — pure zero-padded digits, no sign char.
+// Negative values (credit notes) are indicated via the document type (field 1203), not via
+// an embedded sign char. The simulator rejects any non-digit in Num fields ("ספרות בלבד").
+// Example: numField(80, 13, 2) → "000000000008000" (15 digits, 80.00 ILS)
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
-  const scaled = Math.round(n * Math.pow(10, decLen))
-  const isNeg = scaled < 0
-  const digits = Math.abs(scaled).toString().padStart(totalLen, '0').slice(-totalLen)
-  const lastDigit = parseInt(digits[digits.length - 1], 10)
-  return digits.slice(0, -1) + (isNeg ? OVERPUNCH_NEG[lastDigit] : OVERPUNCH_POS[lastDigit])
+  const scaled = Math.round(Math.abs(n) * Math.pow(10, decLen))
+  return scaled.toString().padStart(totalLen, '0').slice(-totalLen)
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
