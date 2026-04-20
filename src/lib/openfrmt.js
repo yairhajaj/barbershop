@@ -36,16 +36,13 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric field: (intLen + decLen - 1) digits + 1 sign char (' ' positive, '-' negative)
+// Numeric field: intLen + decLen digits, zero-padded (Num = ספרות בלבד per spec §4)
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
-  const scaled = Math.round(n * Math.pow(10, decLen))
-  const sign = scaled < 0 ? '-' : ' '
-  const abs = Math.abs(scaled).toString()
-  const digits = totalLen - 1
-  const padded = abs.padStart(digits, '0').slice(-digits)
-  return padded + sign
+  const scaled = Math.round(Math.abs(n) * Math.pow(10, decLen))
+  const abs = scaled.toString()
+  return abs.padStart(totalLen, '0').slice(-totalLen)
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
@@ -175,7 +172,7 @@ function recordA000({
     padLeft(timeHM(now), 4),                                             // 1027: 4 HHMM
     padLeft('0', 1),                                                     // 1028: 0=Hebrew
     padLeft('1', 1),                                                     // 1029: 1=ISO-8859-8-i
-    padText('', 20),                                                     // 1030: 20
+    padText('ZIP', 20),                                                  // 1030: 20 compression sw (required)
     padText(OPERATOR.leading_currency || 'ILS', 3),                      // 1032: 3
     padLeft(settings.has_branches ? '1' : '0', 1),                      // 1034: 1
     padText('', 46),                                                     // 1035: 46 future
@@ -357,7 +354,7 @@ function recordD110({
     padText('', 20),                                   // 1257: 20 base doc number
     padLeft(Number(vatRate) > 0 ? '1' : '2', 1),      // 1258: 1 taxable/exempt
     padText(itemCode || '', 20),                       // 1259: 20
-    padText(itemDescription || 'Service', 30),         // 1260: 30
+    padText(toAscii(itemDescription || '').trim() || 'Service', 30), // 1260: 30
     padText('', 50),                                   // 1261: 50 mfr name
     padText('', 30),                                   // 1262: 30 product serial
     padText('', 20),                                   // 1263: 20 unit
@@ -414,11 +411,11 @@ function recordD120({
     padLeft(docType, 3),                           // 1303: 3
     padText(docNumber, 20),                        // 1304: 20
     padLeft(lineNum, 4),                           // 1305: 4
-    padLeft(code, 1),                              // 1306: 1
-    padLeft(bankCode || '0', 10),                  // 1307: 10
-    padLeft(branchCode || '0', 10),                // 1308: 10
-    padLeft(accountNumber || '0', 15),             // 1309: 15
-    padLeft(checkNumber || '0', 10),               // 1310: 10
+    padLeft(code, 1),                                       // 1306: 1
+    padLeft(code === 2 ? (bankCode || '12')    : '0', 10), // 1307: 10 (check only)
+    padLeft(code === 2 ? (branchCode || '100') : '0', 10), // 1308: 10
+    padLeft(code === 2 ? (accountNumber || '123456789012345') : '0', 15), // 1309: 15
+    padLeft(code === 2 ? (checkNumber || '1')  : '0', 10), // 1310: 10
     padLeft(dateYMD(paymentDate || docDate), 8),   // 1311: 8 YYYYMMDD
     numField(amount, 13, 2),                       // 1312: 15 ⚠
     padLeft('0', 1),                               // 1313: 1
@@ -544,16 +541,7 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
     }
   })
 
-  services.forEach((svc) => {
-    lines.push(recordM100({
-      serial: serial++, vatId,
-      itemCode:        svc.id.slice(0, 20),
-      itemDescription: svc.name,
-      unit:            'unit',
-      unitPrice:       svc.price,
-    }))
-    counts.M100++
-  })
+  // M100 (inventory) is optional per spec and omitted — service-based businesses don't require it
 
   const totalSoFar = serial - 1
   lines.push(recordZ900({
