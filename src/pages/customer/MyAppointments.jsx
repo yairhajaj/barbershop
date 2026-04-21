@@ -224,7 +224,7 @@ export function MyAppointments() {
     .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
   const past = appointments
-    .filter(a => a.status === 'completed' || a.status === 'cancelled' || (a.status !== 'confirmed' && new Date(a.start_at) <= new Date()))
+    .filter(a => a.status === 'completed' || a.status === 'cancelled' || a.status === 'no_show' || new Date(a.start_at) <= new Date())
     .sort((a, b) => new Date(b.start_at) - new Date(a.start_at))
 
   // Date options for reschedule picker
@@ -390,7 +390,7 @@ export function MyAppointments() {
 
         {/* Past */}
         <section>
-          {!showHistory || past.length === 0 ? (
+          {past.length === 0 ? null : !showHistory ? (
             <button
               onClick={() => setShowHistory(true)}
               className="w-full text-center text-sm font-bold py-3 rounded-2xl transition-all"
@@ -400,9 +400,7 @@ export function MyAppointments() {
                 border: '1px solid var(--color-border)',
               }}
             >
-              {past.length > 0
-                ? `לצפייה בהיסטוריית התורים (${past.length})`
-                : 'לצפייה בהיסטוריית התורים'}
+              {`לצפייה בהיסטוריית התורים (${past.length})`}
             </button>
           ) : (
             <>
