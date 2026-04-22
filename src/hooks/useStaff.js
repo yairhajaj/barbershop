@@ -93,6 +93,14 @@ export function useStaff({ activeOnly = false, branchId = null } = {}) {
     qc.invalidateQueries({ queryKey: ['appointments'] })
   }
 
+  async function toggleActiveStaff(id, active) {
+    const { error } = await supabase.from('staff').update({ is_active: active }).eq('id', id)
+    if (error) throw error
+    qc.invalidateQueries({ queryKey: ['staff'] })
+    qc.invalidateQueries({ queryKey: ['booking-available-staff'] })
+    qc.invalidateQueries({ queryKey: ['appointments'] })
+  }
+
   return {
     staff: query.data ?? [],
     loading: query.isLoading,
@@ -101,5 +109,6 @@ export function useStaff({ activeOnly = false, branchId = null } = {}) {
     upsertStaffMember: upsertMut.mutateAsync,
     deleteStaffMember: deleteMut.mutateAsync,
     deactivateStaff,
+    toggleActiveStaff,
   }
 }

@@ -37,7 +37,7 @@ export function Staff() {
   const { fetchBranchHours, saveBranchHours } = useBusinessSettings()
   const multiBranch = branches.length > 1
 
-  const { staff, loading, upsertStaffMember, deleteStaffMember, refetch } = useStaff({
+  const { staff, loading, upsertStaffMember, deleteStaffMember, toggleActiveStaff, refetch } = useStaff({
     branchId: multiBranch ? null : (currentBranch?.id ?? null),
   })
   const { services } = useServices()
@@ -372,6 +372,7 @@ export function Staff() {
                       onDelete={() => handleDelete(member.id)}
                       onPortfolio={() => setPortfolioMember(member)}
                       onMove={() => setMovingStaff(member)}
+                      onToggleActive={(active) => toggleActiveStaff(member.id, active)}
                     />
                   ))}
                 </div>
@@ -396,6 +397,7 @@ export function Staff() {
                     onDelete={() => handleDelete(member.id)}
                     onPortfolio={() => setPortfolioMember(member)}
                     onMove={() => setMovingStaff(member)}
+                    onToggleActive={(active) => toggleActiveStaff(member.id, active)}
                   />
                 ))}
               </div>
@@ -414,6 +416,7 @@ export function Staff() {
               onDelete={() => handleDelete(member.id)}
               onPortfolio={() => setPortfolioMember(member)}
               onMove={null}
+              onToggleActive={(active) => toggleActiveStaff(member.id, active)}
             />
           ))}
         </div>
@@ -861,13 +864,20 @@ export function Staff() {
 }
 
 // ─── Staff Card ────────────────────────────────────────────────────────────────
-function StaffCard({ member, index, multiBranch, onEdit, onDelete, onPortfolio, onMove }) {
+function StaffCard({ member, index, multiBranch, onEdit, onDelete, onPortfolio, onMove, onToggleActive }) {
+  const [toggling, setToggling] = useState(false)
+
+  async function handleToggle() {
+    setToggling(true)
+    try { await onToggleActive(!member.is_active) } finally { setToggling(false) }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`card p-5 ${!member.is_active ? 'opacity-50' : ''}`}
+      className={`card p-5 transition-opacity ${!member.is_active ? 'opacity-60' : ''}`}
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="w-12 h-12 rounded-full bg-[var(--color-gold)]/10 flex items-center justify-center text-[var(--color-gold)] font-bold text-lg flex-shrink-0 overflow-hidden">
@@ -879,12 +889,25 @@ function StaffCard({ member, index, multiBranch, onEdit, onDelete, onPortfolio, 
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate">{member.name}</p>
           {!member.is_active && (
-            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">לא פעיל</span>
+            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">מוסתר בהזמנות</span>
           )}
           {member.bio && (
             <p className="text-xs truncate mt-0.5" style={{ color: 'var(--color-muted)' }}>{member.bio}</p>
           )}
         </div>
+        {/* Active toggle */}
+        <button
+          onClick={handleToggle}
+          disabled={toggling}
+          title={member.is_active ? 'כבה — הסתר מהזמנות' : 'הפעל — הצג בהזמנות'}
+          className="flex-shrink-0 relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+          style={{ background: member.is_active ? 'var(--color-gold)' : 'var(--color-border)' }}
+        >
+          <span
+            className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+            style={{ left: member.is_active ? '22px' : '2px' }}
+          />
+        </button>
       </div>
 
       <div className="flex gap-2 flex-wrap">
