@@ -80,9 +80,9 @@ export function BookingLayout({ children }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isHome])
 
-  // On homepage: navbar hidden at top, minimal when scrolled
+  // On homepage: always visible but transparent at top, opaque when scrolled
   // On other pages: always full navbar
-  const navVisible = !isHome || scrolled
+  const navVisible = true
 
   // Bottom bar — computed once per render, never inside JSX (avoids stale-closure on auth/theme change)
   const barIsDark = isDark
@@ -114,8 +114,8 @@ export function BookingLayout({ children }) {
   return (
     <div dir={lang === 'he' ? 'rtl' : 'ltr'} className="booking-root min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
 
-      {/* ── Floating hamburger — only when navbar is hidden (top of homepage), desktop only ── */}
-      {isHome && !scrolled && (
+      {/* ── Floating hamburger — hidden (header always visible now) ── */}
+      {false && isHome && !scrolled && (
         <div className="hidden md:block">
         <button
           onClick={() => setMenuOpen(true)}
@@ -236,11 +236,12 @@ export function BookingLayout({ children }) {
         animate={{ opacity: navVisible ? 1 : 0, y: navVisible ? 0 : -8 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         style={{
-          background: 'rgba(8,6,4,0.38)',
-          backdropFilter: 'blur(22px) saturate(1.5)',
-          WebkitBackdropFilter: 'blur(22px) saturate(1.5)',
-          pointerEvents: navVisible ? 'auto' : 'none',
-          borderBottom: navVisible ? '1px solid rgba(255,255,255,0.06)' : 'none',
+          background: isHome && !scrolled ? 'rgba(0,0,0,0.0)' : 'rgba(8,6,4,0.38)',
+          backdropFilter: scrolled ? 'blur(22px) saturate(1.5)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(22px) saturate(1.5)' : 'none',
+          pointerEvents: 'auto',
+          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none',
+          transition: 'background 0.3s ease, backdrop-filter 0.3s ease',
         }}
       >
         {isHome ? (
@@ -526,7 +527,9 @@ export function BookingLayout({ children }) {
       {/* ── v6 mobile toolbar ── */}
       <div className="v6-toolbar md:hidden fixed bottom-0 left-0 right-0 z-50"
         style={{
-          background: (isDark || isAuthPage) ? 'rgba(10,8,4,0.88)' : 'rgba(255,255,255,0.94)',
+          background: isHome
+            ? (isDark ? 'rgba(6,4,2,0.42)' : 'rgba(255,255,255,0.48)')
+            : (isDark || isAuthPage) ? 'rgba(10,8,4,0.88)' : 'rgba(255,255,255,0.94)',
           backdropFilter: 'blur(36px) saturate(2)',
           WebkitBackdropFilter: 'blur(36px) saturate(2)',
           borderTop: (isDark || isAuthPage) ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(255,255,255,0.72)',
