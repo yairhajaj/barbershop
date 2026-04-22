@@ -138,11 +138,11 @@ export function Register() {
         {heroType === 'video' && heroSrc ? (
           <video ref={videoRef} src={heroSrc} autoPlay muted loop playsInline
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'blur(22px)', transform: 'scale(1.08)' }} />
+            style={{ filter: 'blur(8px)', transform: 'scale(1.04)' }} />
         ) : heroSrc ? (
           <img src={heroSrc} alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'blur(22px)', transform: 'scale(1.08)' }} />
+            style={{ filter: 'blur(8px)', transform: 'scale(1.04)' }} />
         ) : (
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(135deg, #0c0a06 0%, #1c1409 50%, #0c0a06 100%)' }} />
@@ -151,14 +151,14 @@ export function Register() {
           style={{ background: 'linear-gradient(160deg, rgba(0,0,0,0.62) 0%, rgba(8,5,2,0.82) 100%)' }} />
       </div>
 
-      {/* ── Scrollable glass card ── */}
-      <div className="relative z-10 min-h-screen flex items-start justify-center px-4 py-10">
+      {/* ── Fixed glass card — no page scroll, card scrolls internally if needed ── */}
+      <div className="fixed inset-0 z-10 flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 22, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="w-full max-w-[380px]"
-          style={{
+          className="w-full max-w-[380px] overflow-y-auto"
+          style={{ maxHeight: '92vh',
             backdropFilter: 'blur(30px) saturate(160%)',
             WebkitBackdropFilter: 'blur(30px) saturate(160%)',
             background: 'rgba(10, 8, 4, 0.58)',

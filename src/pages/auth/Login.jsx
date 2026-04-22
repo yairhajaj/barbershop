@@ -124,14 +124,14 @@ export function Login() {
             src={heroSrc}
             autoPlay muted loop playsInline
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'blur(22px)', transform: 'scale(1.08)' }}
+            style={{ filter: 'blur(8px)', transform: 'scale(1.04)' }}
           />
         ) : heroSrc ? (
           <img
             src={heroSrc}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'blur(22px)', transform: 'scale(1.08)' }}
+            style={{ filter: 'blur(8px)', transform: 'scale(1.04)' }}
           />
         ) : (
           <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0c0a06 0%, #1c1409 50%, #0c0a06 100%)' }} />
@@ -140,8 +140,8 @@ export function Login() {
         <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, rgba(0,0,0,0.62) 0%, rgba(8,5,2,0.82) 100%)' }} />
       </div>
 
-      {/* ── Centered glass card ── */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
+      {/* ── Centered glass card — fixed, no page scroll ── */}
+      <div className="fixed inset-0 z-10 flex items-center justify-center px-4 overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 22, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
