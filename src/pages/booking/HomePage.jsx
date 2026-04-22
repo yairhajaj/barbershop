@@ -680,7 +680,8 @@ export function HomePage() {
           )}
         </section>
 
-        {/* separator */}
+        {/* separator + appointment — only for logged-in users */}
+        {user && (<>
         <div style={{ height: 1, background: 'var(--color-border)', margin: '0 20px' }} />
 
         {/* ── NEXT APPOINTMENT ─────────────────────────────────── */}
@@ -799,6 +800,7 @@ export function HomePage() {
             </motion.div>
           )}
         </section>
+        </>)}
 
         {/* separator */}
         <div style={{ height: 1, background: 'var(--color-border)', margin: '0 20px' }} />
