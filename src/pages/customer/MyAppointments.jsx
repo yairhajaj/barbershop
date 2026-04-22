@@ -22,7 +22,7 @@ import {
 const DAYS_AHEAD = 30
 
 export function MyAppointments() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
   const confirm = useConfirm()
@@ -387,6 +387,17 @@ export function MyAppointments() {
             )}
           </section>
         )}
+
+        {/* Logout */}
+        <div className="mt-2 mb-6 text-center">
+          <button
+            onClick={async () => { await signOut(); navigate('/') }}
+            className="text-sm"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            ← התנתק
+          </button>
+        </div>
 
         {/* Past */}
         <section>

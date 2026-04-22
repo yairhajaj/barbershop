@@ -177,7 +177,7 @@ export function Login() {
                 </div>
                 <input className="gi text-center text-3xl tracking-[0.35em] font-bold" style={gi}
                   type="tel" inputMode="numeric" maxLength={6} placeholder="——————"
-                  value={code} dir="ltr" autoFocus
+                  value={code} dir="ltr" autoFocus autoComplete="one-time-code"
                   onChange={e => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} />
                 <button type="submit" className="btn-primary justify-center" disabled={loading || code.length !== 6}>
                   {loading ? <Spinner size="sm" className="border-white border-t-transparent" /> : 'כניסה'}

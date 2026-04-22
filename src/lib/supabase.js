@@ -9,5 +9,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl ?? 'https://placeholder.supabase.co',
-  supabaseAnonKey ?? 'placeholder'
+  supabaseAnonKey ?? 'placeholder',
+  {
+    auth: {
+      persistSession: true,      // שמור session ב-localStorage
+      autoRefreshToken: true,    // חדש token אוטומטית לפני פקיעה
+      detectSessionInUrl: false, // אין magic links
+    }
+  }
 )

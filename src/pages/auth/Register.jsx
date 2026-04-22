@@ -296,7 +296,7 @@ export function Register() {
                   style={{ color: 'rgba(255,255,255,0.6)' }}>קוד אימות (6 ספרות)</label>
                 <input className="gi text-center text-2xl tracking-widest font-bold" style={gi}
                   type="tel" inputMode="numeric" maxLength={6} placeholder="000000"
-                  value={code} dir="ltr" autoFocus
+                  value={code} dir="ltr" autoFocus autoComplete="one-time-code"
                   onChange={e => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} />
               </div>
 
