@@ -487,23 +487,23 @@ export function HomePage() {
   // ── v6 glass panel style ──────────────────────────────────────────
   const glassPanel = isDark
     ? {
-        position: 'relative', zIndex: 10, marginTop: -32,
+        position: 'relative', zIndex: 10, marginTop: -140,
         borderRadius: '26px 26px 0 0',
-        background: 'rgba(18,14,10,0.92)',
+        background: 'rgba(18,14,10,0.97)',
         backdropFilter: 'blur(36px) saturate(1.8)',
         WebkitBackdropFilter: 'blur(36px) saturate(1.8)',
-        borderTop: '1px solid rgba(255,255,255,0.10)',
-        boxShadow: '0 -2px 0 rgba(255,255,255,0.06), 0 -12px 40px rgba(0,0,0,0.40)',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 -2px 0 rgba(255,255,255,0.05), 0 -12px 40px rgba(0,0,0,0.40)',
         minHeight: '60vh',
       }
     : {
-        position: 'relative', zIndex: 10, marginTop: -32,
+        position: 'relative', zIndex: 10, marginTop: -140,
         borderRadius: '26px 26px 0 0',
         background: 'rgba(243,240,234,1)',
         backdropFilter: 'blur(36px) saturate(2.0)',
         WebkitBackdropFilter: 'blur(36px) saturate(2.0)',
         borderTop: 'none',
-        boxShadow: '0 -8px 24px rgba(0,0,0,0.06)',
+        boxShadow: 'none',
         minHeight: '60vh',
       }
 
@@ -544,13 +544,12 @@ export function HomePage() {
           <div className="absolute inset-0 pointer-events-none" style={{
             background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 26%)'
           }} />
-          {/* Surface fade — grows from transparent to solid surface color over 72px,
-              matching the glass panel exactly so there is zero visible seam */}
+          {/* Surface fade — covers the full panel overlap (140px) so there's zero visible seam */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: 72,
+            height: 180,
             background: isDark
-              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.55) 45%, transparent 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.55) 45%, transparent 100%)',
+              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.97) 15%, rgba(18,14,10,0.72) 45%, rgba(18,14,10,0.2) 75%, transparent 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,1) 15%, rgba(243,240,234,0.72) 45%, rgba(243,240,234,0.2) 75%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
