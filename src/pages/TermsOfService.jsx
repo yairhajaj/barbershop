@@ -17,7 +17,7 @@ export default function TermsOfService() {
         <ul style={{ paddingRight: 18, lineHeight: 2 }}>
           <li>ניתן לבטל תור עד 2 שעות לפני מועד הפגישה</li>
           <li>איחור של מעל 10 דקות עלול לגרום לביטול התור</li>
-          <li>אישור קביעת התור יישלח בהודעת SMS/WhatsApp</li>
+          <li>תזכורות לתור יישלחו כהתראת Push באפליקציה</li>
         </ul>
       </Section>
 
