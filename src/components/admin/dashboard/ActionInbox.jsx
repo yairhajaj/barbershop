@@ -37,11 +37,11 @@ export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, w
         {/* Uninvoiced appointments */}
         {uninvoiced.length > 0 && (
           <InboxCard
-            to="/admin/appointments"
-            icon="🧾"
+            to="/admin/quick-settle"
+            icon="⚡"
             color="#f59e0b"
-            title={`${uninvoiced.length} תורים ללא ${docLabel(businessType)}`}
-            subtitle={`לחץ להפקת ${docLabel(businessType, true)}`}
+            title={`${uninvoiced.length} תורים ממתינים לסגירה`}
+            subtitle={`לחץ לסגירה מהירה — ${docLabel(businessType, true)} + סטטוס`}
             bg="rgba(245,158,11,0.08)"
             border="rgba(245,158,11,0.3)"
           >
