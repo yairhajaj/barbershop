@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
+import { RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } from 'firebase/auth'
 import { firebaseAuth } from '../lib/firebase'
 import { supabase } from '../lib/supabase'
 
@@ -17,21 +17,51 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const recaptchaRef          = useRef(null)
+  const firebaseUserRef       = useRef(null)
+  const intentionalSignOut    = useRef(false)
 
   useEffect(() => {
+    // Track Firebase user — used for silent re-auth when Supabase session expires
+    const unsubFirebase = onAuthStateChanged(firebaseAuth, (fbUser) => {
+      firebaseUserRef.current = fbUser
+    })
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // When Supabase session expires (not explicit logout) → silently re-auth via Firebase
+      if (event === 'SIGNED_OUT' && !intentionalSignOut.current) {
+        const fbUser = firebaseUserRef.current
+        if (fbUser) {
+          try {
+            const idToken = await fbUser.getIdToken(true)
+            const { data, error } = await supabase.functions.invoke('firebase-verify', {
+              body: { idToken },
+            })
+            if (!error && data?.access_token) {
+              await supabase.auth.setSession({
+                access_token:  data.access_token,
+                refresh_token: data.refresh_token,
+              })
+              return // new session triggers another onAuthStateChange — don't update state here
+            }
+          } catch {}
+        }
+      }
+
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else { setProfile(null); setLoading(false) }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      unsubFirebase()
+    }
   }, [])
 
   async function fetchProfile(userId) {
@@ -84,8 +114,9 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
-    await firebaseAuth.signOut()
+    intentionalSignOut.current = true
+    await Promise.all([supabase.auth.signOut(), firebaseAuth.signOut()])
+    intentionalSignOut.current = false
   }
 
   const isAdmin = profile?.role === 'admin'
