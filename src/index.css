@@ -1532,7 +1532,7 @@
 
 /* ── v6 scroll indicator ── */
 .v6-scroll-ind {
-  position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
+  position:absolute;bottom:140px;left:50%;transform:translateX(-50%);
   z-index:6;display:flex;flex-direction:column;align-items:center;gap:6px;
   color:var(--color-gold);opacity:0.8;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
   animation:v6IndFloat 2.8s ease infinite;pointer-events:none;
