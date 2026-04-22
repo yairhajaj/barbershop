@@ -236,9 +236,9 @@ export function BookingLayout({ children }) {
         animate={{ opacity: navVisible ? 1 : 0, y: navVisible ? 0 : -8 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         style={{
-          background: 'rgba(10,10,10,0.92)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(8,6,4,0.38)',
+          backdropFilter: 'blur(22px) saturate(1.5)',
+          WebkitBackdropFilter: 'blur(22px) saturate(1.5)',
           pointerEvents: navVisible ? 'auto' : 'none',
           borderBottom: navVisible ? '1px solid rgba(255,255,255,0.06)' : 'none',
         }}
