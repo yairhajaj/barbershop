@@ -242,6 +242,7 @@ export function TaxReportTab() {
       from: currentPeriod?.startDate,
       to:   currentPeriod?.endDate,
       counts: { C100: 0, D110: 0, D120: 0, M100: 0 },
+      docTypeSummary: {},
       primaryId: '—',
     })
     printSection26(report)
@@ -265,7 +266,7 @@ export function TaxReportTab() {
   async function handleExportSample() {
     setSampleLoading(true)
     try {
-      const { blob, totalRecords, counts, primaryId, dirPrefix } = await generateSampleFiles(600)
+      const { blob, totalRecords, counts, docTypeSummary, primaryId, dirPrefix } = await generateSampleFiles(600)
       const url = URL.createObjectURL(blob)
       const a   = document.createElement('a')
       a.href    = url
@@ -274,7 +275,7 @@ export function TaxReportTab() {
       URL.revokeObjectURL(url)
       showToast({ message: `קובץ דמה הופק — ${totalRecords} רשומות`, type: 'success' })
       // Open registration documents (B + C) in new tabs for printing
-      printRegistrationPackage({ counts, primaryId, dirPrefix, totalRecords })
+      printRegistrationPackage({ counts, docTypeSummary, primaryId, dirPrefix, totalRecords })
     } catch (err) {
       showToast({ message: err.message, type: 'error' })
     } finally {

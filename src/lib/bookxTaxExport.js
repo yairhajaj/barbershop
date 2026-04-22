@@ -153,7 +153,7 @@ export async function generateSampleFiles(invoiceCount = 500) {
   const to        = '2024-12-31'
 
   const invoices  = Array.from({ length: invoiceCount }, (_, i) => makeSampleInvoice(i))
-  const { text: bkmvText, counts } = buildBkmvdata({
+  const { text: bkmvText, counts, docTypeSummary } = buildBkmvdata({
     vatId, primaryId, invoices,
     services: SAMPLE_SERVICES,
     businessType: 'osek_morsheh',
@@ -215,7 +215,7 @@ export async function generateSampleFiles(invoiceCount = 500) {
   ].join('\r\n'))
 
   const blob = await outer.generateAsync({ type: 'blob' })
-  return { blob, counts, iniText, bkmvText, totalRecords, dirPrefix }
+  return { blob, counts, docTypeSummary, iniText, bkmvText, totalRecords, dirPrefix, primaryId }
 }
 
 // Re-export for consumers who import from bookxTaxExport

@@ -549,6 +549,8 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
   const lines = []
   let serial = 1
   const counts = { B110: 0, C100: 0, D110: 0, D120: 0, M100: 0, Z900: 1 }
+  // docTypeSummary: { '320': { count, total }, '330': { count, total }, ... }
+  const docTypeSummary = {}
 
   // A100 — first record in BKMVDATA.TXT per spec §6
   lines.push(recordA100({ serial: serial++, vatId, primaryId }))
@@ -579,6 +581,9 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
       userId:         inv.created_by,
     }))
     counts.C100++
+    if (!docTypeSummary[docType]) docTypeSummary[docType] = { count: 0, total: 0 }
+    docTypeSummary[docType].count++
+    docTypeSummary[docType].total += total
 
     const lineItems = inv.invoice_items && inv.invoice_items.length > 0
       ? inv.invoice_items
@@ -624,7 +629,7 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
     totalRecords: totalSoFar + 1,
   }))
 
-  return { text: lines.join(CRLF) + CRLF, counts }
+  return { text: lines.join(CRLF) + CRLF, counts, docTypeSummary }
 }
 
 // ── Build INI.TXT — A000 + summary records (19 chars each) per spec §5 ──────
@@ -652,66 +657,190 @@ export function buildIni({ vatId, primaryId, settings, from, to, counts }) {
 }
 
 // ── Section 2.6 report ───────────────────────────────────────────
-export function buildSection26Report({ settings, from, to, counts, primaryId }) {
+// All document-type codes defined in OPENFRMT 1.31
+const DOC_TYPE_LABELS = {
+  '100': 'הזמנה', '200': 'תעודת משלוח', '205': 'תעודת משלוח סוכן',
+  '210': 'תעודת החזרה', '300': 'חשבונית/חשבונית עסקה', '305': 'חשבונית-מס',
+  '310': 'חשבונית ריכוז', '320': 'חשבונית מס / קבלה', '330': 'חשבונית מס זיכוי',
+  '340': 'חשבונית שריון', '345': 'חשבונית סוכן', '400': 'קבלה',
+  '405': 'קבלה על תרומות', '406': 'קבלה על פקדון', '410': 'יציאה מקופה',
+  '420': 'הפקדת בנק', '500': 'הזמנת רכש', '600': 'תעודת משלוח רכש',
+  '610': 'החזרת רכש', '700': 'חשבונית מס רכש', '710': 'זיכוי רכש',
+  '800': 'יתרת פתיחה', '810': 'כניסה כללית למלאי', '820': 'יציאה כללית מהמלאי',
+  '830': 'העברה בין מחסנים', '840': 'עדכון בעקבות ספירה', '900': 'דוח ייצור-כניסה',
+  '910': 'דוח ייצור-יציאה',
+}
+
+export function buildSection26Report({ settings, from, to, counts, docTypeSummary, primaryId }) {
   return {
-    businessName: settings.business_name,
-    vatId:        settings.business_tax_id,
-    softwareReg:  OPERATOR.tax_software_reg_number,
+    businessName:    settings.business_name || '',
+    vatId:           settings.business_tax_id || '',
+    softwareReg:     OPERATOR.tax_software_reg_number || '',
+    softwareName:    `${OPERATOR.software_name} ${OPERATOR.software_version}`,
     primaryId,
-    dataRange:    { from, to },
-    generatedAt:  new Date().toISOString(),
-    totals: {
-      C100: counts.C100 || 0,
-      D110: counts.D110 || 0,
-      D120: counts.D120 || 0,
-      M100: counts.M100 || 0,
-    },
-    ofVersion: BKMV_HDL.trim(),
+    dataRange:       { from, to },
+    generatedAt:     new Date().toISOString(),
+    docTypeSummary:  docTypeSummary || {},
+    counts,
+    ofVersion:       BKMV_HDL.trim(),
   }
 }
 
 export function printSection26(report) {
+  const now = new Date(report.generatedAt)
+  const dateStr = now.toLocaleDateString('he-IL')
+  const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+
+  // Build rows for all doc types — show count+total if non-zero, else 0
+  const allCodes = Object.keys(DOC_TYPE_LABELS)
+  let totalCount = 0, totalAmount = 0
+  const rows = allCodes.map(code => {
+    const s = report.docTypeSummary[code] || { count: 0, total: 0 }
+    totalCount  += s.count
+    totalAmount += s.total
+    return `<tr><td>${code}</td><td>${DOC_TYPE_LABELS[code]}</td><td>${s.count || 0}</td><td>${s.total ? s.total.toLocaleString('he-IL', { minimumFractionDigits: 2 }) : '0'}</td></tr>`
+  }).join('\n')
+
   const html = `<!DOCTYPE html>
 <html dir="rtl" lang="he"><head>
 <meta charset="UTF-8">
 <title>דוח הפקת קובץ אחיד — סעיף 2.6</title>
 <style>
-  body{font-family:Arial,Helvetica,sans-serif;padding:40px;max-width:780px;margin:auto}
-  h1{border-bottom:2px solid #000;padding-bottom:10px}
-  table{width:100%;border-collapse:collapse;margin:20px 0}
-  th,td{border:1px solid #999;padding:8px;text-align:right}
-  th{background:#f0f0f0}
-  .sig{margin-top:60px;border-top:1px solid #000;padding-top:10px;width:300px}
+  body{font-family:Arial,Helvetica,sans-serif;padding:30px;max-width:820px;margin:auto;font-size:13px}
+  h1{font-size:20px;text-align:center;border-bottom:2px solid #000;padding-bottom:10px}
+  h2{font-size:14px;margin-top:22px}
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  th,td{border:1px solid #888;padding:5px 8px;text-align:right}
+  th{background:#e8e8e8;font-weight:bold}
+  .meta td:first-child{font-weight:bold;background:#f5f5f5;width:200px}
+  .total-row{font-weight:bold;background:#f0f0f0}
+  .footer{margin-top:30px;font-size:12px}
   @media print{.noprint{display:none}}
 </style></head><body>
-<h1>דוח הפקת קובץ אחיד — מבנה 1.31</h1>
-<p>על פי סעיף 2.6 להוראת מקצוע 24/2004</p>
-<table>
-  <tr><th>שם העסק</th><td>${report.businessName || ''}</td></tr>
-  <tr><th>מס׳ עוסק</th><td>${report.vatId || ''}</td></tr>
-  <tr><th>מס׳ רישום תוכנה</th><td>${report.softwareReg || ''}</td></tr>
-  <tr><th>מזהה ראשי (Primary ID)</th><td>${report.primaryId}</td></tr>
-  <tr><th>תקופה</th><td>${report.dataRange.from} — ${report.dataRange.to}</td></tr>
-  <tr><th>תאריך הפקה</th><td>${new Date(report.generatedAt).toLocaleString('he-IL')}</td></tr>
-  <tr><th>גרסת מבנה</th><td>${report.ofVersion}</td></tr>
+<h1>הפקת קבצים במבנה אחיד</h1>
+<table class="meta">
+  <tr><td>עבור</td><td>${report.businessName}</td></tr>
+  <tr><td>מספר עוסק מורשה</td><td>${report.vatId}</td></tr>
+  <tr><td>טווח תאריכים</td><td>מתאריך: ${report.dataRange.from} &nbsp;&nbsp; ועד תאריך: ${report.dataRange.to}</td></tr>
 </table>
-<h2>ספירות רשומות</h2>
+
+<h2>פירוט סוגי המסמכים</h2>
 <table>
-  <tr><th>סוג רשומה</th><th>כמות</th><th>תיאור</th></tr>
-  <tr><td>A100+Z900</td><td>2</td><td>כותרת BKMVDATA</td></tr>
-  <tr><td>C100</td><td>${report.totals.C100}</td><td>כותרות מסמכים</td></tr>
-  <tr><td>D110</td><td>${report.totals.D110}</td><td>שורות מסמך</td></tr>
-  <tr><td>D120</td><td>${report.totals.D120}</td><td>שורות תקבול</td></tr>
-  <tr><td>M100</td><td>${report.totals.M100}</td><td>פריטי מלאי</td></tr>
+  <tr><th>מספר מסמך</th><th>סוג המסמך</th><th>סה"כ כמותי</th><th>סה"כ כספי (בש"ח)</th></tr>
+  ${rows}
+  <tr class="total-row"><td colspan="2">סה"כ</td><td>${totalCount}</td><td>${totalAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}</td></tr>
 </table>
-<p>אני מאשר/ת שהקובץ הופק מתוך התוכנה בהתאם להוראת מקצוע 24/2004 ולמבנה 1.31.</p>
-<div class="sig">חתימת מנהל העסק: ____________________</div>
-<div class="sig">תאריך: ____________________</div>
-<button class="noprint" onclick="window.print()" style="margin-top:30px;padding:10px 20px">הדפס</button>
+
+<p class="footer">
+  הנתונים הופקו באמצעות תוכנת <strong>${report.softwareName}</strong>,
+  מספר תעודת הרישום: <strong>${report.softwareReg || '________'}</strong>
+  &nbsp;&nbsp;&nbsp; בתאריך: ${dateStr} &nbsp;&nbsp; בשעה: ${timeStr}
+</p>
+
+<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-size:14px;cursor:pointer">🖨 הדפס</button>
 </body></html>`
   const w = window.open('', '_blank')
   w.document.write(html)
   w.document.close()
+}
+
+// ── Registration package — Documents B + C ───────────────────────
+// Prints two HTML windows for software registration submission:
+//   Document B: Section 2.6 printout (correct format per official spec)
+//   Document C: Appendix 5.4 — printable screenshot of the export interface
+export function printRegistrationPackage({ counts, docTypeSummary, primaryId, dirPrefix, totalRecords }) {
+  const now = new Date().toLocaleString('he-IL')
+  const vatId   = '123456782'
+  const swName  = `${OPERATOR.software_name} ${OPERATOR.software_version}`
+  const swReg   = OPERATOR.tax_software_reg_number || '00000001'
+  const mfr     = OPERATOR.manufacturer_name_ascii || OPERATOR.manufacturer_name
+  const mfrVat  = OPERATOR.manufacturer_vat_id
+
+  // ── Document B: Section 2.6 — open via printSection26 ───────────
+  const demoSettings = {
+    business_name: 'עסק לדוגמה בע"מ',
+    business_tax_id: vatId,
+  }
+  const report26 = buildSection26Report({
+    settings: demoSettings,
+    from: '2024-01-01',
+    to:   '2024-12-31',
+    counts,
+    docTypeSummary: docTypeSummary || {},
+    primaryId,
+  })
+  printSection26(report26)
+
+  // ── Document C: Appendix 5.4 ─────────────────────────────────────
+  const docC = `<!DOCTYPE html>
+<html dir="rtl" lang="he"><head><meta charset="UTF-8">
+<title>מסמך ג׳ — נספח 5.4</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;padding:40px;max-width:800px;margin:auto;font-size:14px}
+  h1{font-size:18px;border-bottom:2px solid #000;padding-bottom:8px}
+  h2{font-size:15px;margin-top:24px}
+  table{width:100%;border-collapse:collapse;margin:12px 0}
+  th,td{border:1px solid #888;padding:7px 10px;text-align:right}
+  th{background:#e8e8e8}
+  .meta td:first-child{font-weight:bold;width:220px;background:#f5f5f5}
+  .ui-card{border:2px solid #333;border-radius:12px;padding:24px;margin:20px 0;background:#fafafa}
+  .ui-card h3{margin:0 0 12px;font-size:15px}
+  .btn{display:inline-block;padding:9px 20px;margin:4px;border-radius:8px;font-size:13px;font-weight:bold;border:1px solid #999;background:#e0e0e0}
+  .btn-primary{background:#d4a017;border-color:#b8860b;color:#000}
+  .noprint{display:block;margin-top:20px}
+  @media print{.noprint{display:none}}
+</style></head><body>
+<h1>נספח 5.4 — תדפיס ממשק הפקת קובץ אחיד</h1>
+<p style="font-size:12px;color:#555">לפי סעיף 5.4 להוראת מקצוע 24/2004 — מסמך ג׳ לבקשת רישום תוכנה</p>
+
+<h2>פרטי התוכנה</h2>
+<table class="meta">
+  <tr><td>שם התוכנה</td><td>${OPERATOR.software_name}</td></tr>
+  <tr><td>מהדורה</td><td>${OPERATOR.software_version}</td></tr>
+  <tr><td>מספר רישום תוכנה</td><td>${swReg}</td></tr>
+  <tr><td>שם יצרן</td><td>${mfr}</td></tr>
+  <tr><td>ע"מ יצרן</td><td>${mfrVat}</td></tr>
+  <tr><td>גרסת מבנה</td><td>${BKMV_HDL.trim()}</td></tr>
+</table>
+
+<h2>ממשק הפקת הקובץ האחיד בתוכנה</h2>
+<div class="ui-card">
+  <h3>📁 ייצוא קובץ אחיד — רשות המסים (OPENFRMT 1.31)</h3>
+  <table class="meta" style="margin-bottom:16px">
+    <tr><td>תקופת דיווח</td><td>ינואר 2024 — דצמבר 2024</td></tr>
+    <tr><td>נתיב שמירה</td><td>${dirPrefix.replace(/\//g, '\\')}</td></tr>
+  </table>
+  <div>
+    <span class="btn btn-primary">⬇ ייצא ZIP</span>
+    <span class="btn">🖨 הדפס דוח 2.6</span>
+    <span class="btn">🧪 קובץ דמה לסימולטור</span>
+  </div>
+</div>
+
+<h2>פרטי הקובץ שהופק</h2>
+<table class="meta">
+  <tr><td>קובץ INI.TXT</td><td>רשומת A000 — כותרת קובץ</td></tr>
+  <tr><td>קובץ BKMVDATA.TXT</td><td>${totalRecords.toLocaleString('he-IL')} רשומות</td></tr>
+  <tr><td>מבנה תיקיות</td><td>OPENFRMT\\[ע"מ].[שנה]\\[MMDDhhmm]\\</td></tr>
+  <tr><td>קידוד</td><td>Windows-1255 / ISO-8859-8-i</td></tr>
+  <tr><td>סוגי מסמכים</td><td>חשבונית מס-קבלה (320), זיכוי (330)</td></tr>
+</table>
+
+<p style="margin-top:24px">
+  מודול הפקת קבצים במבנה אחיד כלול בתוכנה ${swName} ומאפשר לכל לקוח להפיק קבצים עצמאית.
+</p>
+
+<p style="font-size:12px;color:#555">הופק: ${now}</p>
+
+<button class="noprint" onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer">🖨 הדפס מסמך ג׳</button>
+</body></html>`
+
+  // Document B already opened by printSection26 above — open C after short delay
+  setTimeout(() => {
+    const wC = window.open('', '_blank')
+    wC.document.write(docC)
+    wC.document.close()
+  }, 400)
 }
 
 // ── Settings validation ──────────────────────────────────────────
@@ -761,7 +890,7 @@ export async function generateOpenFormatZip({ from, to, settings }) {
   const businessType = settings.business_type || 'osek_morsheh'
 
   const { invoices, services } = await fetchDataset({ from, to })
-  const { text: bkmvText, counts } = buildBkmvdata({ vatId, primaryId, invoices, services, businessType })
+  const { text: bkmvText, counts, docTypeSummary } = buildBkmvdata({ vatId, primaryId, invoices, services, businessType })
   const iniText = buildIni({ vatId, primaryId, settings, from, to, counts })
 
   const inner = new JSZip()
@@ -782,7 +911,7 @@ export async function generateOpenFormatZip({ from, to, settings }) {
   outer.file(dirPrefix + 'INI.TXT', iniText)
   outer.file(dirPrefix + 'BKMVDATA.zip', innerBlob)
 
-  const report = buildSection26Report({ settings, from, to, counts, primaryId })
+  const report = buildSection26Report({ settings, from, to, counts, docTypeSummary, primaryId })
   outer.file(dirPrefix + 'SECTION_2_6_REPORT.json', JSON.stringify(report, null, 2))
 
   try {
