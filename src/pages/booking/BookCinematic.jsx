@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { addDays, startOfDay, addMinutes, isToday, isBefore } from 'date-fns'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useStaff } from '../../hooks/useStaff'
 import { useServices } from '../../hooks/useServices'
 import { useAppointments } from '../../hooks/useAppointments'
@@ -34,6 +35,7 @@ export default function BookCinematic() {
   const navigate       = useNavigate()
   const [searchParams] = useSearchParams()
   const { user }       = useAuth()
+  const { isDark }     = useTheme()
 
   const { staff, loading: staffLoading } = useStaff({ activeOnly: true })
   const { services }                     = useServices({ activeOnly: true })
@@ -182,7 +184,7 @@ export default function BookCinematic() {
   return (
     // ── Outer container: fixed to viewport, no scroll possible ────
     <div dir="rtl" style={{
-      position: 'fixed', inset: 0, overflow: 'hidden', background: '#0d0a07',
+      position: 'fixed', inset: 0, overflow: 'hidden', background: 'var(--color-surface)',
     }}>
       {/* Ambient blurred bg photo */}
       <AnimatePresence>
@@ -194,20 +196,22 @@ export default function BookCinematic() {
               position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
               backgroundImage: `url(${bgPhoto})`,
               backgroundSize: 'cover', backgroundPosition: 'center',
-              filter: 'blur(55px) saturate(0.4)', transform: 'scale(1.18)', opacity: 0.15,
+              filter: 'blur(55px) saturate(0.4)', transform: 'scale(1.18)', opacity: isDark ? 0.15 : 0.08,
             }}
           />
         )}
       </AnimatePresence>
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none',
-        background: 'linear-gradient(160deg, rgba(13,10,7,0.9) 0%, rgba(13,10,7,0.8) 100%)' }} />
+        background: isDark
+          ? 'linear-gradient(160deg, rgba(13,10,7,0.85) 0%, rgba(13,10,7,0.75) 100%)'
+          : 'linear-gradient(160deg, rgba(243,240,234,0.82) 0%, rgba(240,237,230,0.72) 100%)' }} />
 
       {/* ── Content column ── */}
       <div style={{
         position: 'relative', zIndex: 2,
         height: '100dvh', display: 'flex', flexDirection: 'column', paddingTop: 64,
       }}>
-        <StepBar step={step} onBack={step === 0 ? () => navigate(-1) : goBack} />
+        <StepBar step={step} onBack={step === 0 ? () => navigate(-1) : goBack} isDark={isDark} />
 
         {/* Scrollable step area — 160px bottom gap clears toolbar + CTA */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 160 }}>
@@ -247,7 +251,9 @@ export default function BookCinematic() {
               position: 'fixed', zIndex: 55,
               bottom: 'calc(78px + env(safe-area-inset-bottom, 0px))',
               left: 0, right: 0, padding: '10px 20px',
-              background: 'linear-gradient(to top, rgba(10,8,5,0.97) 0%, transparent 100%)',
+              background: isDark
+                ? 'linear-gradient(to top, rgba(10,8,5,0.97) 0%, transparent 100%)'
+                : 'linear-gradient(to top, var(--color-surface) 60%, transparent 100%)',
               pointerEvents: 'auto',
             }}
           >
@@ -271,14 +277,14 @@ export default function BookCinematic() {
 }
 
 /* ── Step bar ─────────────────────────────────────────────────────── */
-function StepBar({ step, onBack }) {
+function StepBar({ step, onBack, isDark }) {
   return (
     <div style={{ padding: '0 20px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <motion.button whileTap={{ scale: 0.88 }} onClick={onBack}
-        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+        style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)',
           borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center',
           justifyContent: 'center', cursor: 'pointer' }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </motion.button>
@@ -289,7 +295,7 @@ function StepBar({ step, onBack }) {
             animate={{ width: i === step ? 26 : 7 }}
             transition={{ duration: 0.32, ease: 'easeOut' }}
             style={{ height: 7, borderRadius: 4, transition: 'background 0.3s',
-              background: i === step ? 'var(--color-gold)' : i < step ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.18)' }}
+              background: i === step ? 'var(--color-gold)' : i < step ? 'var(--color-muted)' : 'var(--color-border)' }}
           />
         ))}
       </div>
@@ -322,11 +328,11 @@ function StepStaff({ staff, loading, selected, onSelect }) {
 
           {staff.map(m => (
             <motion.button key={m.id} variants={fadeUp} whileTap={{ scale: 0.97 }} onClick={() => onSelect(m)} style={cardStyle(selected?.id === m.id)}>
-              <div style={{ width: 56, height: 56, borderRadius: 14, overflow: 'hidden', flexShrink: 0, background: '#2a1f0e' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, overflow: 'hidden', flexShrink: 0, background: 'var(--color-card)' }}>
                 {m.photo_url
                   ? <img src={m.photo_url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.3)' }}>{m.name[0]}</span>
+                      <span style={{ fontSize: 22, color: 'var(--color-muted)' }}>{m.name[0]}</span>
                     </div>
                 }
               </div>
@@ -351,7 +357,7 @@ function StepService({ services, selected, onSelect }) {
       <motion.div variants={stagger} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {services.map(svc => (
           <motion.button key={svc.id} variants={fadeUp} whileTap={{ scale: 0.97 }} onClick={() => onSelect(svc)} style={cardStyle(selected?.id === svc.id)}>
-            <div style={{ ...avatarBox, fontSize: 22, background: 'rgba(255,255,255,0.06)' }}>
+            <div style={{ ...avatarBox, fontSize: 22, background: 'var(--color-card)' }}>
               {svcIcon(svc.name)}
             </div>
             <div style={cardText}>
@@ -387,12 +393,12 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
             <motion.button key={d.toISOString()} whileTap={{ scale: 0.93 }} onClick={() => onDate(d)}
               style={{ flexShrink: 0, width: 54, padding: '10px 0', borderRadius: 14, cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                background: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.06)',
-                border: `1.5px solid ${active ? 'var(--color-gold)' : 'rgba(255,255,255,0.1)'}`,
+                background: active ? 'var(--color-gold)' : 'var(--color-card)',
+                border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
                 transition: 'all 0.2s' }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: active ? '#fff' : 'rgba(255,255,255,0.45)' }}>{HE_DAY[d.getDay()]}</span>
-              <span style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.1, color: '#fff' }}>{d.getDate()}</span>
-              <span style={{ fontSize: 10, color: active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)' }}>{HE_MON[d.getMonth()]}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: active ? '#fff' : 'var(--color-muted)' }}>{HE_DAY[d.getDay()]}</span>
+              <span style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.1, color: active ? '#fff' : 'var(--color-text)' }}>{d.getDate()}</span>
+              <span style={{ fontSize: 10, color: active ? 'rgba(255,255,255,0.85)' : 'var(--color-muted)' }}>{HE_MON[d.getMonth()]}</span>
             </motion.button>
           )
         })}
@@ -408,7 +414,7 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
             </motion.div>
           ) : slots.length === 0 ? (
             <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ color: 'rgba(255,255,255,0.35)', textAlign: 'center', padding: '40px 0', fontSize: 14 }}>
+              style={{ color: 'var(--color-muted)', textAlign: 'center', padding: '40px 0', fontSize: 14 }}>
               אין שעות פנויות בתאריך זה
             </motion.p>
           ) : (
@@ -423,9 +429,9 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
                     variants={{ hidden: { opacity: 0, scale: 0.82 }, show: { opacity: 1, scale: 1, transition: { duration: 0.28 } } }}
                     style={{
                       padding: '13px 0', borderRadius: 12, cursor: 'pointer',
-                      background: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.06)',
-                      border: `1.5px solid ${active ? 'var(--color-gold)' : 'rgba(255,255,255,0.1)'}`,
-                      color: active ? '#fff' : 'rgba(255,255,255,0.8)',
+                      background: active ? 'var(--color-gold)' : 'var(--color-card)',
+                      border: `1.5px solid ${active ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                      color: active ? '#fff' : 'var(--color-text)',
                       fontSize: 14, fontWeight: active ? 800 : 600, transition: 'all 0.18s',
                     }}>
                     {formatTime(slot.start)}
@@ -447,7 +453,7 @@ function StepHeading({ num, title }) {
       style={{ marginBottom: 20 }}>
       <p style={{ color: 'var(--color-gold)', fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
         textTransform: 'uppercase', marginBottom: 6, opacity: 0.85 }}>שלב {num} מתוך 3</p>
-      <h2 style={{ color: '#fff', fontSize: 28, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{title}</h2>
+      <h2 style={{ color: 'var(--color-text)', fontSize: 28, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{title}</h2>
       <motion.div initial={{ width: 0 }} animate={{ width: 34, transition: { delay: 0.18, duration: 0.45 } }}
         style={{ height: 2, background: 'var(--color-gold)', borderRadius: 2, marginTop: 8, opacity: 0.7 }} />
     </motion.div>
@@ -482,7 +488,7 @@ function LoadingDots() {
 const cardStyle = (active) => ({
   background:   active
     ? 'linear-gradient(to left, rgba(212,175,55,0.14) 0%, rgba(212,175,55,0.05) 100%)'
-    : 'rgba(255,255,255,0.05)',
+    : 'var(--color-card)',
   border:       'none',
   borderRight:  `3px solid ${active ? 'var(--color-gold)' : 'transparent'}`,
   boxShadow:    active ? '0 4px 24px rgba(212,175,55,0.12)' : 'none',
@@ -493,13 +499,13 @@ const cardStyle = (active) => ({
 
 const avatarBox = {
   width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-  background: 'rgba(212,175,55,0.12)',
+  background: 'var(--color-gold-tint, rgba(212,175,55,0.12))',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 
 const cardText = { flex: 1, textAlign: 'right' }
-const cardName = { color: '#fff', fontWeight: 700, fontSize: 15, margin: 0 }
-const cardSub  = { color: 'rgba(255,255,255,0.45)', fontSize: 12, margin: '3px 0 0' }
+const cardName = { color: 'var(--color-text)', fontWeight: 700, fontSize: 15, margin: 0 }
+const cardSub  = { color: 'var(--color-muted)', fontSize: 12, margin: '3px 0 0' }
 
 function svcIcon(name) {
   const n = (name || '').toLowerCase()

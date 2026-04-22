@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useStaff } from '../../hooks/useStaff'
+import { useTheme } from '../../contexts/ThemeContext'
 
 const container = {
   hidden: {},
@@ -20,11 +21,12 @@ const heading = {
 export default function Team() {
   const navigate = useNavigate()
   const { staff, loading } = useStaff({ activeOnly: true })
+  const { isDark } = useTheme()
 
   return (
     <div dir="rtl" style={{
       minHeight: '100dvh',
-      background: 'linear-gradient(160deg, #0d0a07 0%, #1a1108 60%, #0a0804 100%)',
+      background: 'var(--color-surface)',
       paddingBottom: 100,
     }}>
       {/* Header */}
@@ -36,7 +38,7 @@ export default function Team() {
           }}>HAJAJ HAIR DESIGN</p>
           <h1 style={{
             fontSize: 36, fontWeight: 800, letterSpacing: '-0.01em',
-            color: '#fff', margin: 0, lineHeight: 1.15,
+            color: 'var(--color-text)', margin: 0, lineHeight: 1.15,
           }}>הצוות שלנו</h1>
           <div style={{
             width: 40, height: 2, background: 'var(--color-gold)',
@@ -63,7 +65,7 @@ export default function Team() {
             }}
           >
             {staff.map((member) => (
-              <StaffCard key={member.id} member={member} onClick={() => navigate(`/team/${member.id}`)} />
+              <StaffCard key={member.id} member={member} isDark={isDark} onClick={() => navigate(`/team/${member.id}`)} />
             ))}
           </motion.div>
         )}
@@ -72,7 +74,7 @@ export default function Team() {
   )
 }
 
-function StaffCard({ member, onClick }) {
+function StaffCard({ member, isDark, onClick }) {
   return (
     <motion.div
       variants={item}
@@ -85,8 +87,8 @@ function StaffCard({ member, onClick }) {
         cursor: 'pointer',
         position: 'relative',
         aspectRatio: '3/4',
-        background: '#1a1108',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+        background: 'var(--color-card)',
+        boxShadow: 'var(--shadow-card)',
       }}
     >
       {/* Photo */}
@@ -99,17 +101,17 @@ function StaffCard({ member, onClick }) {
       ) : (
         <div style={{
           width: '100%', height: '100%',
-          background: 'linear-gradient(145deg, #2a1f0e, #1a1108)',
+          background: 'var(--color-card)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-border)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="7" r="4" />
             <path d="M4 21v-1a8 8 0 0116 0v1" />
           </svg>
         </div>
       )}
 
-      {/* Gradient overlay */}
+      {/* Gradient overlay — always dark so text stays readable over photo */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)',
@@ -156,9 +158,8 @@ function SkeletonGrid() {
       {[1, 2, 3, 4].map(i => (
         <div key={i} style={{
           borderRadius: 18, aspectRatio: '3/4',
-          background: 'linear-gradient(90deg, #1a1108 25%, #2a1f0e 50%, #1a1108 75%)',
-          backgroundSize: '200% 100%',
-          animation: 'shimmer 1.5s infinite',
+          background: 'var(--color-card)',
+          opacity: 0.6,
         }} />
       ))}
     </div>
