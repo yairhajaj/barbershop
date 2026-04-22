@@ -31,10 +31,6 @@ export function Register() {
     name: '', phone: '', password: '', confirmPassword: '',
     birthDate: '', gender: '', termsAccepted: false,
   })
-  // pre-fill phone from URL (e.g. redirected from login when no profile found)
-  useEffect(() => {
-    if (phoneFromUrl) setForm(f => ({ ...f, phone: phoneFromUrl }))
-  }, [phoneFromUrl])
   const [code, setCode]         = useState('')
   const [loading, setLoading]   = useState(false)
   const [cooldown, setCooldown] = useState(0)
@@ -47,6 +43,11 @@ export function Register() {
   const redirect           = searchParams.get('redirect') ?? '/'
   const phoneFromUrl       = searchParams.get('phone') ?? ''
   const { settings }       = useBusinessSettings()
+
+  // pre-fill phone from URL (e.g. redirected from login when no profile found)
+  useEffect(() => {
+    if (phoneFromUrl) setForm(f => ({ ...f, phone: phoneFromUrl }))
+  }, [phoneFromUrl])
 
   // hero bg
   const heroType = settings?.hero_type || localStorage.getItem('hero_type') || BUSINESS.heroType
