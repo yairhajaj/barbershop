@@ -13,7 +13,7 @@ import { useServices } from '../../hooks/useServices'
 import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
-import { generateSlots, formatTime, isShabbatDay } from '../../lib/utils'
+import { generateSlots, formatTime } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 
 const DAYS_AHEAD = 30
@@ -245,7 +245,7 @@ export default function BookCinematic() {
             animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 28 } }}
             exit={{ y: 90, opacity: 0, transition: { duration: 0.22 } }}
             style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 55,
               padding: `14px 20px calc(14px + env(safe-area-inset-bottom, 0px))`,
               background: 'linear-gradient(to top, rgba(10,8,5,0.98) 0%, rgba(10,8,5,0.6) 100%)',
               backdropFilter: 'blur(14px)',

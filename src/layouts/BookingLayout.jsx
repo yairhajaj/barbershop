@@ -523,8 +523,9 @@ export function BookingLayout({ children }) {
       </footer>
       )}
 
-      {/* ── v6 mobile toolbar ── */}
+      {/* ── v6 mobile toolbar — hidden on cinematic booking page ── */}
       <div className="v6-toolbar md:hidden fixed bottom-0 left-0 right-0 z-50"
+        hidden={location.pathname === '/book/cinematic' || undefined}
         style={{
           background: (isDark || isAuthPage) ? 'rgba(10,8,4,0.88)' : 'rgba(255,255,255,0.94)',
           backdropFilter: 'blur(36px) saturate(2)',
