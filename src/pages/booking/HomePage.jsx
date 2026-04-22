@@ -420,6 +420,16 @@ export function HomePage() {
 
   const [portfolioMember, setPortfolioMember] = useState(null)
   const heroVideoRef = useRef(null)
+  const apptSectionRef = useRef(null)
+
+  // Auto-scroll to show the upcoming appointment card when it loads
+  useEffect(() => {
+    if (!nextAppointment) return
+    const timer = setTimeout(() => {
+      apptSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 900)
+    return () => clearTimeout(timer)
+  }, [nextAppointment])
 
   // Hero parallax — fade + slide up as page scrolls
   useEffect(() => {
@@ -674,7 +684,7 @@ export function HomePage() {
         <div style={{ height: 1, background: 'var(--color-border)', margin: '0 20px' }} />
 
         {/* ── NEXT APPOINTMENT ─────────────────────────────────── */}
-        <section className="px-5 py-6">
+        <section ref={apptSectionRef} className="px-5 py-6">
 
           {/* Skeleton while loading next appointment */}
           {user && nextAppointment === undefined && (
