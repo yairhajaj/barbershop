@@ -41,7 +41,7 @@ export function QuickSettle() {
     let q = supabase
       .from('appointments')
       .select(`
-        id, start_at, end_at, price, staff_id, service_id,
+        id, start_at, end_at, staff_id, service_id,
         profiles:customer_id(id, name, phone),
         services(id, name, price),
         staff(id, name)
