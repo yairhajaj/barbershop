@@ -20,6 +20,7 @@ import {
   validateOpenFormatSettings,
   downloadOpenFormat,
   buildSection26Report,
+  buildSection26Html,
   printSection26,
   generateOpenFormatZip,
   printRegistrationPackage,
@@ -190,9 +191,63 @@ export async function generateSampleFiles(invoiceCount = 500) {
 
   const totalRecords = (counts.B110 || 0) + counts.C100 + counts.D110 + counts.D120 + counts.M100 + 2 // +A100 +Z900
 
+  // ── Registration documents (B + C) ───────────────────────────────
+  const report26 = buildSection26Report({
+    settings: demoSettings, from, to, counts, docTypeSummary, primaryId,
+  })
+  const docBHtml = buildSection26Html(report26)
+
+  const nowDate   = new Date()
+  const dateStr54 = nowDate.toLocaleDateString('he-IL')
+  const timeStr54 = nowDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+  const pathStr   = dirPrefix.replace(/\//g, '\\')
+  const totalAll  = 1 + (counts.B110||1) + counts.C100 + counts.D110 + counts.D120 + (counts.M100||0) + 1
+  const swName    = `${OPERATOR.software_name} ${OPERATOR.software_version}`
+  const swReg     = OPERATOR.tax_software_reg_number || '________'
+
+  const docCHtml = `<!DOCTYPE html>
+<html dir="rtl" lang="he"><head><meta charset="UTF-8">
+<title>נספח 5.4 — הפקת קבצים במבנה אחיד</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;padding:40px;max-width:700px;margin:auto;font-size:14px}
+  h1{font-size:18px;text-align:center;margin-bottom:24px}
+  table{width:100%;border-collapse:collapse;margin:12px 0}
+  th,td{border:1px solid #888;padding:6px 10px;text-align:right}
+  th{background:#e8e8e8;font-weight:bold}
+  .meta td:first-child{font-weight:bold;width:200px}
+  .success{font-weight:bold;text-align:center;margin:16px 0;font-size:15px}
+  .total-row{font-weight:bold;background:#f0f0f0}
+  .footer{margin-top:24px;font-size:13px}
+  @media print{.noprint{display:none}}
+</style></head><body>
+<h1>הפקת קבצים במבנה אחיד</h1>
+<table><tr><td><strong>עבור</strong></td><td>${demoSettings.business_name}</td></tr>
+<tr><td><strong>מספר עוסק מורשה</strong></td><td>${vatId}</td></tr></table>
+<p class="success">** ביצוע ממשק פתוח הסתיים בהצלחה **</p>
+<table><tr><td><strong>הנתונים נשמרו בנתיב</strong></td><td>${pathStr}</td></tr>
+<tr><td><strong>טווח תאריכים</strong></td><td>מתאריך: 01/01/2024 &nbsp;&nbsp; ועד תאריך: 31/12/2024</td></tr></table>
+<p style="margin-top:16px;font-weight:bold">פירוט סך סוגי הרשומות שנוצרו בקובץ BKMVDATA.TXT:</p>
+<table>
+  <tr><th>סוג רשומה</th><th>תיאור</th><th>כמות</th></tr>
+  <tr><td>A100</td><td>רשומת פתיחה</td><td>1</td></tr>
+  <tr><td>B110</td><td>חשבון בהנהלת חשבונות</td><td>${counts.B110||1}</td></tr>
+  <tr><td>C100</td><td>כותרת מסמך</td><td>${counts.C100}</td></tr>
+  <tr><td>D110</td><td>פרטי מסמך</td><td>${counts.D110}</td></tr>
+  <tr><td>D120</td><td>פרטי קבלה</td><td>${counts.D120}</td></tr>
+  <tr><td>M100</td><td>פריטים במלאי</td><td>0</td></tr>
+  <tr><td>Z900</td><td>רשומת סיום</td><td>1</td></tr>
+  <tr class="total-row"><td colspan="2">סה"כ</td><td>${totalAll}</td></tr>
+</table>
+<p class="footer">הנתונים הופקו באמצעות תוכנת <strong>${swName}</strong>, מספר תעודת הרישום: <strong>${swReg}</strong><br>
+בתאריך: ${dateStr54} &nbsp;&nbsp; בשעה: ${timeStr54}</p>
+<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-size:14px;cursor:pointer">🖨 הדפס</button>
+</body></html>`
+
   const outer = new JSZip()
-  outer.file(dirPrefix + 'INI.TXT',      iniText)
-  outer.file(dirPrefix + 'BKMVDATA.zip', innerBlob)
+  outer.file(dirPrefix + 'INI.TXT',                   iniText)
+  outer.file(dirPrefix + 'BKMVDATA.zip',               innerBlob)
+  outer.file('מסמכי_רישום/מסמך_ב_סעיף_2.6.html',      docBHtml)
+  outer.file('מסמכי_רישום/מסמך_ג_נספח_5.4.html',      docCHtml)
   outer.file(dirPrefix + 'README.txt', [
     '# BOOKX — קובץ דוגמה לסימולטור רשות המסים',
     '',

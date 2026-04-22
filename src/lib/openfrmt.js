@@ -686,7 +686,7 @@ export function buildSection26Report({ settings, from, to, counts, docTypeSummar
   }
 }
 
-function buildSection26Html(report) {
+export function buildSection26Html(report) {
   const now = new Date(report.generatedAt)
   const dateStr = now.toLocaleDateString('he-IL')
   const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })

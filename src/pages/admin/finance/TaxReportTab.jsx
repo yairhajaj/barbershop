@@ -273,9 +273,7 @@ export function TaxReportTab() {
       a.download = 'BOOKX_DEMO_simulator.zip'
       a.click()
       URL.revokeObjectURL(url)
-      showToast({ message: `קובץ דמה הופק — ${totalRecords} רשומות`, type: 'success' })
-      // Open registration documents (B + C) in new tabs for printing
-      printRegistrationPackage({ counts, docTypeSummary, primaryId, dirPrefix, totalRecords })
+      showToast({ message: `קובץ דמה הופק — ${totalRecords} רשומות. פתח את תיקיית "מסמכי_רישום" ב-ZIP`, type: 'success' })
     } catch (err) {
       showToast({ message: err.message, type: 'error' })
     } finally {
