@@ -95,10 +95,11 @@ const styles = StyleSheet.create({
   },
 })
 
-export function InvoicePDF({ appointment, business, footerText }) {
+export function InvoicePDF({ appointment, business, footerText, vatRate }) {
   const invoiceNum = `INV-${appointment.id.slice(0, 8).toUpperCase()}`
   const price = Number(appointment.services?.price) || 0
-  const vat = Math.round(price * 0.17)
+  const rate = (vatRate ?? 18) / 100
+  const vat = Math.round(price * rate)
   const total = price
 
   return (
@@ -160,10 +161,10 @@ export function InvoicePDF({ appointment, business, footerText }) {
           <Text style={styles.sectionTitle}>תשלום</Text>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>מחיר לפני מע"מ</Text>
-            <Text style={styles.rowValue}>₪{Math.round(price / 1.17)}</Text>
+            <Text style={styles.rowValue}>₪{Math.round(price / (1 + rate))}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>מע"מ (17%)</Text>
+            <Text style={styles.rowLabel}>מע"מ ({vatRate ?? 18}%)</Text>
             <Text style={styles.rowValue}>₪{vat}</Text>
           </View>
           <View style={styles.totalRow}>
