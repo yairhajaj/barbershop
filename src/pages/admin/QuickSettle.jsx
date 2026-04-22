@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useBranch } from '../../contexts/BranchContext'
 import { useToast } from '../../components/ui/Toast'
+import { useProducts } from '../../hooks/useProducts'
 import { docLabel, calcVat } from '../../lib/finance'
 import { formatTime, formatDate } from '../../lib/utils'
 import { Spinner } from '../../components/ui/Spinner'
@@ -27,6 +28,8 @@ export function QuickSettle() {
   const [busy, setBusy] = useState({}) // { [aptId]: true }
   const [otherModal, setOtherModal] = useState(null) // { apt, method, amount }
   const [done, setDone] = useState([]) // ids that were resolved
+
+  const { products } = useProducts({ activeOnly: true })
 
   const businessType = settings?.business_type || 'osek_morsheh'
   const vatRate = settings?.vat_rate ?? 18
@@ -69,11 +72,13 @@ export function QuickSettle() {
     setDone(prev => [...prev, id])
   }
 
-  async function handlePay(apt, method, customAmount = null) {
+  async function handlePay(apt, method, customAmount = null, extraProducts = []) {
     if (busy[apt.id]) return
     setBusy(b => ({ ...b, [apt.id]: true }))
     try {
-      const price = customAmount ?? Number(apt.price || apt.services?.price || 0)
+      const basePrice = customAmount ?? Number(apt.services?.price || 0)
+      const productsTotal = extraProducts.reduce((s, p) => s + Number(p.price || 0) * (p.qty || 1), 0)
+      const price = basePrice + productsTotal
       const { beforeVat, vatAmount } = calcVat(price, vatRate, businessType)
       const nowIso = new Date().toISOString()
 
@@ -224,7 +229,7 @@ export function QuickSettle() {
                 businessType={businessType}
                 onPay={(method) => handlePay(apt, method)}
                 onNoShow={() => handleNoShow(apt)}
-                onOther={() => setOtherModal({ apt, method: 'cash', amount: String(apt.price || apt.services?.price || '') })}
+                onOther={() => setOtherModal({ apt, method: 'cash', amount: String(apt.services?.price || ''), extraProducts: [] })}
               />
             ))}
           </AnimatePresence>
@@ -233,60 +238,159 @@ export function QuickSettle() {
 
       {/* "אחר" modal */}
       {otherModal && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.6)' }}
-          onClick={() => setOtherModal(null)}>
-          <motion.div
-            initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="card p-5 w-full max-w-sm space-y-4"
-            style={{ background: 'var(--color-card)' }}
-            onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>
-              ➕ תשלום אחר — {otherModal.apt.profiles?.name}
-            </h3>
-            {/* Amount */}
+        <OtherModal
+          modal={otherModal}
+          products={products}
+          onChange={setOtherModal}
+          onClose={() => setOtherModal(null)}
+          onConfirm={() => {
+            const baseAmt = Number(otherModal.amount)
+            if (!baseAmt && otherModal.extraProducts.length === 0) {
+              showToast({ message: 'הכנס סכום', type: 'error' }); return
+            }
+            handlePay(otherModal.apt, otherModal.method, baseAmt || null, otherModal.extraProducts)
+            setOtherModal(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+const ALL_PAY_METHODS = [
+  ...PAY_METHODS,
+  { key: 'transfer', icon: '🏦', label: 'העברה', color: '#d97706', bg: 'rgba(217,119,6,0.1)', border: 'rgba(217,119,6,0.3)' },
+  { key: 'paybox', icon: '📦', label: 'Paybox', color: '#6b7280', bg: 'var(--color-surface)', border: 'var(--color-border)' },
+]
+
+function OtherModal({ modal, products, onChange, onClose, onConfirm }) {
+  const productsTotal = modal.extraProducts.reduce((s, p) => s + Number(p.price || 0) * (p.qty || 1), 0)
+  const baseAmt = Number(modal.amount) || 0
+  const grandTotal = baseAmt + productsTotal
+
+  function toggleProduct(product) {
+    onChange(m => {
+      const existing = m.extraProducts.find(p => p.id === product.id)
+      if (existing) {
+        return { ...m, extraProducts: m.extraProducts.filter(p => p.id !== product.id) }
+      }
+      return { ...m, extraProducts: [...m.extraProducts, { ...product, qty: 1 }] }
+    })
+  }
+
+  function changeQty(productId, delta) {
+    onChange(m => ({
+      ...m,
+      extraProducts: m.extraProducts
+        .map(p => p.id === productId ? { ...p, qty: Math.max(1, (p.qty || 1) + delta) } : p)
+    }))
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.6)' }}
+      onClick={onClose}>
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="card w-full max-w-sm overflow-hidden"
+        style={{ background: 'var(--color-card)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="px-5 pt-5 pb-3 flex-shrink-0">
+          <h3 className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>
+            ➕ תשלום אחר — {modal.apt.profiles?.name}
+          </h3>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-5 space-y-4">
+          {/* Service amount */}
+          <div>
+            <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--color-muted)' }}>סכום שירות (₪)</label>
+            <input
+              type="number"
+              value={modal.amount}
+              onChange={e => onChange(m => ({ ...m, amount: e.target.value }))}
+              className="input-field w-full text-lg font-bold"
+              min="0"
+            />
+          </div>
+
+          {/* Products */}
+          {products.length > 0 && (
             <div>
-              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--color-muted)' }}>סכום (₪)</label>
-              <input
-                type="number"
-                value={otherModal.amount}
-                onChange={e => setOtherModal(m => ({ ...m, amount: e.target.value }))}
-                className="input-field w-full text-lg font-bold"
-                min="0"
-              />
-            </div>
-            {/* Method */}
-            <div>
-              <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--color-muted)' }}>אמצעי תשלום</label>
-              <div className="flex gap-2 flex-wrap">
-                {[...PAY_METHODS, { key: 'transfer', icon: '🏦', label: 'העברה', color: '#d97706', bg: 'rgba(217,119,6,0.1)', border: 'rgba(217,119,6,0.3)' }, { key: 'paybox', icon: '📦', label: 'Paybox', color: '#6b7280', bg: 'var(--color-surface)', border: 'var(--color-border)' }].map(m => (
-                  <button key={m.key}
-                    onClick={() => setOtherModal(o => ({ ...o, method: m.key }))}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all"
-                    style={{
-                      background: otherModal.method === m.key ? m.bg : 'transparent',
-                      color: otherModal.method === m.key ? m.color : 'var(--color-muted)',
-                      borderColor: otherModal.method === m.key ? m.border : 'var(--color-border)',
-                    }}>
-                    {m.icon} {m.label}
-                  </button>
-                ))}
+              <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--color-muted)' }}>הוסף מוצרים</label>
+              <div className="flex flex-col gap-1.5">
+                {products.map(product => {
+                  const selected = modal.extraProducts.find(p => p.id === product.id)
+                  return (
+                    <div key={product.id}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 border transition-all"
+                      style={{
+                        background: selected ? 'rgba(37,99,235,0.07)' : 'var(--color-surface)',
+                        borderColor: selected ? 'rgba(37,99,235,0.35)' : 'var(--color-border)',
+                      }}>
+                      <button className="flex-1 text-right min-w-0" onClick={() => toggleProduct(product)}>
+                        <div className="text-xs font-bold truncate" style={{ color: 'var(--color-text)' }}>{product.name}</div>
+                        <div className="text-[11px]" style={{ color: 'var(--color-muted)' }}>₪{Number(product.price || 0).toLocaleString('he-IL')}</div>
+                      </button>
+                      {selected ? (
+                        <div className="flex items-center gap-1 mr-2 flex-shrink-0">
+                          <button onClick={() => changeQty(product.id, -1)}
+                            className="w-6 h-6 rounded-full text-sm font-black flex items-center justify-center"
+                            style={{ background: 'var(--color-border)', color: 'var(--color-text)' }}>−</button>
+                          <span className="text-xs font-bold w-4 text-center" style={{ color: 'var(--color-text)' }}>{selected.qty}</span>
+                          <button onClick={() => changeQty(product.id, 1)}
+                            className="w-6 h-6 rounded-full text-sm font-black flex items-center justify-center"
+                            style={{ background: 'var(--color-gold)', color: '#fff' }}>+</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => toggleProduct(product)}
+                          className="mr-2 w-6 h-6 rounded-full text-sm font-black flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'var(--color-border)', color: 'var(--color-muted)' }}>+</button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
-            <button
-              onClick={() => {
-                const amt = Number(otherModal.amount)
-                if (!amt) { showToast({ message: 'הכנס סכום', type: 'error' }); return }
-                handlePay(otherModal.apt, otherModal.method, amt)
-                setOtherModal(null)
-              }}
-              className="btn-primary w-full py-3 text-base font-black">
-              ✓ אשר תשלום
-            </button>
-          </motion.div>
+          )}
+
+          {/* Method */}
+          <div>
+            <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--color-muted)' }}>אמצעי תשלום</label>
+            <div className="flex gap-2 flex-wrap">
+              {ALL_PAY_METHODS.map(m => (
+                <button key={m.key}
+                  onClick={() => onChange(o => ({ ...o, method: m.key }))}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all"
+                  style={{
+                    background: modal.method === m.key ? m.bg : 'transparent',
+                    color: modal.method === m.key ? m.color : 'var(--color-muted)',
+                    borderColor: modal.method === m.key ? m.border : 'var(--color-border)',
+                  }}>
+                  {m.icon} {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Footer */}
+        <div className="px-5 pb-5 pt-3 flex-shrink-0 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          {productsTotal > 0 && (
+            <div className="flex justify-between text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
+              <span>שירות ₪{baseAmt.toLocaleString('he-IL')} + מוצרים ₪{productsTotal.toLocaleString('he-IL')}</span>
+              <span className="font-black" style={{ color: 'var(--color-text)' }}>סה"כ ₪{grandTotal.toLocaleString('he-IL')}</span>
+            </div>
+          )}
+          <button onClick={onConfirm} className="btn-primary w-full py-3 text-base font-black">
+            ✓ אשר תשלום {grandTotal > 0 ? `₪${grandTotal.toLocaleString('he-IL')}` : ''}
+          </button>
+        </div>
+      </motion.div>
     </div>
   )
 }
