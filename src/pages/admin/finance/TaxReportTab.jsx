@@ -428,6 +428,13 @@ export function TaxReportTab() {
               style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
               📥 ייצוא CSV
             </button>
+            <button
+              onClick={handleExportSample}
+              disabled={sampleLoading}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+              {sampleLoading ? '⏳ מכין...' : '🧪 קובץ דמה לסימולטור'}
+            </button>
           </div>
 
           {/* Quarterly backup reminder */}
