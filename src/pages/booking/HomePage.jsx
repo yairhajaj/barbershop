@@ -481,7 +481,7 @@ export function HomePage() {
     || localStorage.getItem('booking_flow')
     || 'multistep'
   // Always start at branch selection — SelectBranch auto-skips if only 1 branch
-  const bookHref = bookingFlow === 'all-in-one' ? '/book/all' : '/book/branch'
+  const bookHref = bookingFlow === 'cinematic' ? '/book/cinematic' : bookingFlow === 'all-in-one' ? '/book/all' : '/book/branch'
 
   // (layout / floating vars kept for potential future use — not used in v6 layout)
   // eslint-disable-next-line no-unused-vars

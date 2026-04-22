@@ -21,7 +21,7 @@ export function BookingLayout({ children }) {
   const { settings } = useBusinessSettings()
   const logoUrl = settings?.logo_url
   const bookingFlow = settings?.booking_flow || localStorage.getItem('booking_flow') || 'multistep'
-  const bookHref = bookingFlow === 'all-in-one' ? '/book/all' : '/book/service'
+  const bookHref = bookingFlow === 'cinematic' ? '/book/cinematic' : bookingFlow === 'all-in-one' ? '/book/all' : '/book/service'
   const { lang, toggleLang, t } = useLang()
   const location = useLocation()
   const navigate = useNavigate()

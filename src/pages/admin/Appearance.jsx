@@ -541,21 +541,28 @@ export function Appearance() {
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
         <h2 className="font-semibold text-lg mb-1">סגנון תהליך הזמנה</h2>
         <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>איך הלקוח יקבע תור — בכל כפתורי ההזמנה</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {[
             {
               id: 'multistep',
               icon: '📋',
               title: 'רב-שלבי',
               desc: 'שלב אחר שלב עם סרגל התקדמות',
-              steps: ['שירות', 'ספר', 'תאריך', 'פרטים'],
+              steps: ['שירות', 'ספר', 'תאריך'],
             },
             {
               id: 'all-in-one',
               icon: '⚡',
               title: 'עמוד אחד',
               desc: 'הכל על דף אחד — מהיר וגולל',
-              steps: ['ספר → תאריך → שירות → שעה'],
+              steps: ['ספר → שירות → שעה'],
+            },
+            {
+              id: 'cinematic',
+              icon: '🎬',
+              title: 'קולנועי',
+              desc: 'חוויה אווירתית עם אנימציות',
+              steps: ['ספר', 'שירות', 'תאריך'],
             },
           ].map(opt => (
             <button
