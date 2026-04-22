@@ -228,11 +228,10 @@ export function Register() {
                   style={{ color: 'rgba(255,255,255,0.6)' }}>
                   תאריך לידה <span className="normal-case font-normal opacity-60">(אופציונלי)</span>
                 </label>
-                <div style={{ overflow: 'hidden', width: '100%' }}>
-                  <input className="gi" style={{ ...gi, colorScheme: 'dark', boxSizing: 'border-box', width: '100%', display: 'block' }} type="date" autoComplete="bday"
-                    value={form.birthDate}
-                    onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} />
-                </div>
+                <input className="gi" style={gi} type="text" inputMode="numeric"
+                  placeholder="DD/MM/YYYY" autoComplete="bday"
+                  value={form.birthDate}
+                  onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} />
               </div>
 
               <div>
