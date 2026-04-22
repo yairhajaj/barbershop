@@ -490,40 +490,74 @@ export function Confirmation() {
       <AnimatePresence>
         {showRecurringModal && (
           <motion.div
-              key="modal-wrapper"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{
-                position: 'fixed', inset: 0, zIndex: 60,
-                background: 'rgba(0,0,0,0.75)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '20px',
-              }}
-              onClick={() => setShowRecurringModal(false)}
-            >
+            key="modal-wrapper"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 60,
+              background: 'rgba(0,0,0,0.72)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '24px',
+            }}
+            onClick={() => setShowRecurringModal(false)}
+          >
             <motion.div
               key="modal"
-              initial={{ scale: 0.88, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
-              transition={{ type: 'spring', damping: 24, stiffness: 320 }}
+              initial={{ scale: 0.9, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 8 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 340 }}
               onClick={e => e.stopPropagation()}
               style={{
-                width: '100%', maxWidth: 340,
-                borderRadius: 20,
+                width: '100%', maxWidth: 320,
+                borderRadius: 24,
                 background: 'var(--color-card)',
-                padding: '28px 24px 24px',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+                overflow: 'hidden',
+                boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px var(--color-border)',
               }}
             >
-              <div className="text-center mb-4">
-                <div className="text-3xl mb-2">🔁</div>
-                <h2 className="text-lg font-black mb-1" style={{ color: 'var(--color-text)' }}>תור קבוע שבועי</h2>
-                <p className="text-sm" style={{ color: 'var(--color-muted)', lineHeight: 1.5 }}>
-                  קביעת תור שבועי קבוע לאותה שעה, {settings.recurring_weeks_ahead ?? 12} שבועות קדימה.
-                  <br />תורים ייקבעו אוטומטית בלוח.
+              {/* Gold accent bar */}
+              <div style={{ height: 4, background: 'linear-gradient(to left, var(--color-gold), rgba(212,175,55,0.4))' }} />
+
+              <div style={{ padding: '28px 24px 24px', textAlign: 'center' }}>
+                {/* Icon */}
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(212,175,55,0.12)',
+                  border: '1.5px solid rgba(212,175,55,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 24,
+                }}>🔁</div>
+
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                  תור קבוע שבועי
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--color-muted)', lineHeight: 1.6, margin: '0 0 4px' }}>
+                  קביעת תור שבועי קבוע לאותה שעה
                 </p>
+                <p style={{ fontSize: 13, color: 'var(--color-muted)', lineHeight: 1.6, margin: 0 }}>
+                  {settings.recurring_weeks_ahead ?? 12} שבועות קדימה — תורים ייקבעו אוטומטית
+                </p>
+
+                {/* Info chip */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  margin: '14px 0 0',
+                  padding: '5px 12px', borderRadius: 999,
+                  background: 'rgba(212,175,55,0.1)',
+                  border: '1px solid rgba(212,175,55,0.2)',
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-gold)', letterSpacing: '0.04em' }}>
+                    {settings.recurring_weeks_ahead ?? 12} תורים · כל שבוע
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col gap-3 max-w-xs mx-auto">
+
+              {/* Divider */}
+              <div style={{ height: 1, background: 'var(--color-border)', margin: '0 24px' }} />
+
+              <div style={{ padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button
                   className="btn-primary justify-center py-3 text-sm font-bold"
                   onClick={() => { setIsRecurring(true); setShowRecurringModal(false) }}
@@ -538,7 +572,7 @@ export function Confirmation() {
                 </button>
               </div>
             </motion.div>
-            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
