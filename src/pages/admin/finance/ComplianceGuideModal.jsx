@@ -194,6 +194,27 @@ export function ComplianceGuideModal({ onClose }) {
             style={{ color: 'var(--color-muted)' }}>×</button>
         </div>
 
+        {/* Disclaimer */}
+        <div className="mx-5 mt-4 p-3 rounded-xl text-xs leading-relaxed"
+          style={{ background: '#fef9ec', border: '1px solid #f59e0b', color: '#78350f' }}>
+          <p className="font-bold mb-1">⚠️ הצהרת אחריות — חשוב לקרוא</p>
+          <p>
+            האפליקציה היא כלי עזר לניהול עסקי בלבד. היא <strong>אינה</strong> מבצעת שום פעולה מול רשות המיסים,
+            אינה מגישה דוחות, אינה מחליפה רואה חשבון, ואינה מהווה ייעוץ משפטי או מס.
+          </p>
+          <p className="mt-1">
+            כל עסקאות הגשת הדוחות, תשלום המסים, שמירת המסמכים וציות לחוק הן <strong>באחריות בעל העסק בלבד</strong>.
+            המידע במדריך זה הוא לצורך הכוונה כללית ועשוי שלא לשקף שינויים עדכניים בחקיקה.
+          </p>
+          <p className="mt-1">
+            מומלץ להתייעץ עם רואה חשבון מוסמך לגבי המצב הספציפי של העסק שלך.
+          </p>
+          <p className="mt-1">
+            היצרן ומפעיל האפליקציה <strong>אינם נושאים באחריות</strong> לכל קנס, עיצום כספי, ביקורת,
+            אי-ציות לחוק, או נזק אחר שיגרם לעסק.
+          </p>
+        </div>
+
         {/* Body */}
         <div className="overflow-y-auto flex-1 p-5 space-y-2" dir="rtl">
           {SECTIONS.map(sec => (
