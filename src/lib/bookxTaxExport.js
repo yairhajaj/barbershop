@@ -22,6 +22,7 @@ import {
   buildSection26Report,
   printSection26,
   generateOpenFormatZip,
+  printRegistrationPackage,
 } from './openfrmt'
 
 // ── generateINI ──────────────────────────────────────────────────
@@ -224,4 +225,5 @@ export {
   buildSection26Report,
   printSection26,
   generateOpenFormatZip,
+  printRegistrationPackage,
 }

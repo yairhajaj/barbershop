@@ -13,6 +13,7 @@ import {
   printSection26,
   buildSection26Report,
   generateSampleFiles,
+  printRegistrationPackage,
 } from '../../../lib/bookxTaxExport'
 
 const PERIOD_TYPES = [
@@ -264,7 +265,7 @@ export function TaxReportTab() {
   async function handleExportSample() {
     setSampleLoading(true)
     try {
-      const { blob, totalRecords } = await generateSampleFiles(600)
+      const { blob, totalRecords, counts, primaryId, dirPrefix } = await generateSampleFiles(600)
       const url = URL.createObjectURL(blob)
       const a   = document.createElement('a')
       a.href    = url
@@ -272,6 +273,8 @@ export function TaxReportTab() {
       a.click()
       URL.revokeObjectURL(url)
       showToast({ message: `קובץ דמה הופק — ${totalRecords} רשומות`, type: 'success' })
+      // Open registration documents (B + C) in new tabs for printing
+      printRegistrationPackage({ counts, primaryId, dirPrefix, totalRecords })
     } catch (err) {
       showToast({ message: err.message, type: 'error' })
     } finally {
