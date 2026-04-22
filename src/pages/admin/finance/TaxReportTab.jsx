@@ -430,48 +430,6 @@ export function TaxReportTab() {
             </button>
           </div>
 
-          {/* OPENFRMT export card */}
-          <div className="card p-4" style={{ border: '1px solid var(--color-border)' }}>
-            <p className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-              📁 ייצוא קובץ אחיד — רשות המסים (OPENFRMT 1.31)
-            </p>
-            <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
-              תקופה: {currentPeriod?.label}
-              {settings?.last_openfrmt_export_at && (
-                <span className="mr-3">• ייצוא אחרון: {new Date(settings.last_openfrmt_export_at).toLocaleDateString('he-IL')}</span>
-              )}
-            </p>
-
-            {exportWarnings.length > 0 && (
-              <div className="rounded-xl p-3 mb-3 text-xs space-y-1"
-                style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)', color: '#b45309' }}>
-                {exportWarnings.map((w, i) => <p key={i}>⚠ {w}</p>)}
-              </div>
-            )}
-
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={handleExportOpenFrmt}
-                disabled={exportLoading}
-                className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: 'var(--color-gold)', color: '#000' }}>
-                {exportLoading ? '⏳ מייצא...' : '⬇ ייצא ZIP'}
-              </button>
-              <button
-                onClick={handlePrintSection26}
-                className="px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-                🖨 הדפס דוח 2.6
-              </button>
-              <button
-                onClick={handleExportSample}
-                disabled={sampleLoading}
-                className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
-                {sampleLoading ? '⏳ מכין...' : '🧪 קובץ דמה לסימולטור'}
-              </button>
-            </div>
-          </div>
           {/* Quarterly backup reminder */}
           {(() => {
             const last = settings?.last_quarterly_backup_at ? new Date(settings.last_quarterly_backup_at) : null
