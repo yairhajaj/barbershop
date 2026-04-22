@@ -28,7 +28,7 @@ const gi = {
 export function Register() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
-    name: '', phone: '', password: '', confirmPassword: '',
+    name: '', phone: '',
     birthDate: '', gender: '', termsAccepted: false,
   })
   const [code, setCode]         = useState('')
@@ -70,8 +70,6 @@ export function Register() {
     e.preventDefault()
     const cleanPhone = form.phone.replace(/[^0-9]/g, '')
     if (cleanPhone.length < 9) { toast({ message: 'מספר טלפון לא תקין', type: 'error' }); return }
-    if (form.password !== form.confirmPassword) { toast({ message: 'הסיסמאות אינן תואמות', type: 'error' }); return }
-    if (form.password.length < 6) { toast({ message: 'הסיסמה חייבת להכיל לפחות 6 תווים', type: 'error' }); return }
     if (!form.termsAccepted) { toast({ message: 'יש לאשר את תנאי השימוש', type: 'error' }); return }
 
     setLoading(true)
@@ -108,7 +106,7 @@ export function Register() {
       if (!verifyData?.valid) throw new Error(verifyData?.error ?? 'קוד שגוי')
 
       const data = await signUp({
-        name: form.name, phone: form.phone, password: form.password,
+        name: form.name, phone: form.phone,
         birthDate: form.birthDate || null, gender: form.gender || null,
         termsAccepted: form.termsAccepted,
       })
@@ -159,7 +157,8 @@ export function Register() {
       </div>
 
       {/* ── Fixed glass card — no page scroll, card scrolls internally if needed ── */}
-      <div className="fixed inset-0 z-10 flex items-center justify-center px-4">
+      <div className="fixed inset-0 z-10 flex items-center justify-center px-4"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}>
         <motion.div
           initial={{ opacity: 0, y: 22, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -226,27 +225,11 @@ export function Register() {
 
               <div>
                 <label className="block text-xs font-semibold mb-1.5 tracking-wide uppercase"
-                  style={{ color: 'rgba(255,255,255,0.6)' }}>סיסמה</label>
-                <input className="gi" style={gi} type="password" autoComplete="new-password"
-                  placeholder="לפחות 6 תווים" value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1.5 tracking-wide uppercase"
-                  style={{ color: 'rgba(255,255,255,0.6)' }}>אישור סיסמה</label>
-                <input className="gi" style={gi} type="password" autoComplete="new-password"
-                  placeholder="••••••••" value={form.confirmPassword}
-                  onChange={e => setForm(f => ({ ...f, confirmPassword: e.target.value }))} required />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1.5 tracking-wide uppercase"
                   style={{ color: 'rgba(255,255,255,0.6)' }}>
                   תאריך לידה <span className="normal-case font-normal opacity-60">(אופציונלי)</span>
                 </label>
-                <input className="gi" style={{ ...gi, colorScheme: 'dark' }} type="date" autoComplete="bday"
-                  value={form.birthDate} dir="ltr"
+                <input className="gi" style={{ ...gi, colorScheme: 'dark', boxSizing: 'border-box', maxWidth: '100%' }} type="date" autoComplete="bday"
+                  value={form.birthDate}
                   onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} />
               </div>
 

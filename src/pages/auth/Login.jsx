@@ -131,7 +131,8 @@ export function Login() {
       </div>
 
       {/* ── Fixed glass card ── */}
-      <div className="fixed inset-0 z-10 flex items-center justify-center px-4">
+      <div className="fixed inset-0 z-10 flex items-center justify-center px-4"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}>
         <motion.div
           initial={{ opacity: 0, y: 22, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
