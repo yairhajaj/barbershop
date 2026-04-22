@@ -686,12 +686,10 @@ export function buildSection26Report({ settings, from, to, counts, docTypeSummar
   }
 }
 
-export function printSection26(report) {
+function buildSection26Html(report) {
   const now = new Date(report.generatedAt)
   const dateStr = now.toLocaleDateString('he-IL')
   const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
-
-  // Build rows for all doc types — show count+total if non-zero, else 0
   const allCodes = Object.keys(DOC_TYPE_LABELS)
   let totalCount = 0, totalAmount = 0
   const rows = allCodes.map(code => {
@@ -700,8 +698,7 @@ export function printSection26(report) {
     totalAmount += s.total
     return `<tr><td>${code}</td><td>${DOC_TYPE_LABELS[code]}</td><td>${s.count || 0}</td><td>${s.total ? s.total.toLocaleString('he-IL', { minimumFractionDigits: 2 }) : '0'}</td></tr>`
   }).join('\n')
-
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html dir="rtl" lang="he"><head>
 <meta charset="UTF-8">
 <title>דוח הפקת קובץ אחיד — סעיף 2.6</title>
@@ -723,24 +720,24 @@ export function printSection26(report) {
   <tr><td>מספר עוסק מורשה</td><td>${report.vatId}</td></tr>
   <tr><td>טווח תאריכים</td><td>מתאריך: ${report.dataRange.from} &nbsp;&nbsp; ועד תאריך: ${report.dataRange.to}</td></tr>
 </table>
-
 <h2>פירוט סוגי המסמכים</h2>
 <table>
   <tr><th>מספר מסמך</th><th>סוג המסמך</th><th>סה"כ כמותי</th><th>סה"כ כספי (בש"ח)</th></tr>
   ${rows}
   <tr class="total-row"><td colspan="2">סה"כ</td><td>${totalCount}</td><td>${totalAmount.toLocaleString('he-IL', { minimumFractionDigits: 2 })}</td></tr>
 </table>
-
 <p class="footer">
   הנתונים הופקו באמצעות תוכנת <strong>${report.softwareName}</strong>,
   מספר תעודת הרישום: <strong>${report.softwareReg || '________'}</strong>
   &nbsp;&nbsp;&nbsp; בתאריך: ${dateStr} &nbsp;&nbsp; בשעה: ${timeStr}
 </p>
-
 <button class="noprint" onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-size:14px;cursor:pointer">🖨 הדפס</button>
 </body></html>`
+}
+
+export function printSection26(report) {
   const w = window.open('', '_blank')
-  w.document.write(html)
+  w.document.write(buildSection26Html(report))
   w.document.close()
 }
 
@@ -756,7 +753,11 @@ export function printRegistrationPackage({ counts, docTypeSummary, primaryId, di
   const mfr     = OPERATOR.manufacturer_name_ascii || OPERATOR.manufacturer_name
   const mfrVat  = OPERATOR.manufacturer_vat_id
 
-  // ── Document B: Section 2.6 — open via printSection26 ───────────
+  // Open both windows immediately in same call stack to avoid popup blocker
+  const wB = window.open('', '_blank')
+  const wC2 = window.open('', '_blank')
+
+  // ── Document B: Section 2.6 ───────────────────────────────────────
   const demoSettings = {
     business_name: 'עסק לדוגמה בע"מ',
     business_tax_id: vatId,
@@ -769,7 +770,8 @@ export function printRegistrationPackage({ counts, docTypeSummary, primaryId, di
     docTypeSummary: docTypeSummary || {},
     primaryId,
   })
-  printSection26(report26)
+  wB.document.write(buildSection26Html(report26))
+  wB.document.close()
 
   // ── Document C: Appendix 5.4 — post-export success screen ────────
   const nowDate = new Date()
@@ -830,12 +832,8 @@ export function printRegistrationPackage({ counts, docTypeSummary, primaryId, di
 <button class="noprint" onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-size:14px;cursor:pointer">🖨 הדפס</button>
 </body></html>`
 
-  // Document B already opened by printSection26 above — open C after short delay
-  setTimeout(() => {
-    const wC = window.open('', '_blank')
-    wC.document.write(docC)
-    wC.document.close()
-  }, 400)
+  wC2.document.write(docC)
+  wC2.document.close()
 }
 
 // ── Settings validation ──────────────────────────────────────────
