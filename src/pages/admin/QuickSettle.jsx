@@ -47,17 +47,21 @@ export function QuickSettle() {
         staff(id, name)
       `)
       .eq('status', 'confirmed')
-      .or('payment_status.is.null,payment_status.eq.pending')
-      .or('cash_paid.is.null,cash_paid.eq.false')
       .lt('start_at', now)
       .order('start_at', { ascending: false })
-      .limit(50)
+      .limit(100)
 
     if (currentBranch?.id) q = q.eq('branch_id', currentBranch.id)
 
     const { data, error } = await q
-    if (error) { showToast({ message: 'שגיאה בטעינה', type: 'error' }); setLoading(false); return }
-    setAppointments(data ?? [])
+    if (error) {
+      showToast({ message: `שגיאה: ${error.message}`, type: 'error' })
+      setLoading(false)
+      return
+    }
+    // Filter unpaid in JS to avoid complex PostgREST OR syntax
+    const unpaid = (data ?? []).filter(a => !a.cash_paid && a.payment_status !== 'paid')
+    setAppointments(unpaid)
     setLoading(false)
   }
 
