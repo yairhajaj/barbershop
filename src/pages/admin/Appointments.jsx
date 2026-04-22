@@ -1890,12 +1890,19 @@ export function Appointments() {
                 >
                   👻 לא הגיע
                 </button>
-                <button
-                  onClick={() => handleCancel(selectedAppt.id)}
-                  className="flex-1 py-2 px-3 bg-red-50 text-red-600 rounded-lg font-medium text-sm hover:bg-red-100 transition-colors"
-                >
-                  ✕ בטל
-                </button>
+                {new Date(selectedAppt.start_at) > new Date() ? (
+                  <button
+                    onClick={() => handleCancel(selectedAppt.id)}
+                    className="flex-1 py-2 px-3 bg-red-50 text-red-600 rounded-lg font-medium text-sm hover:bg-red-100 transition-colors"
+                  >
+                    ✕ בטל
+                  </button>
+                ) : (
+                  <div className="flex-1 py-2 px-3 rounded-lg text-xs text-center"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                    🔒 לא ניתן לבטל רטרואקטיבית
+                  </div>
+                )}
               </div>
             )}
             {selectedAppt.no_show && (

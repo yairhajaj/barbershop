@@ -367,11 +367,18 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
               style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-muted)', opacity: busy ? 0.6 : 1 }}>
               👻 לא הגיע
             </button>
-            <button onClick={handleCancel} disabled={busy}
-              className="flex-1 py-2 px-3 rounded-lg font-medium text-sm"
-              style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.25)', opacity: busy ? 0.6 : 1 }}>
-              ✕ בטל תור
-            </button>
+            {new Date(apt.start_at) > new Date() ? (
+              <button onClick={handleCancel} disabled={busy}
+                className="flex-1 py-2 px-3 rounded-lg font-medium text-sm"
+                style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.25)', opacity: busy ? 0.6 : 1 }}>
+                ✕ בטל תור
+              </button>
+            ) : (
+              <div className="flex-1 py-2 px-3 rounded-lg text-xs text-center"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                🔒 לא ניתן לבטל רטרואקטיבית
+              </div>
+            )}
           </div>
         )}
 

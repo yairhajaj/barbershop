@@ -12,17 +12,24 @@ import { useStaff } from '../../../hooks/useStaff'
 import { formatILS, calcVat, hasVat, PAYMENT_METHODS, docLabel } from '../../../lib/finance'
 import { Spinner } from '../../../components/ui/Spinner'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
+import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { he } from 'date-fns/locale/he'
 import { supabase } from '../../../lib/supabase'
 import { fetchProductSales } from '../../../hooks/useProductSales'
 import { printInvoice } from '../../../lib/invoice'
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
+
+const PIE_COLORS = ['#c9a84c', '#3b82f6', '#10b981', '#f59e0b', '#6366f1']
 
 // ─────────────────────────────────────────────
-// Quick Receipt Panel
+// Quick Receipt Panel (unchanged logic, adds onDone)
 // ─────────────────────────────────────────────
-function QuickReceiptPanel() {
+function QuickReceiptPanel({ onDone }) {
   const m = useMotion()
   const { currentBranch } = useBranch()
   const branchId = currentBranch?.id ?? null
@@ -36,9 +43,7 @@ function QuickReceiptPanel() {
   const [products, setProducts] = useState([])
   const [productsOpen, setProductsOpen] = useState(false)
 
-  // cart: [{ tempId, type:'service'|'product'|'custom', id, name, unit_price, quantity }]
   const [cartItems, setCartItems] = useState([])
-  // custom item entry
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
 
@@ -46,7 +51,6 @@ function QuickReceiptPanel() {
   const [isDebt, setIsDebt] = useState(false)
   const [staffId, setStaffId] = useState('')
 
-  // customer
   const [customerMode, setCustomerMode] = useState('walkin')
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerResults, setCustomerResults] = useState([])
@@ -125,6 +129,7 @@ function QuickReceiptPanel() {
     setCustomerMode('walkin')
     setIsDebt(false)
     setPayMethod('cash')
+    onDone?.()
   }
 
   function validate() {
@@ -190,7 +195,6 @@ function QuickReceiptPanel() {
       const today = format(new Date(), 'yyyy-MM-dd')
       const serviceName = cartItems.map(i => i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name).join(' + ')
 
-      // get next invoice number
       const { data: invNum, error: numErr } = await supabase.rpc('next_invoice_number')
       if (numErr) throw numErr
 
@@ -252,11 +256,7 @@ function QuickReceiptPanel() {
   ]
 
   return (
-    <motion.div variants={m.fadeUp} initial="hidden" animate="visible" className="card p-4 space-y-4">
-      <h2 className="font-bold text-base" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-        ⚡ תקבול מהיר
-      </h2>
-
+    <div className="space-y-4">
       {/* Services */}
       {topServices.length > 0 && (
         <div>
@@ -461,7 +461,7 @@ function QuickReceiptPanel() {
           </button>
         )}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -499,14 +499,12 @@ function StaffPaymentsSection({ settings }) {
           .eq('status', 'completed')
           .gte('start_at', monthStart + 'T00:00:00')
           .lte('start_at', monthEnd + 'T23:59:59'),
-        // Walk-in receipts (quick income) — credited to the selected staff too.
         supabase
           .from('manual_income')
           .select('staff_id, amount, appointment_id')
           .is('product_id', null)
           .gte('date', monthStart)
           .lte('date', monthEnd),
-        // Unified product sales: manual_income (product_id) + invoice_items (kind=product)
         fetchProductSales({ from: monthStart, to: monthEnd }).catch(err => {
           console.warn('fetchProductSales failed:', err)
           return []
@@ -545,7 +543,6 @@ function StaffPaymentsSection({ settings }) {
       amount = count * effectiveRate
     }
 
-    // Product sales commission — unified from manual_income + invoice_items
     const memberProducts = productSales.filter(p => p.staff_id === member.id)
     const productRevenue = memberProducts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
     const productUnits = memberProducts.reduce((sum, p) => sum + (Number(p.quantity) || 1), 0)
@@ -571,12 +568,7 @@ function StaffPaymentsSection({ settings }) {
   const rows = staffList.map(m => ({ ...m, ...calcStaff(m) }))
 
   return (
-    <motion.div
-      variants={m.fadeUp}
-      initial="hidden"
-      animate="visible"
-      className="card p-5"
-    >
+    <motion.div variants={m.fadeUp} initial="hidden" animate="visible" className="card p-5">
       <h2 className="font-bold text-base mb-4" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
         💈 תשלומי ספרים החודש
       </h2>
@@ -672,17 +664,135 @@ function StaffPaymentsSection({ settings }) {
 }
 
 // ─────────────────────────────────────────────
+// Business Analytics Charts
+// ─────────────────────────────────────────────
+function AnalyticsSection({ monthly, paymentBreakdown, topServices }) {
+  const hasPayBreakdown = paymentBreakdown.length > 0
+  const hasTopSvc = topServices.length > 0
+
+  const tooltipStyle = {
+    backgroundColor: 'var(--color-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 12,
+    color: 'var(--color-text)',
+    fontSize: 12,
+    direction: 'rtl',
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Area chart — 6-month revenue trend */}
+      <div className="card p-4">
+        <h2 className="font-bold text-base mb-4" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+          📈 מגמת הכנסות — 6 חודשים אחרונים
+        </h2>
+        {monthly.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={monthly} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-gold)" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="var(--color-gold)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#dc2626" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <XAxis dataKey="month" tick={{ fill: 'var(--color-muted)', fontSize: 11 }} />
+              <YAxis tickFormatter={v => v >= 1000 ? `₪${(v / 1000).toFixed(0)}k` : `₪${v}`} tick={{ fill: 'var(--color-muted)', fontSize: 11 }} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(v, name) => [formatILS(v), name === 'income' ? 'הכנסות' : 'הוצאות']}
+              />
+              <Legend formatter={name => name === 'income' ? 'הכנסות' : 'הוצאות'} wrapperStyle={{ fontSize: 12 }} />
+              <Area type="monotone" dataKey="income" name="income" stroke="var(--color-gold)" fill="url(#incomeGrad)" strokeWidth={2.5} dot={false} />
+              <Area type="monotone" dataKey="expenses" name="expenses" stroke="#dc2626" fill="url(#expenseGrad)" strokeWidth={2} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-center py-8" style={{ color: 'var(--color-muted)' }}>אין נתונים להצגה</p>
+        )}
+      </div>
+
+      {/* Two-column: payment donut + top services bar */}
+      {(hasPayBreakdown || hasTopSvc) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Payment method donut */}
+          {hasPayBreakdown && (
+            <div className="card p-4">
+              <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+                💳 אמצעי תשלום
+              </h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={paymentBreakdown}
+                    dataKey="amount"
+                    nameKey="label"
+                    innerRadius="50%"
+                    outerRadius="75%"
+                    paddingAngle={3}
+                  >
+                    {paymentBreakdown.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(v, name) => [formatILS(v), name]}
+                  />
+                  <Legend
+                    formatter={(value, entry) => `${value} ${entry.payload.pct}%`}
+                    wrapperStyle={{ fontSize: 11, direction: 'rtl' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Top services horizontal bar */}
+          {hasTopSvc && (
+            <div className="card p-4">
+              <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+                ✂️ שירותים מובילים
+              </h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={topServices} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis type="number" tickFormatter={v => `₪${v}`} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" width={72} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(v, name) => [formatILS(v), 'הכנסה']}
+                  />
+                  <Bar dataKey="revenue" fill="var(--color-gold)" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
 // Main Dashboard Tab
 // ─────────────────────────────────────────────
 export function DashboardTab() {
   const { currentBranch } = useBranch()
-  const { stats, monthly, recent, loading } = useFinanceDashboard({ branchId: currentBranch?.id ?? null })
+  const { stats, monthly, recent, paymentBreakdown, topServices, loading } = useFinanceDashboard({ branchId: currentBranch?.id ?? null })
   const { settings } = useBusinessSettings()
   const isOsekPatur = settings?.business_type === 'osek_patur'
+  const [quickReceiptOpen, setQuickReceiptOpen] = useState(false)
 
   const m = useMotion()
 
   if (loading) return <AdminSkeleton />
+
+  const momSign = (stats?.momGrowthPct ?? 0) >= 0 ? '▲' : '▼'
+  const momColor = (stats?.momGrowthPct ?? 0) >= 0 ? '#16a34a' : '#dc2626'
 
   const statCards = [
     {
@@ -690,6 +800,9 @@ export function DashboardTab() {
       label: 'הכנסות החודש',
       value: stats?.income ?? 0,
       color: 'var(--color-gold)',
+      sub: stats?.momGrowthPct != null && stats.momGrowthPct !== 0
+        ? { text: `${momSign} ${Math.abs(stats.momGrowthPct)}% מחודש קודם`, color: momColor }
+        : null,
     },
     {
       icon: '💸',
@@ -708,14 +821,31 @@ export function DashboardTab() {
       : []),
   ]
 
-  const maxValue = Math.max(...monthly.map(m => Math.max(m.income, m.expenses)), 1)
-  const chartHeight = 180
-  const barWidth = 26
-  const gap = 14
+  const kpiCards = [
+    {
+      icon: '🧾',
+      label: 'עסקאות החודש',
+      display: stats?.transactionCount ?? 0,
+      color: 'var(--color-muted)',
+      isNumber: true,
+    },
+    {
+      icon: '💡',
+      label: 'ממוצע לעסקה',
+      display: formatILS(stats?.avgTicket ?? 0),
+      color: 'var(--color-gold)',
+    },
+    {
+      icon: '📊',
+      label: 'מרווח רווח',
+      display: `${stats?.profitMarginPct ?? 0}%`,
+      color: (stats?.profitMarginPct ?? 0) >= 0 ? '#16a34a' : '#dc2626',
+    },
+  ]
 
   return (
     <div className="space-y-4">
-      {/* Stat cards */}
+      {/* Stat cards row 1 */}
       <motion.div
         className={`grid gap-3 ${isOsekPatur ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}
         variants={m.listStagger}
@@ -723,11 +853,7 @@ export function DashboardTab() {
         animate="visible"
       >
         {statCards.map((card) => (
-          <motion.div
-            key={card.label}
-            variants={m.fadeUp}
-            className="card p-3 sm:p-4"
-          >
+          <motion.div key={card.label} variants={m.fadeUp} className="card p-3 sm:p-4">
             <div className="text-xl mb-1">{card.icon}</div>
             <p className="text-xs font-medium mb-1 leading-tight" style={{ color: 'var(--color-muted)' }}>
               {card.label}
@@ -735,81 +861,65 @@ export function DashboardTab() {
             <p className="text-lg sm:text-xl font-black" style={{ color: card.color }}>
               {formatILS(card.value)}
             </p>
+            {card.sub && (
+              <p className="text-[10px] font-semibold mt-0.5" style={{ color: card.sub.color }}>
+                {card.sub.text}
+              </p>
+            )}
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Quick receipt */}
-      <QuickReceiptPanel />
-
-      {/* Bar chart */}
+      {/* KPI cards row 2 */}
       <motion.div
-        variants={m.fadeUp}
+        className="grid grid-cols-3 gap-3"
+        variants={m.listStagger}
         initial="hidden"
         animate="visible"
-        className="card p-4"
       >
-        <h2 className="font-bold text-base mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-          הכנסות vs הוצאות
-        </h2>
+        {kpiCards.map((card) => (
+          <motion.div key={card.label} variants={m.fadeUp} className="card p-3 sm:p-4">
+            <div className="text-xl mb-1">{card.icon}</div>
+            <p className="text-xs font-medium mb-1 leading-tight" style={{ color: 'var(--color-muted)' }}>
+              {card.label}
+            </p>
+            <p className="text-base sm:text-lg font-black" style={{ color: card.color }}>
+              {card.isNumber ? card.display : card.display}
+            </p>
+          </motion.div>
+        ))}
+      </motion.div>
 
-        {monthly.length > 0 ? (
-          <div className="w-full overflow-x-auto">
-            <svg
-              viewBox={`0 0 ${monthly.length * (barWidth * 2 + gap) + gap} ${chartHeight + 36}`}
-              width="100%"
-              height={chartHeight + 36}
-              dir="ltr"
-              style={{ minWidth: monthly.length > 4 ? monthly.length * 58 : 'auto' }}
-            >
-              {monthly.map((m, i) => {
-                const x = gap + i * (barWidth * 2 + gap)
-                const incomeH = maxValue > 0 ? (m.income / maxValue) * chartHeight : 0
-                const expenseH = maxValue > 0 ? (m.expenses / maxValue) * chartHeight : 0
-                return (
-                  <g key={m.month}>
-                    <rect x={x} y={chartHeight - incomeH} width={barWidth} height={incomeH} rx={4} fill="var(--color-gold)" opacity={0.9} />
-                    <rect x={x + barWidth + 2} y={chartHeight - expenseH} width={barWidth} height={expenseH} rx={4} fill="#dc2626" opacity={0.5} />
-                    <text x={x + barWidth} y={chartHeight + 18} textAnchor="middle" fontSize={10} fill="var(--color-muted)">{m.month}</text>
-                  </g>
-                )
-              })}
-            </svg>
-            <div className="flex gap-4 justify-center mt-1">
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>
-                <span className="inline-block w-3 h-3 rounded" style={{ background: 'var(--color-gold)' }} /> הכנסות
-              </div>
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>
-                <span className="inline-block w-3 h-3 rounded" style={{ background: '#dc2626', opacity: 0.5 }} /> הוצאות
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-center py-8" style={{ color: 'var(--color-muted)' }}>אין נתונים להצגה</p>
-        )}
+      {/* Quick receipt button */}
+      <motion.div variants={m.fadeUp} initial="hidden" animate="visible">
+        <button
+          onClick={() => setQuickReceiptOpen(true)}
+          className="btn-primary w-full py-3.5 text-sm font-bold rounded-2xl flex items-center justify-center gap-2"
+        >
+          ⚡ תקבול מהיר
+        </button>
+      </motion.div>
+
+      <Modal open={quickReceiptOpen} onClose={() => setQuickReceiptOpen(false)} title="⚡ תקבול מהיר">
+        <QuickReceiptPanel onDone={() => setQuickReceiptOpen(false)} />
+      </Modal>
+
+      {/* Analytics charts */}
+      <motion.div variants={m.fadeUp} initial="hidden" animate="visible">
+        <AnalyticsSection monthly={monthly} paymentBreakdown={paymentBreakdown} topServices={topServices} />
       </motion.div>
 
       {/* Staff payments */}
       <StaffPaymentsSection settings={settings} />
 
       {/* Recent activity */}
-      <motion.div
-        variants={m.fadeUp}
-        initial="hidden"
-        animate="visible"
-        className="card p-4"
-      >
+      <motion.div variants={m.fadeUp} initial="hidden" animate="visible" className="card p-4">
         <h2 className="font-bold text-base mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
           פעולות אחרונות
         </h2>
 
         {recent.length > 0 ? (
-          <motion.div
-            className="flex flex-col gap-2"
-            variants={m.listStagger}
-            initial="hidden"
-            animate="visible"
-          >
+          <motion.div className="flex flex-col gap-2" variants={m.listStagger} initial="hidden" animate="visible">
             {recent.map((item) => {
               const isPositive = item.amount >= 0
               const icon = item.type === 'expense' ? (item.icon || '💸') : item.type === 'manual' ? '💰' : '💳'
