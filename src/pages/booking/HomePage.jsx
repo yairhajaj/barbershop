@@ -487,16 +487,16 @@ export function HomePage() {
   // ── v6 glass panel style ──────────────────────────────────────────
   const glassPanel = isDark
     ? {
-        position: 'relative', zIndex: 10, marginTop: 0,
-        borderRadius: '0',
+        position: 'relative', zIndex: 10, marginTop: -120,
+        borderRadius: '24px 24px 0 0',
         background: 'rgba(18,14,10,1)',
         borderTop: 'none',
         boxShadow: 'none',
         minHeight: '60vh',
       }
     : {
-        position: 'relative', zIndex: 10, marginTop: 0,
-        borderRadius: '0',
+        position: 'relative', zIndex: 10, marginTop: -120,
+        borderRadius: '24px 24px 0 0',
         background: 'rgba(243,240,234,1)',
         borderTop: 'none',
         boxShadow: 'none',
@@ -540,12 +540,12 @@ export function HomePage() {
           <div className="absolute inset-0 pointer-events-none" style={{
             background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 26%)'
           }} />
-          {/* Surface fade — strong fade to panel background so there's zero seam */}
+          {/* Surface fade — tight dense blend, only 64px */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: 180,
+            height: 64,
             background: isDark
-              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.85) 30%, rgba(18,14,10,0.4) 65%, transparent 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.9) 30%, rgba(243,240,234,0.4) 65%, transparent 100%)',
+              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.95) 40%, transparent 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.95) 40%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
