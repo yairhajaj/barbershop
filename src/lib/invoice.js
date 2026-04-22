@@ -26,6 +26,7 @@ export function generateInvoiceHTML({
   logoUrl,
   taxSoftwareRegNumber,
   isCreditNote = false,
+  isCopy = false,
   items,
 }) {
   const invoiceNum     = invoiceNumber || `INV-${String(appointment.id).slice(0, 8).toUpperCase()}`
@@ -304,6 +305,8 @@ export function generateInvoiceHTML({
   </div>
 
   <div class="page">
+
+    ${isCopy ? `<div style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;text-align:center;padding:6px 0;margin-bottom:14px;font-weight:700;font-size:15px;letter-spacing:4px;color:#374151">העתק</div>` : ''}
 
     <!-- Header -->
     <div class="doc-header">

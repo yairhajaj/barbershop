@@ -12,6 +12,7 @@ import {
   DOC_TYPES,
 } from '../../../lib/openfrmt'
 import { OPERATOR } from '../../../config/operator'
+import { ComplianceGuideModal } from './ComplianceGuideModal'
 
 function defaultRange() {
   const now = new Date()
@@ -51,6 +52,8 @@ export function IncomeTaxTab() {
   const [creatingCreditFor, setCreatingCreditFor] = useState(null)
   const [taxSettings, setTaxSettings] = useState({})
   const [taxSaving, setTaxSaving] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [seqResult, setSeqResult] = useState(null) // null | { ok, gaps }
 
   const ofValidation = settings ? validateOpenFormatSettings(settings) : { valid: false, errors: [], warnings: [] }
 
@@ -237,9 +240,50 @@ export function IncomeTaxTab() {
     }
   }
 
+  // ── Section B: Sequence check ──────────────────────────────────
+  async function handleCheckSequence() {
+    setBusy('seq')
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('invoice_number')
+        .gte('issue_date', range.from)
+        .lte('issue_date', range.to)
+        .eq('is_cancelled', false)
+        .eq('is_credit_note', false)
+        .order('invoice_number', { ascending: true })
+      if (error) throw error
+      const nums = (data || [])
+        .map(i => parseInt(i.invoice_number?.replace(/\D/g, '') || '0', 10))
+        .filter(n => n > 0)
+        .sort((a, b) => a - b)
+      const gaps = []
+      for (let i = 1; i < nums.length; i++) {
+        if (nums[i] - nums[i - 1] > 1) {
+          gaps.push({ from: nums[i - 1] + 1, to: nums[i] - 1 })
+        }
+      }
+      setSeqResult({ ok: gaps.length === 0, gaps })
+    } catch (err) {
+      toast({ message: 'שגיאה בבדיקת רצף: ' + err.message, type: 'error' })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────
   return (
     <div className="space-y-6" dir="rtl">
+
+      {/* ── Compliance guide button ── */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowGuide(true)}
+          className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-gold)', color: 'var(--color-gold)' }}>
+          📋 מדריך ציות לרשות המיסים
+        </button>
+      </div>
 
       {/* ── Section A: Export ── */}
       <SectionCard title="📁 ייצוא לרשות המיסים" border="gold">
@@ -319,6 +363,42 @@ export function IncomeTaxTab() {
             </div>
           </div>
         )}
+
+        <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <p className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>
+            בדיקה שאין פערים ברצף מספרי החשבוניות (נדרש ע"פ הוראות ניהול פנקסים):
+          </p>
+          <button
+            onClick={handleCheckSequence}
+            disabled={busy === 'seq'}
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+            {busy === 'seq' ? <Spinner size="sm" /> : '🔍 בדיקת רצף מספרי חשבוניות'}
+          </button>
+
+          {seqResult && (
+            <div className="mt-2 p-3 rounded-xl text-xs"
+              style={{
+                background: seqResult.ok ? '#f0fdf4' : '#fef2f2',
+                border: `1px solid ${seqResult.ok ? '#bbf7d0' : '#fecaca'}`,
+                color: seqResult.ok ? '#16a34a' : '#dc2626',
+              }}>
+              {seqResult.ok ? (
+                <p>✅ הרצף תקין — אין פערים בטווח הנבחר.</p>
+              ) : (
+                <div>
+                  <p className="font-semibold mb-1">⚠️ נמצאו פערים ברצף:</p>
+                  <ul className="list-disc pr-4 space-y-0.5">
+                    {seqResult.gaps.map((g, i) => (
+                      <li key={i}>מספרים {g.from}–{g.to} חסרים</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1">יש לבדוק אם מדובר בחשבוניות שבוטלו או בפגם בנתונים.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </SectionCard>
 
       {/* ── Section C: Credit notes ── */}
@@ -478,6 +558,9 @@ export function IncomeTaxTab() {
           {taxSaving ? <Spinner size="sm" /> : 'שמור הגדרות'}
         </button>
       </SectionCard>
+
+      {/* ── Compliance Guide Modal ── */}
+      {showGuide && <ComplianceGuideModal onClose={() => setShowGuide(false)} />}
 
       {/* ── Section 5.4 Success Modal ── */}
       {exportResult && (

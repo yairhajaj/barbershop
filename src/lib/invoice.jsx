@@ -9,6 +9,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     direction: 'rtl',
   },
+  copyBanner: {
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  copyText: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: '#374151',
+    textAlign: 'center',
+    letterSpacing: 2,
+  },
   header: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
@@ -95,7 +112,7 @@ const styles = StyleSheet.create({
   },
 })
 
-export function InvoicePDF({ appointment, business, footerText, vatRate }) {
+export function InvoicePDF({ appointment, business, footerText, vatRate, isCopy }) {
   const invoiceNum = `INV-${appointment.id.slice(0, 8).toUpperCase()}`
   const price = Number(appointment.services?.price) || 0
   const rate = (vatRate ?? 18) / 100
@@ -105,6 +122,12 @@ export function InvoicePDF({ appointment, business, footerText, vatRate }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Copy banner */}
+        {isCopy && (
+          <View style={styles.copyBanner}>
+            <Text style={styles.copyText}>העתק</Text>
+          </View>
+        )}
         {/* Header */}
         <View style={styles.header}>
           <View>

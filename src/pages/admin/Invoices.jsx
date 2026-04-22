@@ -62,6 +62,7 @@ export function Invoices() {
       paymentMethod: inv.notes,
       invoiceDate: inv.created_at,
       logoUrl: settings?.logo_url,
+      isCopy: !!inv.invoice_sent_at,
     })
   }
 
