@@ -57,12 +57,16 @@ export function IncomeTaxTab() {
   useEffect(() => {
     if (settings) {
       setTaxSettings({
-        business_tax_id:          settings.business_tax_id || '',
+        business_name:               settings.business_name || '',
+        business_address_street:     settings.business_address_street || '',
+        business_address_number:     settings.business_address_number || '',
+        business_address_city:       settings.business_address_city || '',
+        business_address_postal:     settings.business_address_postal || '',
+        business_tax_id:             settings.business_tax_id || '',
         company_registration_number: settings.company_registration_number || '',
-        deduction_file_number:    settings.deduction_file_number || '',
-        tax_office_notified:      settings.tax_office_notified || false,
-        tax_office_notified_at:   settings.tax_office_notified_at || '',
-        vat_rate:                 settings.vat_rate ?? 18,
+        deduction_file_number:       settings.deduction_file_number || '',
+        tax_office_notified:         settings.tax_office_notified || false,
+        vat_rate:                    settings.vat_rate ?? 18,
       })
     }
   }, [settings])
@@ -415,7 +419,37 @@ export function IncomeTaxTab() {
 
         {/* Editable business fields */}
         <div className="space-y-3">
-          <Field label="מספר עוסק מורשה (ח.פ. / ע.מ.)"
+          <p className="text-xs font-semibold pt-1" style={{ color: 'var(--color-muted)' }}>פרטי העסק</p>
+          <Field label="שם העסק"
+            value={taxSettings.business_name || ''}
+            onChange={v => setTaxSettings(s => ({ ...s, business_name: v }))} />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Field label="רחוב"
+                value={taxSettings.business_address_street || ''}
+                onChange={v => setTaxSettings(s => ({ ...s, business_address_street: v }))} />
+            </div>
+            <div className="w-20">
+              <Field label='מס׳'
+                value={taxSettings.business_address_number || ''}
+                onChange={v => setTaxSettings(s => ({ ...s, business_address_number: v }))} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Field label="עיר"
+                value={taxSettings.business_address_city || ''}
+                onChange={v => setTaxSettings(s => ({ ...s, business_address_city: v }))} />
+            </div>
+            <div className="w-28">
+              <Field label="מיקוד"
+                value={taxSettings.business_address_postal || ''}
+                onChange={v => setTaxSettings(s => ({ ...s, business_address_postal: v }))} />
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold pt-2" style={{ color: 'var(--color-muted)' }}>מספרי זיהוי</p>
+          <Field label="מספר עוסק מורשה / ח.פ."
             value={taxSettings.business_tax_id || ''}
             onChange={v => setTaxSettings(s => ({ ...s, business_tax_id: v }))} />
           <Field label="מספר ח.פ. (חברה בע״מ)"
