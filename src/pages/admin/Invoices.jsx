@@ -28,6 +28,9 @@ const PAYMENT_LABELS = {
 export function Invoices() {
   const [tab, setTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [creditConfirmInv, setCreditConfirmInv] = useState(null)
+  const [creditBusy, setCreditBusy] = useState(false)
   const toast = useToast()
   const { settings } = useBusinessSettings()
   const { invoices, loading, markPaid, deleteInvoice } = useInvoices(
@@ -90,26 +93,33 @@ export function Invoices() {
     }
   }
 
-  async function handleDelete(inv) {
-    if (!confirm(`למחוק חשבונית ${inv.invoice_number}?`)) return
+  async function handleCreateCredit(inv) {
+    setCreditBusy(true)
     try {
       await deleteInvoice(inv.id)
-      toast({ message: 'חשבונית נמחקה', type: 'success' })
+      toast({ message: `חשבונית זיכוי הופקה עבור ${inv.invoice_number} ✓`, type: 'success' })
+      setCreditConfirmInv(null)
     } catch (e) {
       toast({ message: e.message, type: 'error' })
+    } finally {
+      setCreditBusy(false)
     }
   }
 
-  const filteredInvoices = searchQuery.trim()
-    ? invoices.filter(inv => {
-        const q = searchQuery.toLowerCase()
-        return (
-          inv.customer_name?.toLowerCase().includes(q) ||
-          inv.invoice_number?.toLowerCase().includes(q) ||
-          inv.service_date?.includes(searchQuery)
-        )
-      })
-    : invoices
+  const filteredInvoices = invoices.filter(inv => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      const match =
+        inv.customer_name?.toLowerCase().includes(q) ||
+        inv.invoice_number?.toLowerCase().includes(q)
+      if (!match) return false
+    }
+    if (dateFilter) {
+      const invDate = (inv.service_date || inv.created_at || '').slice(0, 10)
+      if (invDate !== dateFilter) return false
+    }
+    return true
+  })
 
   const totalAmount = filteredInvoices.reduce((s, i) => s + (Number(i.total_amount) || 0), 0)
 
@@ -143,14 +153,31 @@ export function Invoices() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
-        <span className="absolute top-1/2 -translate-y-1/2 right-3 text-base" style={{ color: 'var(--color-muted)' }}>🔍</span>
+      <div className="flex gap-2 mb-4">
+        <div className="relative flex-1">
+          <span className="absolute top-1/2 -translate-y-1/2 right-3 text-base" style={{ color: 'var(--color-muted)' }}>🔍</span>
+          <input
+            className="input-field pr-9 w-full text-sm"
+            placeholder="חיפוש לפי שם לקוח..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
         <input
-          className="input-field pr-9 w-full text-sm"
-          placeholder="חיפוש לפי שם לקוח, מספר חשבונית..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          type="date"
+          value={dateFilter}
+          onChange={e => setDateFilter(e.target.value)}
+          className="rounded-xl px-3 py-2 text-sm"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: dateFilter ? 'var(--color-text)' : 'var(--color-muted)' }}
         />
+        {(searchQuery || dateFilter) && (
+          <button
+            onClick={() => { setSearchQuery(''); setDateFilter('') }}
+            className="px-3 rounded-xl text-sm"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+            ✕
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -218,17 +245,60 @@ export function Invoices() {
                       ✓ שולמה
                     </button>
                   )}
-                  <button
-                    onClick={() => handleDelete(inv)}
-                    className="py-2 px-3 rounded-xl text-xs font-bold transition-all"
-                    style={{ background: 'var(--color-danger-tint)', color: '#dc2626', border: '1px solid var(--color-danger-ring)' }}
-                  >
-                    🗑
-                  </button>
+                  {inv.is_credit_note ? (
+                    <span className="py-2 px-3 rounded-xl text-xs font-bold"
+                      style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                      זיכוי
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setCreditConfirmInv(inv)}
+                      className="py-2 px-3 rounded-xl text-xs font-bold transition-all"
+                      style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                      זיכוי
+                    </button>
+                  )}
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Credit note confirmation modal */}
+      {creditConfirmInv && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => !creditBusy && setCreditConfirmInv(null)}>
+          <div className="card p-5 max-w-sm w-full space-y-4"
+            style={{ background: 'var(--color-card)', border: '1px solid #fecaca' }}
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-base" style={{ color: '#dc2626' }}>הפקת חשבונית זיכוי</h3>
+            <div className="text-sm space-y-2" style={{ color: 'var(--color-text)' }}>
+              <p>לפי חוק בישראל, ביטול חשבונית מתבצע על ידי הפקת <strong>חשבונית זיכוי</strong> — לא מחיקה.</p>
+              <p style={{ color: 'var(--color-muted)' }}>
+                חשבונית <strong>{creditConfirmInv.invoice_number}</strong> של {creditConfirmInv.customer_name} תסומן כמבוטלת
+                ותיפתח חשבונית זיכוי חדשה על סך ₪{Number(creditConfirmInv.total_amount).toLocaleString('he-IL')}.
+              </p>
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>שתי הרשומות יישמרו במערכת לצורכי ביקורת.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleCreateCredit(creditConfirmInv)}
+                disabled={creditBusy}
+                className="flex-1 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                style={{ background: '#dc2626', color: '#fff' }}>
+                {creditBusy ? 'מפיק...' : 'אשר — הפק זיכוי'}
+              </button>
+              <button
+                onClick={() => setCreditConfirmInv(null)}
+                disabled={creditBusy}
+                className="px-4 py-2 rounded-xl text-sm"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                ביטול
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
