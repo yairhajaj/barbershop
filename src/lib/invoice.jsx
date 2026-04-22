@@ -112,12 +112,13 @@ const styles = StyleSheet.create({
   },
 })
 
-export function InvoicePDF({ appointment, business, footerText, vatRate, isCopy }) {
+export function InvoicePDF({ appointment, business, footerText, vatRate, isCopy, businessType }) {
+  const isPatur = businessType === 'osek_patur'
   const invoiceNum = `INV-${appointment.id.slice(0, 8).toUpperCase()}`
   const price = Number(appointment.services?.price) || 0
-  const rate = (vatRate ?? 18) / 100
-  const vat = Math.round(price * rate)
-  const total = price
+  const rate = isPatur ? 0 : (vatRate ?? 18) / 100
+  const vat = isPatur ? 0 : Math.round(price * rate)
+  const docTitle = isPatur ? 'קבלה' : 'חשבונית'
 
   return (
     <Document>
@@ -139,7 +140,7 @@ export function InvoicePDF({ appointment, business, footerText, vatRate, isCopy 
             </Text>
           </View>
           <View>
-            <Text style={styles.invoiceTitle}>חשבונית</Text>
+            <Text style={styles.invoiceTitle}>{docTitle}</Text>
             <Text style={styles.invoiceNum}>{invoiceNum}</Text>
             <Text style={styles.invoiceNum}>תאריך: {formatDate(appointment.start_at)}</Text>
           </View>
@@ -182,17 +183,21 @@ export function InvoicePDF({ appointment, business, footerText, vatRate, isCopy 
         {/* Pricing */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>תשלום</Text>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>מחיר לפני מע"מ</Text>
-            <Text style={styles.rowValue}>₪{Math.round(price / (1 + rate))}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>מע"מ ({vatRate ?? 18}%)</Text>
-            <Text style={styles.rowValue}>₪{vat}</Text>
-          </View>
+          {!isPatur && (
+            <>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>מחיר לפני מע"מ</Text>
+                <Text style={styles.rowValue}>₪{Math.round(price / (1 + rate))}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>מע"מ ({vatRate ?? 18}%)</Text>
+                <Text style={styles.rowValue}>₪{vat}</Text>
+              </View>
+            </>
+          )}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>סה"כ לתשלום</Text>
-            <Text style={styles.totalValue}>₪{total}</Text>
+            <Text style={styles.totalValue}>₪{price}</Text>
           </View>
         </View>
 

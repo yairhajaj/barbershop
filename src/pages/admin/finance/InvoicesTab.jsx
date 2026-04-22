@@ -133,6 +133,7 @@ export function InvoicesTab() {
           vat_amount: vat.vatAmount,
           total_amount: vat.total,
           status: 'draft',
+          document_type: businessType === 'osek_patur' ? 400 : 305,
         })
         count++
       } catch (err) {
@@ -163,6 +164,11 @@ export function InvoicesTab() {
       },
       business,
       footerText: settings?.invoice_footer_text,
+      businessType,
+      vatRate,
+      invoiceNumber: inv.invoice_number,
+      businessTaxId: settings?.business_tax_id,
+      isCopy: !!inv.invoice_sent_at,
     })
   }
 

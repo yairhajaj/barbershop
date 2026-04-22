@@ -194,6 +194,7 @@ function QuickReceiptPanel() {
       const { data: invNum, error: numErr } = await supabase.rpc('next_invoice_number')
       if (numErr) throw numErr
 
+      const isPatur = settings?.business_type === 'osek_patur'
       const { data: inv, error: invErr } = await supabase.from('invoices').insert({
         customer_name: selectedCustomer?.name ?? 'לקוח מזדמן',
         customer_id: selectedCustomer?.id ?? null,
@@ -202,6 +203,7 @@ function QuickReceiptPanel() {
         payment_method: payMethod,
         branch_id: branchId,
         invoice_number: invNum,
+        document_type: isPatur ? 400 : 320,
       }).select().single()
       if (invErr) throw invErr
 

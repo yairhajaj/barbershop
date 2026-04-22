@@ -202,7 +202,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
         status: 'paid',
         paid_at: nowIso,
         notes: payMethod,
-        document_type: 320,
+        document_type: isPatur ? 400 : 320,
       }).select().single()
       if (invErr) throw invErr
 
