@@ -520,7 +520,9 @@ export function HomePage() {
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: '48vh', minHeight: 260, maxHeight: 360,
+          height: layout === 'luxury' ? '75vh' : '48vh',
+          minHeight: layout === 'luxury' ? '75vh' : 260,
+          maxHeight: layout === 'luxury' ? 'none' : 360,
           overflow: 'hidden',
           background: '#0a0806',
         }}
