@@ -569,10 +569,10 @@ export function BookingLayout({ children }) {
           active={location.pathname === '/my-appointments'}
           isDark={isDark || isAuthPage} />
         <V6BarBtn
-          to={isAdmin ? '/admin' : '/login'}
-          icon={isAdmin ? 'settings' : 'person'}
-          label={isAdmin ? 'ניהול' : 'פרופיל'}
-          active={location.pathname.startsWith('/admin') || location.pathname.startsWith('/login')}
+          to={isAdmin ? '/admin' : '/team'}
+          icon={isAdmin ? 'settings' : 'people'}
+          label={isAdmin ? 'ניהול' : 'הצוות'}
+          active={isAdmin ? location.pathname.startsWith('/admin') : location.pathname.startsWith('/team')}
           isDark={isDark || isAuthPage} />
       </div>
     </div>
@@ -675,6 +675,14 @@ function V6BarBtn({ to, icon, label, active, isDark }) {
       <>
         <circle cx="12" cy="12" r="3" />
         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+      </>
+    ),
+    people: (
+      <>
+        <circle cx="9" cy="7" r="3" />
+        <path d="M1 21v-1a7 7 0 0114 0v1" />
+        <circle cx="17" cy="7" r="3" />
+        <path d="M23 21v-1a7 7 0 00-5.3-6.8" />
       </>
     ),
   }

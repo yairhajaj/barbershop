@@ -27,6 +27,8 @@ const Register = lazy(() => import('./pages/auth/Register').then(m => ({ default
 
 // Customer
 const MyAppointments = lazy(() => import('./pages/customer/MyAppointments').then(m => ({ default: m.MyAppointments })))
+const Team            = lazy(() => import('./pages/booking/Team'))
+const StaffProfile    = lazy(() => import('./pages/booking/StaffProfile'))
 
 // Static
 import { PrivacyPolicy } from './pages/PrivacyPolicy'
@@ -91,6 +93,14 @@ const router = createBrowserRouter([
   {
     path: '/products',
     element: <BookingRoute><ProductsPage /></BookingRoute>,
+  },
+  {
+    path: '/team',
+    element: <BookingRoute><Team /></BookingRoute>,
+  },
+  {
+    path: '/team/:staffId',
+    element: <BookingRoute><StaffProfile /></BookingRoute>,
   },
   {
     path: '/book',
