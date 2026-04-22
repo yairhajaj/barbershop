@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BookingProgress } from '../../components/booking/BookingProgress'
 import { Spinner } from '../../components/ui/Spinner'
 import { useAuth } from '../../contexts/AuthContext'
@@ -38,6 +38,7 @@ export function Confirmation() {
   const [appointment, setAppointment] = useState(null)
   const [errorMsg, setErrorMsg]       = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
+  const [showRecurringModal, setShowRecurringModal] = useState(false)
   const [pushBanner, setPushBanner]   = useState(false)
   const [wantsReminder, setWantsReminder] = useState(true)
 
@@ -360,7 +361,7 @@ export function Confirmation() {
     <div className="flex flex-col" style={{ minHeight: '100dvh', background: 'var(--color-surface)' }}>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pt-20 pb-2">
+      <div className="flex-1 overflow-y-auto pt-20" style={{ paddingBottom: 160 }}>
         <div className="container px-4 sm:px-6 max-w-md mx-auto">
           <BookingProgress currentStep="confirm" />
 
@@ -415,7 +416,10 @@ export function Confirmation() {
             <label className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2.5 mb-2"
               style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
               <div className="relative flex-shrink-0">
-                <input type="checkbox" className="sr-only" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
+                <input type="checkbox" className="sr-only" checked={isRecurring} onChange={e => {
+                  if (e.target.checked) setShowRecurringModal(true)
+                  else setIsRecurring(false)
+                }} />
                 <div className="w-10 h-5 rounded-full transition-all duration-200"
                   style={{ background: isRecurring ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }}>
                   <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
@@ -453,11 +457,15 @@ export function Confirmation() {
         </div>
       </div>
 
-      {/* Sticky confirm button */}
-      <div className="px-4 pt-2 pb-4" style={{
+      {/* Fixed confirm button — above toolbar */}
+      <div style={{
+        position: 'fixed',
+        bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
+        left: 0, right: 0,
+        zIndex: 45,
+        padding: '10px 16px',
         background: 'var(--color-surface)',
         borderTop: '1px solid var(--color-border)',
-        paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
       }}>
         <div className="max-w-md mx-auto">
           <button
@@ -477,6 +485,56 @@ export function Confirmation() {
           </button>
         </div>
       </div>
+
+      {/* Recurring confirmation modal */}
+      <AnimatePresence>
+        {showRecurringModal && (
+          <>
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowRecurringModal(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 60 }}
+            />
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+              style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0,
+                zIndex: 61, borderRadius: '20px 20px 0 0',
+                background: 'var(--color-card)',
+                padding: '24px 20px calc(32px + env(safe-area-inset-bottom, 0px))',
+              }}
+            >
+              <div className="text-center mb-4">
+                <div className="text-3xl mb-2">🔁</div>
+                <h2 className="text-lg font-black mb-1" style={{ color: 'var(--color-text)' }}>תור קבוע שבועי</h2>
+                <p className="text-sm" style={{ color: 'var(--color-muted)', lineHeight: 1.5 }}>
+                  קביעת תור שבועי קבוע לאותה שעה, {settings.recurring_weeks_ahead ?? 12} שבועות קדימה.
+                  <br />תורים ייקבעו אוטומטית בלוח.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                <button
+                  className="btn-primary justify-center py-3 text-sm font-bold"
+                  onClick={() => { setIsRecurring(true); setShowRecurringModal(false) }}
+                >
+                  אשר — קבע {settings.recurring_weeks_ahead ?? 12} תורים
+                </button>
+                <button
+                  className="btn-ghost justify-center py-2.5 text-sm"
+                  onClick={() => setShowRecurringModal(false)}
+                >
+                  ביטול
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
