@@ -791,6 +791,7 @@
   color: #ffffff;
 }
 [data-layout="luxury"] body { background: #0a0806; }
+[data-layout="luxury"] .hero-section { min-height: 65vh !important; }
 
 /* ── כרטיסים — glass effect גלובלי ── */
 [data-layout="luxury"] .card {
