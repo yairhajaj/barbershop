@@ -499,7 +499,9 @@ export function HomePage() {
     ? {
         position: 'relative', zIndex: 10, marginTop: -120,
         borderRadius: '24px 24px 0 0',
-        background: 'rgba(18,14,10,1)',
+        background: 'rgba(18,14,10,0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
         borderTop: 'none',
         boxShadow: 'none',
         minHeight: '60vh',
@@ -507,7 +509,9 @@ export function HomePage() {
     : {
         position: 'relative', zIndex: 10, marginTop: -120,
         borderRadius: '24px 24px 0 0',
-        background: 'rgba(243,240,234,1)',
+        background: 'rgba(243,240,234,0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
         borderTop: 'none',
         boxShadow: 'none',
         minHeight: '60vh',
