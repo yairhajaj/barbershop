@@ -489,24 +489,30 @@ export function Confirmation() {
       {/* Recurring confirmation modal */}
       <AnimatePresence>
         {showRecurringModal && (
-          <>
-            <motion.div
-              key="backdrop"
+          <motion.div
+              key="modal-wrapper"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 60,
+                background: 'rgba(0,0,0,0.75)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '20px',
+              }}
               onClick={() => setShowRecurringModal(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 60 }}
-            />
+            >
             <motion.div
               key="modal"
-              initial={{ opacity: 0, y: 60, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 40, scale: 0.97 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+              initial={{ scale: 0.88, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 320 }}
+              onClick={e => e.stopPropagation()}
               style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0,
-                zIndex: 61, borderRadius: '20px 20px 0 0',
+                width: '100%', maxWidth: 340,
+                borderRadius: 20,
                 background: 'var(--color-card)',
-                padding: '24px 20px calc(32px + env(safe-area-inset-bottom, 0px))',
+                padding: '28px 24px 24px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
               }}
             >
               <div className="text-center mb-4">
@@ -532,7 +538,7 @@ export function Confirmation() {
                 </button>
               </div>
             </motion.div>
-          </>
+            </motion.div>
         )}
       </AnimatePresence>
     </div>
