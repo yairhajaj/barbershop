@@ -487,16 +487,16 @@ export function HomePage() {
   // ── v6 glass panel style ──────────────────────────────────────────
   const glassPanel = isDark
     ? {
-        position: 'relative', zIndex: 10, marginTop: -130,
-        borderRadius: '26px 26px 0 0',
+        position: 'relative', zIndex: 10, marginTop: 0,
+        borderRadius: '0',
         background: 'rgba(18,14,10,1)',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
-        boxShadow: '0 -2px 0 rgba(255,255,255,0.04)',
+        borderTop: 'none',
+        boxShadow: 'none',
         minHeight: '60vh',
       }
     : {
-        position: 'relative', zIndex: 10, marginTop: -130,
-        borderRadius: '26px 26px 0 0',
+        position: 'relative', zIndex: 10, marginTop: 0,
+        borderRadius: '0',
         background: 'rgba(243,240,234,1)',
         borderTop: 'none',
         boxShadow: 'none',
@@ -510,7 +510,7 @@ export function HomePage() {
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: '60vh', minHeight: 320, maxHeight: 440,
+          height: '48vh', minHeight: 260, maxHeight: 360,
           overflow: 'hidden',
           background: '#0a0806',
         }}
@@ -540,12 +540,12 @@ export function HomePage() {
           <div className="absolute inset-0 pointer-events-none" style={{
             background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 26%)'
           }} />
-          {/* Surface fade — light vignette at very bottom, blur bridge handles the real blend */}
+          {/* Surface fade — strong fade to panel background so there's zero seam */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: 80,
+            height: 180,
             background: isDark
-              ? 'linear-gradient(to top, rgba(18,14,10,0.55) 0%, transparent 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,0.45) 0%, transparent 100%)',
+              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.85) 30%, rgba(18,14,10,0.4) 65%, transparent 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.9) 30%, rgba(243,240,234,0.4) 65%, transparent 100%)',
             zIndex: 3,
           }} />
         </div>
@@ -604,20 +604,6 @@ export function HomePage() {
 
       {/* ── GLASS PANEL — slides over hero ────────────────────────── */}
       <div style={glassPanel}>
-        {/* Blur bridge — blurs the hero image visible through the overlap zone */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 150,
-          borderRadius: '26px 26px 0 0',
-          backdropFilter: 'blur(32px) saturate(1.6)',
-          WebkitBackdropFilter: 'blur(32px) saturate(1.6)',
-          background: isDark
-            ? 'linear-gradient(to bottom, rgba(18,14,10,0.0) 0%, rgba(18,14,10,0.95) 100%)'
-            : 'linear-gradient(to bottom, rgba(243,240,234,0.0) 0%, rgba(243,240,234,0.95) 100%)',
-          zIndex: 0, pointerEvents: 'none',
-        }} />
-
-        {/* Drag handle */}
-        <div style={{ position: 'relative', zIndex: 1, width: 32, height: 3.5, background: 'rgba(0,0,0,0.10)', borderRadius: 2, margin: '13px auto 0' }} />
 
         {/* ── GREETING ─────────────────────────────────────────── */}
         <motion.section
