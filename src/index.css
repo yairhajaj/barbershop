@@ -791,7 +791,11 @@
   color: #ffffff;
 }
 [data-layout="luxury"] body { background: #0a0806; }
-[data-layout="luxury"] .hero-section { min-height: 75vh !important; max-height: none !important; }
+[data-layout="luxury"] .booking-root .hero-section {
+  height: 75vh !important;
+  min-height: 75vh !important;
+  max-height: none !important;
+}
 
 /* ── כרטיסים — glass effect גלובלי ── */
 [data-layout="luxury"] .card {
