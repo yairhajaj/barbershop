@@ -214,7 +214,7 @@ export function AdminLayout({ children }) {
   }
 
   return (
-    <div dir="rtl" className="flex min-h-screen bg-gray-50" data-admin="true">
+    <div dir="rtl" className="flex min-h-screen" style={{ background: 'var(--color-surface)' }} data-admin="true">
 
       {/* ── Desktop Sidebar ───────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-64 bg-[var(--color-primary)] text-white fixed top-0 bottom-0 right-0">
@@ -390,11 +390,12 @@ export function AdminLayout({ children }) {
         </AnimatePresence>
 
         {/* Top bar */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
-          <div className="text-sm text-gray-500 hidden sm:block">
+        <header className="h-14 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20"
+          style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
+          <div className="text-sm hidden sm:block" style={{ color: 'var(--color-muted)' }}>
             {new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
-          <div className="sm:hidden text-sm font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-primary)' }}>
+          <div className="sm:hidden text-sm font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text)' }}>
             {BUSINESS.name}
           </div>
           <div className="flex items-center gap-3">
@@ -405,10 +406,11 @@ export function AdminLayout({ children }) {
             >
               🌐 צפה באתר
             </Link>
-            <div className="w-8 h-8 rounded-full bg-[var(--color-gold)]/10 flex items-center justify-center text-[var(--color-gold)] font-semibold text-sm">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm"
+              style={{ background: 'rgba(201,169,110,0.12)', color: 'var(--color-gold)' }}>
               {profile?.name?.[0] ?? 'A'}
             </div>
-            <span className="text-sm font-medium text-gray-700 hidden sm:block">{profile?.name}</span>
+            <span className="text-sm font-medium hidden sm:block" style={{ color: 'var(--color-text)' }}>{profile?.name}</span>
           </div>
         </header>
 
