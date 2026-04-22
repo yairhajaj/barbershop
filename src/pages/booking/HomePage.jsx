@@ -143,62 +143,65 @@ function FanGallery({ items }) {
         <p className="v6-fan-hint">{open ? 'לחץ על תמונה לפתיחה' : 'לחץ לפתיחת הגלריה'}</p>
       </div>
 
-      <AnimatePresence>
-        {lightboxIdx !== null && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setLightboxIdx(null)}
-            onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-            style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {/* Close */}
-            <button onClick={e => { e.stopPropagation(); setLightboxIdx(null) }}
-              style={{ ...LB_BTN, position: 'absolute', top: 16, right: 16 }}>✕</button>
+      {createPortal(
+        <AnimatePresence>
+          {lightboxIdx !== null && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setLightboxIdx(null)}
+              onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {/* Close */}
+              <button onClick={e => { e.stopPropagation(); setLightboxIdx(null) }}
+                style={{ ...LB_BTN, position: 'absolute', top: 16, right: 16 }}>✕</button>
 
-            {/* Nav row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center' }}
-              onClick={e => e.stopPropagation()}>
-              {n > 1 && <button style={LB_BTN} onClick={() => navigate(-1)}>→</button>}
+              {/* Nav row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center' }}
+                onClick={e => e.stopPropagation()}>
+                {n > 1 && <button style={LB_BTN} onClick={() => navigate(-1)}>→</button>}
 
-              <AnimatePresence mode="wait" custom={dir}>
-                <motion.img
-                  key={lightboxIdx}
-                  src={cards[lightboxIdx]?.url}
-                  alt={cards[lightboxIdx]?.caption || ''}
-                  custom={dir}
-                  variants={{
-                    enter: d => ({ opacity: 0, x: d * 80 }),
-                    center: { opacity: 1, x: 0 },
-                    exit: d => ({ opacity: 0, x: d * -80 }),
-                  }}
-                  initial="enter" animate="center" exit="exit"
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ maxWidth: '80vw', maxHeight: '74vh', objectFit: 'contain',
-                    borderRadius: 14, boxShadow: '0 24px 80px rgba(0,0,0,0.6)', flexShrink: 0 }}
-                />
-              </AnimatePresence>
+                <AnimatePresence mode="wait" custom={dir}>
+                  <motion.img
+                    key={lightboxIdx}
+                    src={cards[lightboxIdx]?.url}
+                    alt={cards[lightboxIdx]?.caption || ''}
+                    custom={dir}
+                    variants={{
+                      enter: d => ({ opacity: 0, x: d * 80 }),
+                      center: { opacity: 1, x: 0 },
+                      exit: d => ({ opacity: 0, x: d * -80 }),
+                    }}
+                    initial="enter" animate="center" exit="exit"
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ maxWidth: '80vw', maxHeight: '74vh', objectFit: 'contain',
+                      borderRadius: 14, boxShadow: '0 24px 80px rgba(0,0,0,0.6)', flexShrink: 0 }}
+                  />
+                </AnimatePresence>
 
-              {n > 1 && <button style={LB_BTN} onClick={() => navigate(1)}>←</button>}
-            </div>
-
-            {/* Caption + counter */}
-            <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-              onClick={e => e.stopPropagation()}>
-              {cards[lightboxIdx]?.caption && (
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
-                  {cards[lightboxIdx].caption}
-                </div>
-              )}
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>
-                {lightboxIdx + 1} / {n}
+                {n > 1 && <button style={LB_BTN} onClick={() => navigate(1)}>←</button>}
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+              {/* Caption + counter */}
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+                onClick={e => e.stopPropagation()}>
+                {cards[lightboxIdx]?.caption && (
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                    {cards[lightboxIdx].caption}
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>
+                  {lightboxIdx + 1} / {n}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   )
 }
