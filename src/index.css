@@ -932,6 +932,74 @@
   border-radius: 4px;
 }
 
+/* ── Admin panel — restore readable light-mode colors in luxury layout ── */
+[data-layout="luxury"] [data-admin="true"] {
+  --color-text:    #1a1a1a !important;
+  --color-muted:   #6b7280 !important;
+  --color-card:    #ffffff !important;
+  --color-border:  rgba(0,0,0,0.08) !important;
+  --color-surface: #f9fafb !important;
+  background: #f3f4f6 !important;
+  color: #1a1a1a !important;
+}
+[data-layout="luxury"] [data-admin="true"] .card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  border-top: 1px solid rgba(0,0,0,0.06) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04) !important;
+  color: #1a1a1a !important;
+}
+[data-layout="luxury"] [data-admin="true"] .card:hover {
+  background: #fafafa !important;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+[data-layout="luxury"] [data-admin="true"] .input {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+  color: #1a1a1a !important;
+}
+[data-layout="luxury"] [data-admin="true"] .input::placeholder {
+  color: #9ca3af !important;
+}
+[data-layout="luxury"] [data-admin="true"] .input:focus {
+  border-color: var(--color-gold) !important;
+  box-shadow: 0 0 0 3px rgba(201,169,110,0.15) !important;
+}
+[data-layout="luxury"] [data-admin="true"] .btn-outline {
+  border: 1px solid rgba(0,0,0,0.14) !important;
+  color: #374151 !important;
+  background: #ffffff !important;
+}
+[data-layout="luxury"] [data-admin="true"] .btn-ghost {
+  color: #374151 !important;
+}
+[data-layout="luxury"] [data-admin="true"] .btn-ghost:hover {
+  background: rgba(0,0,0,0.05) !important;
+  color: #111827 !important;
+}
+/* Restore badge colors in admin */
+[data-layout="luxury"] [data-admin="true"] [style*="rgba(0,0,0,0.05)"],
+[data-layout="luxury"] [data-admin="true"] [style*="rgba(0,0,0,0.06)"],
+[data-layout="luxury"] [data-admin="true"] [style*="rgba(0,0,0,0.07)"],
+[data-layout="luxury"] [data-admin="true"] [style*="rgba(0,0,0,0.08)"] {
+  background: unset !important;
+}
+
+/* ── Service row — prevent white flash on tap (mobile active state) ── */
+[data-layout="luxury"] .v6-svc-row {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+[data-layout="luxury"] .v6-svc-row:hover,
+[data-layout="luxury"] .v6-svc-row:active,
+[data-layout="luxury"] .v6-svc-row:focus {
+  background: rgba(255,255,255,0.10) !important;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    LAYOUT: glass — זכוכית צפה (iOS frosted glass)
    Background stays sticky; content section is semi-transparent
