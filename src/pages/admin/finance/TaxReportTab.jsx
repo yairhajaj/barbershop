@@ -264,7 +264,7 @@ export function TaxReportTab() {
   async function handleExportSample() {
     setSampleLoading(true)
     try {
-      const { blob, totalRecords } = await generateSampleFiles(500)
+      const { blob, totalRecords } = await generateSampleFiles(600)
       const url = URL.createObjectURL(blob)
       const a   = document.createElement('a')
       a.href    = url
