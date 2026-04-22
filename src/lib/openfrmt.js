@@ -771,68 +771,63 @@ export function printRegistrationPackage({ counts, docTypeSummary, primaryId, di
   })
   printSection26(report26)
 
-  // ── Document C: Appendix 5.4 ─────────────────────────────────────
+  // ── Document C: Appendix 5.4 — post-export success screen ────────
+  const nowDate = new Date()
+  const dateStr54 = nowDate.toLocaleDateString('he-IL')
+  const timeStr54 = nowDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+  const pathStr = dirPrefix.replace(/\//g, '\\')
+  const totalAll = 1 + (counts.B110||1) + counts.C100 + counts.D110 + counts.D120 + (counts.M100||0) + 1
+
   const docC = `<!DOCTYPE html>
 <html dir="rtl" lang="he"><head><meta charset="UTF-8">
-<title>מסמך ג׳ — נספח 5.4</title>
+<title>נספח 5.4 — הפקת קבצים במבנה אחיד</title>
 <style>
-  body{font-family:Arial,Helvetica,sans-serif;padding:40px;max-width:800px;margin:auto;font-size:14px}
-  h1{font-size:18px;border-bottom:2px solid #000;padding-bottom:8px}
-  h2{font-size:15px;margin-top:24px}
+  body{font-family:Arial,Helvetica,sans-serif;padding:40px;max-width:700px;margin:auto;font-size:14px}
+  h1{font-size:18px;text-align:center;margin-bottom:24px}
   table{width:100%;border-collapse:collapse;margin:12px 0}
-  th,td{border:1px solid #888;padding:7px 10px;text-align:right}
-  th{background:#e8e8e8}
-  .meta td:first-child{font-weight:bold;width:220px;background:#f5f5f5}
-  .ui-card{border:2px solid #333;border-radius:12px;padding:24px;margin:20px 0;background:#fafafa}
-  .ui-card h3{margin:0 0 12px;font-size:15px}
-  .btn{display:inline-block;padding:9px 20px;margin:4px;border-radius:8px;font-size:13px;font-weight:bold;border:1px solid #999;background:#e0e0e0}
-  .btn-primary{background:#d4a017;border-color:#b8860b;color:#000}
-  .noprint{display:block;margin-top:20px}
+  th,td{border:1px solid #888;padding:6px 10px;text-align:right}
+  th{background:#e8e8e8;font-weight:bold}
+  .meta td:first-child{font-weight:bold;width:200px}
+  .success{font-weight:bold;text-align:center;margin:16px 0;font-size:15px}
+  .total-row{font-weight:bold;background:#f0f0f0}
+  .footer{margin-top:24px;font-size:13px}
   @media print{.noprint{display:none}}
 </style></head><body>
-<h1>נספח 5.4 — תדפיס ממשק הפקת קובץ אחיד</h1>
-<p style="font-size:12px;color:#555">לפי סעיף 5.4 להוראת מקצוע 24/2004 — מסמך ג׳ לבקשת רישום תוכנה</p>
+<h1>הפקת קבצים במבנה אחיד</h1>
 
-<h2>פרטי התוכנה</h2>
 <table class="meta">
-  <tr><td>שם התוכנה</td><td>${OPERATOR.software_name}</td></tr>
-  <tr><td>מהדורה</td><td>${OPERATOR.software_version}</td></tr>
-  <tr><td>מספר רישום תוכנה</td><td>${swReg}</td></tr>
-  <tr><td>שם יצרן</td><td>${mfr}</td></tr>
-  <tr><td>ע"מ יצרן</td><td>${mfrVat}</td></tr>
-  <tr><td>גרסת מבנה</td><td>${BKMV_HDL.trim()}</td></tr>
+  <tr><td>עבור</td><td>עסק לדוגמה בע"מ</td></tr>
+  <tr><td>מספר עוסק מורשה</td><td>${vatId}</td></tr>
+  <tr><td>שם בית העסק</td><td>עסק לדוגמה בע"מ</td></tr>
 </table>
 
-<h2>ממשק הפקת הקובץ האחיד בתוכנה</h2>
-<div class="ui-card">
-  <h3>📁 ייצוא קובץ אחיד — רשות המסים (OPENFRMT 1.31)</h3>
-  <table class="meta" style="margin-bottom:16px">
-    <tr><td>תקופת דיווח</td><td>ינואר 2024 — דצמבר 2024</td></tr>
-    <tr><td>נתיב שמירה</td><td>${dirPrefix.replace(/\//g, '\\')}</td></tr>
-  </table>
-  <div>
-    <span class="btn btn-primary">⬇ ייצא ZIP</span>
-    <span class="btn">🖨 הדפס דוח 2.6</span>
-    <span class="btn">🧪 קובץ דמה לסימולטור</span>
-  </div>
-</div>
+<p class="success">** ביצוע ממשק פתוח הסתיים בהצלחה **</p>
 
-<h2>פרטי הקובץ שהופק</h2>
 <table class="meta">
-  <tr><td>קובץ INI.TXT</td><td>רשומת A000 — כותרת קובץ</td></tr>
-  <tr><td>קובץ BKMVDATA.TXT</td><td>${totalRecords.toLocaleString('he-IL')} רשומות</td></tr>
-  <tr><td>מבנה תיקיות</td><td>OPENFRMT\\[ע"מ].[שנה]\\[MMDDhhmm]\\</td></tr>
-  <tr><td>קידוד</td><td>Windows-1255 / ISO-8859-8-i</td></tr>
-  <tr><td>סוגי מסמכים</td><td>חשבונית מס-קבלה (320), זיכוי (330)</td></tr>
+  <tr><td>הנתונים נשמרו בנתיב</td><td>${pathStr}</td></tr>
+  <tr><td>טווח תאריכים</td><td>מתאריך: 01/01/2024 &nbsp;&nbsp; ועד תאריך: 31/12/2024</td></tr>
 </table>
 
-<p style="margin-top:24px">
-  מודול הפקת קבצים במבנה אחיד כלול בתוכנה ${swName} ומאפשר לכל לקוח להפיק קבצים עצמאית.
+<p style="margin-top:16px;font-weight:bold">פירוט סך סוגי הרשומות שנוצרו בקובץ BKMVDATA.TXT:</p>
+<table>
+  <tr><th>סוג רשומה</th><th>תיאור</th><th>כמות</th></tr>
+  <tr><td>A100</td><td>רשומת פתיחה</td><td>1</td></tr>
+  <tr><td>B110</td><td>חשבון בהנהלת חשבונות</td><td>${counts.B110||1}</td></tr>
+  <tr><td>C100</td><td>כותרת מסמך</td><td>${counts.C100}</td></tr>
+  <tr><td>D110</td><td>פרטי מסמך</td><td>${counts.D110}</td></tr>
+  <tr><td>D120</td><td>פרטי קבלה</td><td>${counts.D120}</td></tr>
+  <tr><td>M100</td><td>פריטים במלאי</td><td>${counts.M100||0}</td></tr>
+  <tr><td>Z900</td><td>רשומת סיום</td><td>1</td></tr>
+  <tr class="total-row"><td colspan="2">סה"כ</td><td>${totalAll}</td></tr>
+</table>
+
+<p class="footer">
+  הנתונים הופקו באמצעות תוכנת <strong>${swName}</strong>,
+  מספר תעודת הרישום: <strong>${swReg}</strong><br>
+  בתאריך: ${dateStr54} &nbsp;&nbsp; בשעה: ${timeStr54}
 </p>
 
-<p style="font-size:12px;color:#555">הופק: ${now}</p>
-
-<button class="noprint" onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer">🖨 הדפס מסמך ג׳</button>
+<button class="noprint" onclick="window.print()" style="margin-top:20px;padding:10px 20px;font-size:14px;cursor:pointer">🖨 הדפס</button>
 </body></html>`
 
   // Document B already opened by printSection26 above — open C after short delay
