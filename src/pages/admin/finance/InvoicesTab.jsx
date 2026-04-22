@@ -30,6 +30,10 @@ export function InvoicesTab() {
   const showToast = useToast()
   const { settings } = useBusinessSettings()
   const [filter, setFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [creditConfirmInv, setCreditConfirmInv] = useState(null)
+  const [creditBusy, setCreditBusy] = useState(false)
   const { currentBranch } = useBranch()
   const { invoices, loading, createInvoice, markPaid, cancelInvoice, markSent } = useInvoices({
     status: filter === 'all' ? undefined : filter,
@@ -184,25 +188,36 @@ export function InvoicesTab() {
     }
   }
 
-  async function handleCancel(inv) {
-    const reason = window.prompt(
-      `ביטול חשבונית ${inv.invoice_number}.\n\n` +
-      `לפי החוק, לא ניתן למחוק חשבונית; במקום זאת תיווצר חשבונית זיכוי.\n\n` +
-      `סיבת הביטול:`
-    )
-    if (reason === null) return
+  async function handleCreateCredit(inv) {
+    setCreditBusy(true)
     try {
-      const { creditNote } = await cancelInvoice(inv.id, reason)
+      const { creditNote } = await cancelInvoice(inv.id, 'זיכוי מהמערכת')
       showToast({
         message: creditNote
-          ? `החשבונית בוטלה. חשבונית זיכוי ${creditNote.invoice_number} נוצרה`
+          ? `חשבונית זיכוי ${creditNote.invoice_number} הופקה ✓`
           : 'החשבונית (טיוטה) בוטלה',
         type: 'success',
       })
+      setCreditConfirmInv(null)
     } catch (err) {
       showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
+    } finally {
+      setCreditBusy(false)
     }
   }
+
+  const filteredInvoices = invoices.filter(inv => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      if (!inv.customer_name?.toLowerCase().includes(q) &&
+          !inv.invoice_number?.toLowerCase().includes(q)) return false
+    }
+    if (dateFilter) {
+      const invDate = (inv.service_date || inv.created_at || '').slice(0, 10)
+      if (invDate !== dateFilter) return false
+    }
+    return true
+  })
 
   const selectedCount = Object.values(selected).filter(Boolean).length
 
@@ -235,25 +250,54 @@ export function InvoicesTab() {
         </button>
       </div>
 
+      {/* Search */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <span className="absolute top-1/2 -translate-y-1/2 right-3 text-sm" style={{ color: 'var(--color-muted)' }}>🔍</span>
+          <input
+            className="w-full rounded-xl px-3 py-2 pr-9 text-sm"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+            placeholder="חיפוש לפי שם לקוח..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <input
+          type="date"
+          value={dateFilter}
+          onChange={e => setDateFilter(e.target.value)}
+          className="rounded-xl px-3 py-2 text-sm"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: dateFilter ? 'var(--color-text)' : 'var(--color-muted)' }}
+        />
+        {(searchQuery || dateFilter) && (
+          <button
+            onClick={() => { setSearchQuery(''); setDateFilter('') }}
+            className="px-3 rounded-xl text-sm"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+            ✕
+          </button>
+        )}
+      </div>
+
       {/* Invoice list */}
       {loading ? (
         <AdminSkeleton />
-      ) : invoices.length === 0 ? (
+      ) : filteredInvoices.length === 0 ? (
         <div
           className="text-center py-20 rounded-2xl"
           style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}
         >
           <div className="text-5xl mb-4">🧾</div>
           <p className="font-bold text-lg mb-1" style={{ color: 'var(--color-text)' }}>
-            אין חשבוניות
+            {searchQuery || dateFilter ? 'לא נמצאו חשבוניות' : 'אין חשבוניות'}
           </p>
           <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            לחץ "הפק חשבונית" כדי ליצור חשבונית חדשה
+            {searchQuery || dateFilter ? 'נסה חיפוש אחר' : 'לחץ "הפק חשבונית" כדי ליצור חשבונית חדשה'}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {invoices.map((inv, i) => {
+          {filteredInvoices.map((inv, i) => {
             const st = STATUS_STYLES[inv.status] || STATUS_STYLES.draft
             return (
               <motion.div
@@ -320,19 +364,61 @@ export function InvoicesTab() {
                       ✅ שולמה
                     </button>
                   )}
-                  {!inv.is_cancelled && !inv.credit_note_for && (
+                  {inv.credit_note_for ? (
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
+                      זיכוי
+                    </span>
+                  ) : !inv.is_cancelled && (
                     <button
-                      onClick={() => handleCancel(inv)}
+                      onClick={() => setCreditConfirmInv(inv)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      style={{ background: 'var(--color-danger-tint)', border: '1px solid var(--color-danger-tint)', color: '#dc2626' }}
+                      style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}
                     >
-                      ❌ בטל
+                      זיכוי
                     </button>
                   )}
                 </div>
               </motion.div>
             )
           })}
+        </div>
+      )}
+
+      {/* Credit note confirmation modal */}
+      {creditConfirmInv && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => !creditBusy && setCreditConfirmInv(null)}>
+          <div className="card p-5 max-w-sm w-full space-y-4"
+            style={{ background: 'var(--color-card)', border: '1px solid #fecaca' }}
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-base" style={{ color: '#dc2626' }}>הפקת חשבונית זיכוי</h3>
+            <div className="text-sm space-y-2" style={{ color: 'var(--color-text)' }}>
+              <p>לפי חוק בישראל, ביטול חשבונית מתבצע על ידי הפקת <strong>חשבונית זיכוי</strong> — לא מחיקה.</p>
+              <p style={{ color: 'var(--color-muted)' }}>
+                חשבונית <strong>{creditConfirmInv.invoice_number}</strong> של {creditConfirmInv.customer_name} תסומן כמבוטלת,
+                ותיפתח חשבונית זיכוי חדשה על סך {formatILS(creditConfirmInv.total_amount)}.
+              </p>
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>שתי הרשומות יישמרו במערכת לצורכי ביקורת.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleCreateCredit(creditConfirmInv)}
+                disabled={creditBusy}
+                className="flex-1 py-2 rounded-xl text-sm font-bold disabled:opacity-50"
+                style={{ background: '#dc2626', color: '#fff' }}>
+                {creditBusy ? 'מפיק...' : 'אשר — הפק זיכוי'}
+              </button>
+              <button
+                onClick={() => setCreditConfirmInv(null)}
+                disabled={creditBusy}
+                className="px-4 py-2 rounded-xl text-sm"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                ביטול
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
