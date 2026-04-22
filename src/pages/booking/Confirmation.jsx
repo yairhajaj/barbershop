@@ -357,129 +357,125 @@ export function Confirmation() {
 
   // ── CONFIRM SCREEN ────────────────────────────────────────────────
   return (
-    <div className="min-h-screen pt-24 pb-16" style={{ background: 'var(--color-surface)' }}>
-      <div className="container px-4 sm:px-6 max-w-md mx-auto">
-        <BookingProgress currentStep="confirm" />
+    <div className="flex flex-col" style={{ minHeight: '100dvh', background: 'var(--color-surface)' }}>
 
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-            אישור {(bookingState.groupSize ?? 1) > 1 ? 'הזמנה קבוצתית' : 'התור'}
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>בדוק את הפרטים ואשר</p>
-          {(bookingState.groupSize ?? 1) > 1 && (
-            <div
-              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold"
-              style={{ background: 'rgba(255,122,0,0.10)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.2)' }}
-            >
-              👥 {bookingState.groupSize} תורים צמודים · {bookingState.groupSize * (bookingState.serviceDuration ?? 30)} דקות
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pt-20 pb-2">
+        <div className="container px-4 sm:px-6 max-w-md mx-auto">
+          <BookingProgress currentStep="confirm" />
+
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-black" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              אישור {(bookingState.groupSize ?? 1) > 1 ? 'הזמנה קבוצתית' : 'התור'}
+            </h1>
+            {(bookingState.groupSize ?? 1) > 1 && (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                style={{ background: 'rgba(255,122,0,0.10)', color: 'var(--color-gold)', border: '1px solid rgba(255,122,0,0.2)' }}>
+                👥 {bookingState.groupSize}
+              </div>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div className="rounded-2xl p-3 mb-2 text-sm"
+            style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+            {[
+              { label: 'סניף',  value: bookingState.branchName },
+              { label: 'שירות', value: bookingState.serviceName },
+              { label: 'ספר',   value: bookingState.staffName },
+              { label: 'תאריך', value: slotStart ? formatDateFull(slotStart) : '-' },
+              { label: 'שעה',   value: slotStart ? formatTime(slotStart) : '-' },
+              { label: 'מחיר',  value: priceDisplay(bookingState.servicePrice), accent: true },
+            ].filter(r => r.value).map((row, idx, arr) => (
+              <div key={row.label} className="flex justify-between items-center py-1.5"
+                style={{ borderBottom: idx < arr.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{row.label}</span>
+                <span className="font-bold text-sm" style={{ color: row.accent ? 'var(--color-gold)' : 'var(--color-text)' }}>
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Customer info + policy — one compact row each */}
+          {profile && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2 text-xs"
+              style={{ background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.15)' }}>
+              <span style={{ color: 'var(--color-gold)' }}>👤</span>
+              <span style={{ color: 'var(--color-muted)' }}>{profile.name} · {profile.phone}</span>
             </div>
           )}
-        </div>
 
-        <button onClick={() => navigate('/book/datetime')} className="btn-ghost mb-4 text-sm">
-          ← חזרה
-        </button>
+          <p className="text-xs px-1 mb-2" style={{ color: 'var(--color-muted)', lineHeight: 1.4 }}>
+            {cancellationPolicyText()}
+          </p>
 
-        {/* Summary */}
-        <div className="rounded-2xl p-5 mb-4 space-y-3 text-sm"
-          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-          {[
-            { label: 'סניף',  value: bookingState.branchName },
-            { label: 'שירות', value: bookingState.serviceName },
-            { label: 'ספר',   value: bookingState.staffName },
-            { label: 'תאריך', value: slotStart ? formatDateFull(slotStart) : '-' },
-            { label: 'שעה',   value: slotStart ? formatTime(slotStart) : '-' },
-            { label: 'מחיר',  value: priceDisplay(bookingState.servicePrice), accent: true },
-          ].filter(r => r.value).map(row => (
-            <div key={row.label} className="flex justify-between items-center py-1"
-              style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <span style={{ color: 'var(--color-muted)' }}>{row.label}</span>
-              <span className="font-bold" style={{ color: row.accent ? 'var(--color-gold)' : 'var(--color-text)' }}>
-                {row.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Customer info */}
-        {profile && (
-          <div className="rounded-2xl p-4 mb-4 text-sm"
-            style={{ background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.15)' }}>
-            <p className="font-bold mb-0.5" style={{ color: 'var(--color-gold)' }}>פרטי הלקוח</p>
-            <p style={{ color: 'var(--color-muted)' }}>{profile.name} · {profile.phone}</p>
-          </div>
-        )}
-
-        {/* Cancellation policy */}
-        <div className="rounded-2xl p-4 mb-4 text-sm"
-          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-          <p className="font-bold mb-1" style={{ color: 'var(--color-text)' }}>מדיניות ביטולים</p>
-          <p style={{ color: 'var(--color-muted)', lineHeight: '1.6' }}>{cancellationPolicyText()}</p>
-        </div>
-
-        {/* Recurring option */}
-        {settings.recurring_appointments_enabled && (
-          <div className="rounded-2xl p-4 mb-5"
-            style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <div className="relative mt-0.5 flex-shrink-0">
+          {/* Toggles — compact */}
+          {settings.recurring_appointments_enabled && (
+            <label className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2.5 mb-2"
+              style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+              <div className="relative flex-shrink-0">
                 <input type="checkbox" className="sr-only" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
-                <div className="w-11 h-6 rounded-full transition-all duration-200"
+                <div className="w-10 h-5 rounded-full transition-all duration-200"
                   style={{ background: isRecurring ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }}>
-                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
-                    style={{ right: isRecurring ? '2px' : 'calc(100% - 22px)' }} />
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+                    style={{ right: isRecurring ? '2px' : 'calc(100% - 18px)' }} />
                 </div>
               </div>
               <div>
-                <p className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>🔁 תור קבוע שבועי</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                  קבע את אותו תור כל שבוע למשך {settings.recurring_weeks_ahead ?? 12} שבועות
-                </p>
+                <p className="font-bold text-xs" style={{ color: 'var(--color-text)' }}>🔁 תור קבוע שבועי</p>
+                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>כל שבוע · {settings.recurring_weeks_ahead ?? 12} שבועות</p>
               </div>
             </label>
-          </div>
-        )}
-
-        {/* Reminder opt-in */}
-        <label className="flex items-start gap-3 cursor-pointer rounded-2xl p-4 mb-2"
-          style={{ background: 'var(--color-card)', border: `1.5px solid ${wantsReminder ? 'var(--color-gold)' : 'var(--color-border)'}` }}>
-          <div className="relative mt-0.5 flex-shrink-0" onClick={() => setWantsReminder(r => !r)}>
-            <div className="w-11 h-6 rounded-full transition-all duration-200"
-              style={{ background: wantsReminder ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }}>
-              <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
-                style={{ right: wantsReminder ? '2px' : 'calc(100% - 22px)' }} />
-            </div>
-          </div>
-          <div>
-            <p className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>🔔 קבל תזכורת לפני התור</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-              נשלח אליך הודעה ב-WhatsApp / Push לפני מועד התור
-            </p>
-          </div>
-        </label>
-
-        {status === 'error' && (
-          <div className="rounded-2xl p-3 text-sm mb-4"
-            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}>
-            {errorMsg}
-          </div>
-        )}
-
-        <button
-          className="btn-primary w-full justify-center text-base py-4"
-          onClick={confirmBooking}
-          disabled={status === 'loading'}
-        >
-          {status === 'loading' ? (
-            <><Spinner size="sm" className="border-white border-t-transparent" /> מאשר...</>
-          ) : (bookingState.groupSize ?? 1) > 1 ? (
-            `✓ אשר ${bookingState.groupSize} תורים צמודים`
-          ) : isRecurring ? (
-            `🔁 אשר ${settings.recurring_weeks_ahead ?? 12} תורים שבועיים`
-          ) : (
-            '✓ אשר הזמנה'
           )}
-        </button>
+
+          <label className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2.5 mb-2"
+            style={{ background: 'var(--color-card)', border: `1.5px solid ${wantsReminder ? 'var(--color-gold)' : 'var(--color-border)'}` }}>
+            <div className="relative flex-shrink-0" onClick={() => setWantsReminder(r => !r)}>
+              <div className="w-10 h-5 rounded-full transition-all duration-200"
+                style={{ background: wantsReminder ? 'var(--color-gold)' : isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }}>
+                <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+                  style={{ right: wantsReminder ? '2px' : 'calc(100% - 18px)' }} />
+              </div>
+            </div>
+            <div>
+              <p className="font-bold text-xs" style={{ color: 'var(--color-text)' }}>🔔 תזכורת לפני התור</p>
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>WhatsApp / Push</p>
+            </div>
+          </label>
+
+          {status === 'error' && (
+            <div className="rounded-xl p-3 text-xs mb-2"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626' }}>
+              {errorMsg}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky confirm button */}
+      <div className="px-4 pt-2 pb-4" style={{
+        background: 'var(--color-surface)',
+        borderTop: '1px solid var(--color-border)',
+        paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+      }}>
+        <div className="max-w-md mx-auto">
+          <button
+            className="btn-primary w-full justify-center text-base py-3"
+            onClick={confirmBooking}
+            disabled={status === 'loading'}
+          >
+            {status === 'loading' ? (
+              <><Spinner size="sm" className="border-white border-t-transparent" /> מאשר...</>
+            ) : (bookingState.groupSize ?? 1) > 1 ? (
+              `✓ אשר ${bookingState.groupSize} תורים צמודים`
+            ) : isRecurring ? (
+              `🔁 אשר ${settings.recurring_weeks_ahead ?? 12} תורים שבועיים`
+            ) : (
+              '✓ אשר הזמנה'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
