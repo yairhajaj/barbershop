@@ -463,20 +463,7 @@ export function IncomeTaxTab() {
             value={taxSettings.vat_rate ?? 18}
             onChange={v => setTaxSettings(s => ({ ...s, vat_rate: Number(v) }))} />
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="tax_office_notified"
-              checked={!!taxSettings.tax_office_notified}
-              onChange={e => setTaxSettings(s => ({ ...s, tax_office_notified: e.target.checked }))}
-              className="w-4 h-4 rounded"
-            />
-            <label htmlFor="tax_office_notified" className="text-sm" style={{ color: 'var(--color-text)' }}>
-              הודעתי לרשות המיסים על השימוש בתוכנה
-            </label>
-          </div>
-
-          {settings?.last_openfrmt_export_at && (
+{settings?.last_openfrmt_export_at && (
             <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
               ייצוא אחרון: {new Date(settings.last_openfrmt_export_at).toLocaleString('he-IL')}
             </p>
