@@ -246,8 +246,8 @@ export async function generateSampleFiles(invoiceCount = 500) {
   const outer = new JSZip()
   outer.file(dirPrefix + 'INI.TXT',                   iniText)
   outer.file(dirPrefix + 'BKMVDATA.zip',               innerBlob)
-  outer.file('מסמכי_רישום/מסמך_ב_סעיף_2.6.html',      docBHtml)
-  outer.file('מסמכי_רישום/מסמך_ג_נספח_5.4.html',      docCHtml)
+  outer.file('registration_docs/doc_B_section_2.6.html', docBHtml)
+  outer.file('registration_docs/doc_C_appendix_5.4.html', docCHtml)
   outer.file(dirPrefix + 'README.txt', [
     '# BOOKX — קובץ דוגמה לסימולטור רשות המסים',
     '',
