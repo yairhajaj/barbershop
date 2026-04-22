@@ -27,7 +27,7 @@ export function AccountantTab() {
   const toast = useToast()
   const { settings } = useBusinessSettings()
   const [range, setRange] = useState(defaultRange)
-  const [busy, setBusy] = useState(null) // 'receipts' | 'invoices' | 'report' | 'openfrmt' | 'pcn874'
+  const [busy, setBusy] = useState(null) // 'receipts' | 'receipts-dl' | 'invoices' | 'report' | 'openfrmt' | 'pcn874'
   const [taxPanelOpen, setTaxPanelOpen] = useState(false)
   const [openfrmtDialog, setOpenfrmtDialog] = useState(null) // { report, primaryId } | null
 
@@ -48,7 +48,64 @@ export function AccountantTab() {
     return true
   }
 
-  // ─── Action 1: Send expense receipts ZIP to accountant ───
+  // ─── Shared: build a receipts ZIP from expenses ───
+  async function buildReceiptsZip(expenses) {
+    const items = []
+    expenses.forEach(e => {
+      const urls = [e.receipt_url, ...(e.receipt_urls || [])].filter(Boolean)
+      urls.forEach((url, idx) => {
+        const ext   = (url.split('.').pop() || 'jpg').split('?')[0].slice(0, 4)
+        const fname = `${e.date}_${(e.vendor_name || 'unknown').replace(/[^\w\u0590-\u05FF]/g, '_')}_${Math.round(Number(e.amount || 0))}${urls.length > 1 ? `_${idx + 1}` : ''}.${ext}`
+        items.push({ url, fname })
+      })
+    })
+    if (!items.length) return { zipBlob: null, success: 0 }
+
+    const zip = new JSZip()
+    let success = 0
+    for (const it of items) {
+      try {
+        const res = await fetch(it.url)
+        if (!res.ok) continue
+        zip.file(it.fname, await res.blob())
+        success++
+      } catch { /* skip */ }
+    }
+    const zipBlob = success ? await zip.generateAsync({ type: 'blob' }) : null
+    return { zipBlob, success }
+  }
+
+  // ─── Action 1a: Download expense receipts ZIP locally ───
+  async function downloadReceiptsZip() {
+    setBusy('receipts-dl')
+    try {
+      const { data: expenses, error } = await supabase
+        .from('expenses')
+        .select('*, expense_categories(name, icon)')
+        .gte('date', range.from).lte('date', range.to)
+        .eq('is_cancelled', false)
+        .order('date', { ascending: true })
+      if (error) throw error
+      if (!expenses?.length) { toast({ message: 'אין הוצאות בטווח זה', type: 'error' }); return }
+
+      const { zipBlob, success } = await buildReceiptsZip(expenses)
+      if (!zipBlob) { toast({ message: 'אין צילומי קבלות בטווח זה', type: 'error' }); return }
+
+      const url = URL.createObjectURL(zipBlob)
+      const a   = document.createElement('a')
+      a.href     = url
+      a.download = `receipts_${range.from}_${range.to}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast({ message: `הורדו ${success} קבלות ✓`, type: 'success' })
+    } catch (err) {
+      toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // ─── Action 1b: Send expense receipts ZIP to accountant ───
   async function sendReceipts() {
     if (!requireEmail()) return
     setBusy('receipts')
@@ -66,40 +123,11 @@ export function AccountantTab() {
         setBusy(null); return
       }
 
-      // Collect all receipt URLs
-      const items = []
-      expenses.forEach(e => {
-        const urls = [e.receipt_url, ...(e.receipt_urls || [])].filter(Boolean)
-        urls.forEach((url, idx) => {
-          const ext = (url.split('.').pop() || 'jpg').split('?')[0].slice(0, 4)
-          const fname = `${e.date}_${(e.vendor_name || 'unknown').replace(/[^\w\u0590-\u05FF]/g, '_')}_${Math.round(Number(e.amount || 0))}${urls.length > 1 ? `_${idx+1}` : ''}.${ext}`
-          items.push({ url, fname, expense: e })
-        })
-      })
-
-      if (!items.length) {
+      const { zipBlob, success } = await buildReceiptsZip(expenses)
+      if (!zipBlob) {
         toast({ message: 'אין צילומי קבלות בהוצאות בטווח זה', type: 'error' })
         setBusy(null); return
       }
-
-      // Build ZIP
-      const zip = new JSZip()
-      let success = 0
-      for (const it of items) {
-        try {
-          const res = await fetch(it.url)
-          if (!res.ok) continue
-          const blob = await res.blob()
-          zip.file(it.fname, blob)
-          success++
-        } catch { /* skip failed */ }
-      }
-      if (!success) {
-        toast({ message: 'נכשל שליפת הקבצים', type: 'error' })
-        setBusy(null); return
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' })
       const zipB64  = await blobToBase64(zipBlob)
 
       // HTML body
@@ -308,18 +336,18 @@ export function AccountantTab() {
       {/* Action buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <ActionCard
+          icon="📥"
+          title="הורד קבלות ZIP"
+          description="כל צילומי הקבלות בקובץ ZIP מקומי, ללא שליחת מייל"
+          busy={busy === 'receipts-dl'}
+          onClick={downloadReceiptsZip}
+        />
+        <ActionCard
           icon="📸"
-          title="שלח קבלות הוצאות"
+          title="שלח קבלות לרואה חשבון"
           description="ZIP עם כל צילומי הקבלות + טבלה מסכמת למייל"
           busy={busy === 'receipts'}
           onClick={sendReceipts}
-        />
-        <ActionCard
-          icon="🧾"
-          title="שלח חשבוניות + הכנסות"
-          description="קובץ Excel מעוצב עם כל החשבוניות והכנסות בתקופה"
-          busy={busy === 'invoices'}
-          onClick={sendInvoicesReport}
         />
         <ActionCard
           icon="📊"
@@ -327,6 +355,13 @@ export function AccountantTab() {
           description="6 גיליונות — סיכום, הכנסות, הוצאות, עמלות, חובות, הכנסות ידניות"
           busy={busy === 'report'}
           onClick={downloadReport}
+        />
+        <ActionCard
+          icon="🧾"
+          title="שלח דוח Excel לרואה חשבון"
+          description="קובץ Excel מעוצב עם כל החשבוניות והכנסות בתקופה"
+          busy={busy === 'invoices'}
+          onClick={sendInvoicesReport}
         />
         <ActionCard
           icon="🏛"
