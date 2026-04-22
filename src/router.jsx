@@ -30,6 +30,7 @@ const MyAppointments = lazy(() => import('./pages/customer/MyAppointments').then
 
 // Static
 import { PrivacyPolicy } from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
 const InvoiceView = lazy(() => import('./pages/InvoiceView').then(m => ({ default: m.InvoiceView })))
 
 // Admin — code-split so the ~544KB admin bundle (Appointments etc.)
@@ -158,6 +159,10 @@ const router = createBrowserRouter([
   {
     path: '/privacy',
     element: <PrivacyPolicy />,
+  },
+  {
+    path: '/terms',
+    element: <TermsOfService />,
   },
   {
     path: '*',

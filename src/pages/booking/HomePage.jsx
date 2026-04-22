@@ -1103,8 +1103,21 @@ export function HomePage() {
           </motion.div>
         </section>
 
+        {/* ── FOOTER ───────────────────────────────────────────── */}
+        <div className="flex flex-col items-center gap-1 py-4 px-5">
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <Link to="/privacy" style={{ fontSize: 11, color: 'var(--color-muted)', textDecoration: 'none' }}>מדיניות פרטיות</Link>
+            <span style={{ fontSize: 11, color: 'var(--color-border)' }}>·</span>
+            <Link to="/terms" style={{ fontSize: 11, color: 'var(--color-muted)', textDecoration: 'none' }}>תנאי שימוש</Link>
+            <span style={{ fontSize: 11, color: 'var(--color-border)' }}>·</span>
+            <a href={`https://wa.me/${BUSINESS.whatsapp}`} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: 11, color: 'var(--color-muted)', textDecoration: 'none' }}>צור קשר</a>
+          </div>
+          <p style={{ fontSize: 10, color: 'var(--color-border)', marginTop: 2 }}>© {new Date().getFullYear()} {BUSINESS.name}</p>
+        </div>
+
         {/* bottom padding for toolbar */}
-        <div style={{ height: 100 }} />
+        <div style={{ height: 80 }} />
       </div>{/* end glass panel */}
 
       {/* ── PORTFOLIO VIEWER ─────────────────────────────────────── */}
