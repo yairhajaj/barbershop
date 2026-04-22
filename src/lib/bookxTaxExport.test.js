@@ -263,8 +263,8 @@ describe('multi-tenant isolation', () => {
 
 describe('generateSampleFiles', () => {
   test('produces >= 2000 data records (for simulator)', async () => {
-    const { counts, totalRecords } = await generateSampleFiles(500)
-    // 500 invoices × 2 D110 + 1 C100 + 1 D120 = 2000 + 5 M100 + A100 + Z900 = 2007
+    const { counts, totalRecords } = await generateSampleFiles(510)
+    // 510 invoices: ~500 non-credit × (1 C100+2 D110+1 D120) + ~10 credit × (1 C100+2 D110) ≥ 2000
     expect(counts.C100 + counts.D110 + counts.D120 + counts.M100).toBeGreaterThanOrEqual(2000)
     expect(totalRecords).toBeGreaterThanOrEqual(2002)
   }, 30000)
