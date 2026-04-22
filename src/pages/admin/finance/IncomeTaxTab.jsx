@@ -242,9 +242,9 @@ export function IncomeTaxTab() {
     <div className="space-y-6" dir="rtl">
 
       {/* ── Section A: Export ── */}
-      <SectionCard title="📁 ייצוא מבנה אחיד (OPEN FORMAT)" border="gold">
+      <SectionCard title="📁 ייצוא לרשות המיסים" border="gold">
         <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
-          הפקת קבצי INI.TXT + BKMVDATA.TXT לפי מפרט 1.31 להוראת מקצוע 24/2004.
+          הפקת קבצי הנהלת חשבונות לצורך ביקורת או דרישת רשות המיסים.
         </p>
 
         {/* Date range */}
@@ -296,7 +296,7 @@ export function IncomeTaxTab() {
       {/* ── Section B: Report 2.6 ── */}
       <SectionCard title="📊 דוח 2.6 — פלטים לאימות נתונים">
         <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
-          סיכום מסמכים לפי סוג בטווח התאריכים הנבחר.
+          סיכום כל המסמכים (חשבוניות, קבלות, זיכויים) בטווח התאריכים הנבחר.
         </p>
         <button
           onClick={loadReport26}
@@ -624,7 +624,7 @@ function ExportSuccessModal({ result, settings, onClose }) {
             <span className="font-mono text-xs" style={{ color: 'var(--color-text)' }}>{pathStr}</span></p>
           <p><span className="font-semibold" style={{ color: 'var(--color-muted)' }}>טווח תאריכים: </span>
             <span style={{ color: 'var(--color-text)' }}>{range.from} — {range.to}</span></p>
-          <p><span className="font-semibold" style={{ color: 'var(--color-muted)' }}>Primary ID: </span>
+          <p><span className="font-semibold" style={{ color: 'var(--color-muted)' }}>מזהה ייצוא: </span>
             <span className="font-mono text-xs" style={{ color: 'var(--color-text)' }}>{primaryId}</span></p>
         </div>
 
@@ -681,7 +681,7 @@ function ExportSuccessModal({ result, settings, onClose }) {
         </div>
 
         <p className="text-xs text-center" style={{ color: 'var(--color-muted)' }}>
-          לפי סעיף 5.4 להוראת מקצוע 24/2004 — יש לשמור את Primary ID ודוח ההפקה לתיעוד.
+          יש לשמור את מזהה הייצוא ואת דוח הסיכום לתיעוד.
         </p>
       </div>
     </div>
