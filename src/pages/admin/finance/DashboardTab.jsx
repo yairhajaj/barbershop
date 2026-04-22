@@ -446,15 +446,16 @@ function QuickReceiptPanel() {
 
       {/* Actions */}
       <div className="flex gap-2">
-        <button onClick={handleSaveReceipt} disabled={saving || cartItems.length === 0}
+        <button onClick={isDebt ? handleSaveReceipt : handleSaveAndInvoice} disabled={saving || cartItems.length === 0}
           className="btn-primary flex-1 py-3 text-sm font-bold">
-          {saving ? 'שומר...' : isDebt ? '📋 רשום חוב' : '✅ רשום תקבול'}
+          {saving ? 'שומר...' : isDebt ? '📋 רשום חוב' : '📄 רשום תקבול + חשבונית'}
         </button>
         {!isDebt && (
-          <button onClick={handleSaveAndInvoice} disabled={saving || cartItems.length === 0}
+          <button onClick={handleSaveReceipt} disabled={saving || cartItems.length === 0}
             className="py-3 px-4 rounded-xl text-sm font-bold transition-colors"
-            style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
-            📄 הוצא חשבונית
+            style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
+            title="רשום ללא הפקת חשבונית">
+            ללא חשבונית
           </button>
         )}
       </div>
