@@ -1694,15 +1694,22 @@ export function Appointments() {
               )
             })()}
 
-            {/* Reschedule button — always shown for non-cancelled */}
+            {/* Reschedule button — only for future non-cancelled appointments */}
             {selectedAppt.status !== 'cancelled' && (
-              <button
-                onClick={() => openReschedule(selectedAppt)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}
-              >
-                📅 שנה מועד התור
-              </button>
+              new Date(selectedAppt.start_at) > new Date() ? (
+                <button
+                  onClick={() => openReschedule(selectedAppt)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all"
+                  style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1.5px solid var(--color-gold-ring)' }}
+                >
+                  📅 שנה מועד התור
+                </button>
+              ) : (
+                <div className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs"
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                  🔒 רשומה היסטורית — לא ניתן לשנות מועד (חובה חוקית)
+                </div>
+              )
             )}
 
             {/* ── Payment + Invoice Panel ── */}
