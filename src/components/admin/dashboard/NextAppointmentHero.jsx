@@ -18,6 +18,8 @@ const PAYMENT_LABELS = {
 export function NextAppointmentHero({ apt, onChange }) {
   const toast = useToast()
   const { settings } = useBusinessSettings()
+  const invoicingEnabled = settings?.invoicing_enabled !== false
+
   const [now, setNow] = useState(Date.now())
   const [busy, setBusy] = useState(false)
   const [payModal, setPayModal] = useState(false)
@@ -52,6 +54,19 @@ export function NextAppointmentHero({ apt, onChange }) {
     : `התחיל לפני ${Math.floor(-diffMin / 60)} שע'`
 
   const isImminent = diffMin <= 5 && diffMin >= -15
+
+  async function confirmArrivedOnly() {
+    setBusy(true)
+    try {
+      await supabase.from('appointments')
+        .update({ status: 'completed' })
+        .eq('id', apt.id)
+      toast({ message: 'סומן: הגיע ✅', type: 'success' })
+      onChange?.()
+    } catch (e) {
+      toast({ message: e.message || 'שגיאה', type: 'error' })
+    } finally { setBusy(false) }
+  }
 
   async function openPay() {
     setPayMethod('cash')
@@ -187,20 +202,30 @@ export function NextAppointmentHero({ apt, onChange }) {
             {apt.services?.name} · {apt.staff?.name}
           </div>
         </div>
-        <div className="text-left flex-shrink-0">
-          <div className="text-xl font-black" style={{ color: 'var(--color-gold)' }}>
-            ₪{Number(apt.services?.price || 0).toLocaleString('he-IL')}
+        {invoicingEnabled && (
+          <div className="text-left flex-shrink-0">
+            <div className="text-xl font-black" style={{ color: 'var(--color-gold)' }}>
+              ₪{Number(apt.services?.price || 0).toLocaleString('he-IL')}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Quick action buttons — row */}
       <div className="flex gap-2">
-        <button onClick={openPay} disabled={busy}
-          className="flex-1 py-2 rounded-xl text-sm font-black transition-all active:scale-95"
-          style={{ background: 'var(--color-gold)', color: '#fff', opacity: busy ? 0.6 : 1 }}>
-          ✅ הגיע + שולם
-        </button>
+        {invoicingEnabled ? (
+          <button onClick={openPay} disabled={busy}
+            className="flex-1 py-2 rounded-xl text-sm font-black transition-all active:scale-95"
+            style={{ background: 'var(--color-gold)', color: '#fff', opacity: busy ? 0.6 : 1 }}>
+            ✅ הגיע + שולם
+          </button>
+        ) : (
+          <button onClick={confirmArrivedOnly} disabled={busy}
+            className="flex-1 py-2 rounded-xl text-sm font-black transition-all active:scale-95"
+            style={{ background: 'rgba(22,163,74,0.12)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.35)', opacity: busy ? 0.6 : 1 }}>
+            ✅ הגיע
+          </button>
+        )}
         <button onClick={markNoShow} disabled={busy}
           className="py-2 px-3 rounded-xl text-xs font-bold transition-all active:scale-95"
           style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}>
@@ -213,8 +238,8 @@ export function NextAppointmentHero({ apt, onChange }) {
         </button>
       </div>
 
-      {/* Payment method modal */}
-      <Modal open={payModal} onClose={() => setPayModal(false)} title="💳 כיצד שולם?">
+      {/* Payment method modal — Mode A only */}
+      {invoicingEnabled && <Modal open={payModal} onClose={() => setPayModal(false)} title="💳 כיצד שולם?">
         <div className="space-y-4">
           <p className="text-sm text-center font-semibold" style={{ color: 'var(--color-text)' }}>
             {apt.profiles?.name} · ₪{Number(apt.services?.price || 0).toLocaleString('he-IL')}
@@ -238,7 +263,7 @@ export function NextAppointmentHero({ apt, onChange }) {
             {busy ? 'מעבד...' : `אשר + הפק ${docLabel(settings?.business_type)}`}
           </button>
         </div>
-      </Modal>
+      </Modal>}
     </div>
   )
 }

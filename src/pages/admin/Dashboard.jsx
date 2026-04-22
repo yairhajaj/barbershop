@@ -55,17 +55,32 @@ export function Dashboard() {
     return () => clearInterval(i)
   }, [])
 
+  const invEnabled = settings?.invoicing_enabled !== false
+
   // ── Fetch action inbox data ──
   const fetchInbox = useCallback(async () => {
-    // 1. Uninvoiced completed appointments
-    const { data: uninv } = await supabase
-      .from('appointments')
-      .select('id, start_at, services(name, price), profiles(name)')
-      .eq('status', 'completed')
-      .eq('invoice_sent', false)
-      .order('start_at', { ascending: false })
-      .limit(20)
-    setUninvoiced(uninv ?? [])
+    // 1a. Uninvoiced completed (Mode A) OR past unresolved confirmed (Mode B)
+    let uninv
+    if (settings?.invoicing_enabled !== false) {
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, start_at, services(name, price), profiles(name)')
+        .eq('status', 'completed')
+        .eq('invoice_sent', false)
+        .order('start_at', { ascending: false })
+        .limit(20)
+      uninv = data ?? []
+    } else {
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, start_at, services(name, price), profiles(name)')
+        .eq('status', 'confirmed')
+        .lt('start_at', new Date().toISOString())
+        .order('start_at', { ascending: false })
+        .limit(20)
+      uninv = data ?? []
+    }
+    setUninvoiced(uninv)
 
     // 2b. Today's manual income (walk-in receipts)
     const todayStr = new Date().toISOString().slice(0, 10)
@@ -96,7 +111,7 @@ export function Dashboard() {
     // Fire-and-forget DB sweep
     sweepExpiredWaitlist(wl || [])
     setWaitlistActive((wl || []).filter(e => !isWaitlistExpired(e)))
-  }, [])
+  }, [settings?.invoicing_enabled])
 
   useEffect(() => { fetchInbox() }, [fetchInbox])
 
@@ -238,8 +253,12 @@ export function Dashboard() {
       },
     ]
 
-    return { nextApt: next, upcoming: rest, stats }
-  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff])
+    const filteredStats = settings?.invoicing_enabled !== false
+      ? stats
+      : stats.filter(s => !['הכנסה בפועל', 'צפוי היום', 'חובות פתוחים'].includes(s.label))
+
+    return { nextApt: next, upcoming: rest, stats: filteredStats }
+  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff, settings?.invoicing_enabled])
 
   // ── Handle schedule from waitlist ──
   function handleScheduleWaitlist(entry) {
@@ -280,12 +299,14 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => setWalkInOpen(true)}
-            className="flex-1 sm:flex-none text-xs font-black px-3 py-2.5 rounded-xl active:scale-95 transition-all whitespace-nowrap"
-            style={{ background: 'var(--color-gold)', color: '#fff' }}>
-            💰 תקבול מהיר
-          </button>
+          {invEnabled && (
+            <button
+              onClick={() => setWalkInOpen(true)}
+              className="flex-1 sm:flex-none text-xs font-black px-3 py-2.5 rounded-xl active:scale-95 transition-all whitespace-nowrap"
+              style={{ background: 'var(--color-gold)', color: '#fff' }}>
+              💰 תקבול מהיר
+            </button>
+          )}
           <Link to="/admin/appointments?book=1"
             className="flex-1 sm:flex-none text-xs font-bold px-3 py-2.5 rounded-xl text-center whitespace-nowrap"
             style={{ background: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}>
@@ -316,6 +337,7 @@ export function Dashboard() {
             waitlist={waitlistActive}
             onScheduleWaitlist={handleScheduleWaitlist}
             businessType={settings?.business_type}
+            invoicingEnabled={invEnabled}
           />
         </div>
 
@@ -352,7 +374,7 @@ export function Dashboard() {
                         </div>
                       </div>
                       <div className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
-                        {done}/{total} תורים · ₪{revenue.toLocaleString('he-IL')}
+                        {done}/{total} תורים{invEnabled ? ` · ₪${revenue.toLocaleString('he-IL')}` : ''}
                       </div>
                     </div>
                   )

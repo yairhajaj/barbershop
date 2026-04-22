@@ -74,6 +74,8 @@ const DEFAULT_SETTINGS = {
   gap_closer_mode:              'off',   // 'off' | 'approval' | 'auto'
   gap_closer_threshold_minutes: 30,
   gap_closer_advance_hours:     2,      // hours before gap to start acting
+  // Invoicing / financial subsystem toggle
+  invoicing_enabled: true,
 }
 
 export function useBusinessSettings() {

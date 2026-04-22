@@ -19,6 +19,8 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
   const { settings } = useBusinessSettings()
   const { products } = useProducts({ activeOnly: true })
 
+  const invoicingEnabled = settings?.invoicing_enabled !== false
+
   const [invoiceStep, setInvoiceStep] = useState(null)  // null | 'paying' | 'done'
   const [invoiceData, setInvoiceData] = useState(null)
   const [invoiceProducts, setInvoiceProducts] = useState([])
@@ -98,6 +100,16 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
       toast({ message: e.message || 'שגיאה', type: 'error' })
       setInvoiceStep(null)
     }
+  }
+
+  async function handleAttended() {
+    setBusy(true)
+    try {
+      await supabase.from('appointments').update({ status: 'completed' }).eq('id', apt.id)
+      toast({ message: 'סומן: הגיע ✅', type: 'success' })
+      onChange?.(); onClose()
+    } catch (e) { toast({ message: e.message, type: 'error' }) }
+    finally { setBusy(false) }
   }
 
   async function handleNoShow() {
@@ -255,8 +267,8 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
           )
         )}
 
-        {/* Payment + Invoice panel */}
-        {invoiceStep === 'done' && invoiceData ? (
+        {/* Payment + Invoice panel — Mode A only */}
+        {invoicingEnabled && invoiceStep === 'done' && invoiceData ? (
           <div className="space-y-2">
             <div className="text-center text-sm py-2 rounded-xl font-bold"
               style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
@@ -277,11 +289,11 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
               )}
             </div>
           </div>
-        ) : invoiceStep === 'paying' ? (
+        ) : invoicingEnabled && invoiceStep === 'paying' ? (
           <div className="flex items-center justify-center gap-2 py-3 text-sm" style={{ color: 'var(--color-muted)' }}>
             <Spinner size="sm" /> רושם תשלום ומפיק {docLabel(settings?.business_type)}...
           </div>
-        ) : isPaid ? (
+        ) : invoicingEnabled && isPaid ? (
           <div className="flex items-center gap-2">
             <div className="flex-1 text-center text-sm py-2 rounded-xl font-bold"
               style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
@@ -293,7 +305,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
               🖨 {docLabel(settings?.business_type)}
             </button>
           </div>
-        ) : apt.status === 'confirmed' ? (
+        ) : invoicingEnabled && apt.status === 'confirmed' ? (
           <div className="space-y-3">
             {/* Invoice preview */}
             <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
@@ -357,10 +369,24 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
               ))}
             </div>
           </div>
+        ) : !invoicingEnabled && apt.status === 'confirmed' ? (
+          /* Mode B — attendance only */
+          <div className="flex gap-2">
+            <button onClick={handleAttended} disabled={busy}
+              className="flex-1 py-2.5 px-3 rounded-xl font-bold text-sm"
+              style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.3)', opacity: busy ? 0.6 : 1 }}>
+              ✅ הגיע
+            </button>
+            <button onClick={handleNoShow} disabled={busy}
+              className="flex-1 py-2 px-3 rounded-xl font-medium text-sm"
+              style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-muted)', opacity: busy ? 0.6 : 1 }}>
+              👻 לא הגיע
+            </button>
+          </div>
         ) : null}
 
-        {/* No-show + Cancel */}
-        {apt.status === 'confirmed' && !isPaid && invoiceStep !== 'done' && (
+        {/* No-show + Cancel — Mode A only */}
+        {invoicingEnabled && apt.status === 'confirmed' && !isPaid && invoiceStep !== 'done' && (
           <div className="flex gap-2 pt-1">
             <button onClick={handleNoShow} disabled={busy}
               className="flex-1 py-2 px-3 rounded-lg font-medium text-sm"

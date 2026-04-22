@@ -12,8 +12,8 @@ import { docLabel } from '../../../lib/finance'
  *   waitlist:   [entry]          — active pending (already filtered)
  *   onScheduleWaitlist:(entry)=>void
  */
-export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, waitlist = [], onScheduleWaitlist, businessType }) {
-  const hasAny = uninvoiced.length > 0 || openDebts.length > 0 || waitlist.length > 0
+export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, waitlist = [], onScheduleWaitlist, businessType, invoicingEnabled = true }) {
+  const hasAny = uninvoiced.length > 0 || (invoicingEnabled && openDebts.length > 0) || waitlist.length > 0
   if (!hasAny) {
     return (
       <section className="rounded-2xl p-5 mb-5 text-center"
@@ -21,7 +21,9 @@ export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, w
         <div className="text-3xl mb-1">✨</div>
         <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>הכל מטופל</p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          אין חשבוניות, חובות, או ממתינים שדורשים טיפול
+          {invoicingEnabled
+            ? 'אין חשבוניות, חובות, או ממתינים שדורשים טיפול'
+            : 'כל התורים סומנו · אין ממתינים'}
         </p>
       </section>
     )
@@ -34,14 +36,18 @@ export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, w
       </h2>
 
       <div className="flex flex-col gap-3">
-        {/* Uninvoiced appointments */}
+        {/* Uninvoiced appointments (Mode A) or unresolved (Mode B) */}
         {uninvoiced.length > 0 && (
           <InboxCard
             to="/admin/quick-settle"
-            icon="⚡"
+            icon={invoicingEnabled ? '⚡' : '✓'}
             color="#f59e0b"
-            title={`${uninvoiced.length} תורים ממתינים לסגירה`}
-            subtitle={`לחץ לסגירה מהירה — ${docLabel(businessType, true)} + סטטוס`}
+            title={invoicingEnabled
+              ? `${uninvoiced.length} תורים ממתינים לסגירה`
+              : `${uninvoiced.length} תורים ממתינים לסימון`}
+            subtitle={invoicingEnabled
+              ? `לחץ לסגירה מהירה — ${docLabel(businessType, true)} + סטטוס`
+              : 'לחץ לסמן הגיע / לא הגיע'}
             bg="rgba(245,158,11,0.08)"
             border="rgba(245,158,11,0.3)"
           >
@@ -52,7 +58,9 @@ export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, w
                   <span className="truncate">
                     {formatDate(a.start_at)} · {a.profiles?.name || '—'}
                   </span>
-                  <span className="font-bold">₪{Number(a.services?.price || 0).toLocaleString('he-IL')}</span>
+                  {invoicingEnabled && (
+                    <span className="font-bold">₪{Number(a.services?.price || 0).toLocaleString('he-IL')}</span>
+                  )}
                 </div>
               ))}
               {uninvoiced.length > 3 && (
@@ -64,8 +72,8 @@ export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, w
           </InboxCard>
         )}
 
-        {/* Open debts */}
-        {openDebts.length > 0 && (
+        {/* Open debts — Mode A only */}
+        {invoicingEnabled && openDebts.length > 0 && (
           <InboxCard
             to="/admin/finance"
             state={{ tab: 'debts' }}

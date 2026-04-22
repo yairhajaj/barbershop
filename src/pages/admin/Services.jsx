@@ -20,7 +20,8 @@ export function Services() {
   const { services, loading, upsertService, deleteService } = useServices()
   const { settings } = useBusinessSettings()
   const toast = useToast()
-  const paymentEnabled = !!settings?.payment_enabled
+  const invoicingEnabled = settings?.invoicing_enabled !== false
+  const paymentEnabled = invoicingEnabled && !!settings?.payment_enabled
   const [editService, setEditService] = useState(null)
   const [saving, setSaving] = useState(false)
 

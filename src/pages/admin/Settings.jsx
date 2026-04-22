@@ -141,6 +141,40 @@ export function Settings() {
           </div>
         </section>
 
+        {/* Invoicing & Payments System */}
+        <section className="card p-6" style={{ border: '2px solid var(--color-gold-ring)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="font-semibold text-lg">ניהול חשבוניות ותשלומים</h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
+                הפעל או כבה את כל מערכת הקבלות, המע"מ ומעקב התשלומים
+              </p>
+            </div>
+            <Toggle
+              checked={form.invoicing_enabled ?? true}
+              onChange={v => setForm(f => ({ ...f, invoicing_enabled: v }))}
+            />
+          </div>
+
+          {!(form.invoicing_enabled ?? true) && (
+            <div className="mt-4 rounded-xl p-4 text-sm"
+              style={{ background: 'rgba(239,68,68,0.06)', border: '1.5px solid rgba(239,68,68,0.35)' }}>
+              <p className="font-black mb-1" style={{ color: '#dc2626' }}>⚠️ שים לב — חובה חוקית</p>
+              <p style={{ color: 'var(--color-text)', lineHeight: 1.6 }}>
+                כיבוי המערכת <strong>אינו פוטר אותך מהוצאת קבלות.</strong> על פי חוק מס הכנסה,
+                עסק חייב להנפיק קבלה ידנית לכל עסקה, גם אם אינו משתמש בתוכנה לניהול חשבונות.
+                <br /><strong>המשך לנהל פנקס קבלות פיזי עד שתחזור להפעיל את המערכת.</strong>
+              </p>
+            </div>
+          )}
+
+          {(form.invoicing_enabled ?? true) && (
+            <p className="text-xs mt-2" style={{ color: 'var(--color-muted)' }}>
+              פעיל — חשבוניות, קבלות, מע"מ ומעקב תשלומים מופעלים
+            </p>
+          )}
+        </section>
+
         {/* Smart Scheduling */}
         <section className="card p-6">
           <div className="flex items-center justify-between mb-4">
@@ -390,7 +424,7 @@ export function Settings() {
         </section>
 
         {/* ── Payment Settings ───────────────────────────────────────── */}
-        <section className="card p-6">
+        {(form.invoicing_enabled ?? true) && <section className="card p-6">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">💳</span>
             <h2 className="font-semibold text-lg">תשלום אונליין</h2>
@@ -502,7 +536,7 @@ export function Settings() {
 
             </div>
           )}
-        </section>
+        </section>}
 
         {/* ── Gap Closer ── */}
         <section className="card p-6">

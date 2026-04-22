@@ -172,6 +172,7 @@ export function Appointments() {
   const { services } = useServices({ activeOnly: false })
   const { products } = useProducts({ activeOnly: true })
   const { settings, hours: businessHours, saveBusinessHours } = useBusinessSettings()
+  const invoicingEnabled = settings?.invoicing_enabled !== false
   const [hoursForm, setHoursForm] = useState([])
   const [savingHours, setSavingHours] = useState(false)
 
@@ -1712,8 +1713,28 @@ export function Appointments() {
               )
             )}
 
-            {/* ── Payment + Invoice Panel ── */}
-            {(() => {
+            {/* ── Payment + Invoice Panel (Mode A) / Attendance (Mode B) ── */}
+            {!invoicingEnabled && selectedAppt.status === 'confirmed' && new Date(selectedAppt.start_at) < new Date() && (
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    await supabase.from('appointments').update({ status: 'completed' }).eq('id', selectedAppt.id)
+                    toast({ message: 'סומן: הגיע ✅', type: 'success' })
+                    setSelectedAppt(null); refetch()
+                  }}
+                  className="flex-1 py-2.5 rounded-xl font-bold text-sm"
+                  style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.3)' }}>
+                  ✅ הגיע
+                </button>
+                <button
+                  onClick={() => handleNoShow(selectedAppt.id)}
+                  className="flex-1 py-2 px-3 rounded-xl font-medium text-sm"
+                  style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                  👻 לא הגיע
+                </button>
+              </div>
+            )}
+            {invoicingEnabled && (() => {
               const isPaid = selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid
 
               // Invoice just created — show success + actions
@@ -1864,7 +1885,7 @@ export function Appointments() {
               )
             })()}
 
-            {!(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
+            {invoicingEnabled && !(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {
@@ -1881,7 +1902,7 @@ export function Appointments() {
               </motion.button>
             )}
 
-            {selectedAppt.status === 'confirmed' && !(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
+            {invoicingEnabled && selectedAppt.status === 'confirmed' && !(invoiceStep === 'done' || selectedAppt.payment_status === 'paid' || selectedAppt.cash_paid) && (
               <div className="flex gap-2 pt-1 flex-wrap">
                 <button
                   onClick={() => handleNoShow(selectedAppt.id)}

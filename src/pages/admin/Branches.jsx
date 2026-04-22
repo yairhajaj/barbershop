@@ -21,7 +21,8 @@ const DEFAULT_HOURS = DAYS.map((_, i) => ({
 export function Branches() {
   const { reload: reloadBranches } = useBranch()
   const { settings, fetchBranchHours, saveBranchHours } = useBusinessSettings()
-  const paymentEnabled = !!settings?.payment_enabled
+  const invoicingEnabled = settings?.invoicing_enabled !== false
+  const paymentEnabled = invoicingEnabled && !!settings?.payment_enabled
   const showToast = useToast()
 
   const [branches, setBranches]   = useState([])

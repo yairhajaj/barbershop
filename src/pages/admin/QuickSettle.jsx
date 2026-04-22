@@ -33,10 +33,11 @@ export function QuickSettle() {
 
   const businessType = settings?.business_type || 'osek_morsheh'
   const vatRate = settings?.vat_rate ?? 18
+  const invoicingEnabled = settings?.invoicing_enabled !== false
 
   useEffect(() => {
     load()
-  }, [currentBranch])
+  }, [currentBranch, invoicingEnabled])
 
   async function load() {
     setLoading(true)
@@ -62,9 +63,11 @@ export function QuickSettle() {
       setLoading(false)
       return
     }
-    // Filter unpaid in JS to avoid complex PostgREST OR syntax
-    const unpaid = (data ?? []).filter(a => !a.cash_paid && a.payment_status !== 'paid')
-    setAppointments(unpaid)
+    // In invoicing mode: show unpaid only. In attendance mode: show all past confirmed.
+    const filtered = invoicingEnabled
+      ? (data ?? []).filter(a => !a.cash_paid && a.payment_status !== 'paid')
+      : (data ?? [])
+    setAppointments(filtered)
     setLoading(false)
   }
 
@@ -148,6 +151,22 @@ export function QuickSettle() {
     }
   }
 
+  async function handleAttended(apt) {
+    if (busy[apt.id]) return
+    setBusy(b => ({ ...b, [apt.id]: true }))
+    try {
+      await supabase.from('appointments')
+        .update({ status: 'completed' })
+        .eq('id', apt.id)
+      markDone(apt.id)
+      showToast({ message: `✅ ${apt.profiles?.name} — סומן "הגיע"`, type: 'success' })
+    } catch (err) {
+      showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
+    } finally {
+      setBusy(b => ({ ...b, [apt.id]: false }))
+    }
+  }
+
   async function handleNoShow(apt) {
     if (busy[apt.id]) return
     setBusy(b => ({ ...b, [apt.id]: true }))
@@ -180,7 +199,7 @@ export function QuickSettle() {
         </button>
         <div className="flex-1">
           <h1 className="font-black text-base" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-            ⚡ סגירת תורים מהירה
+            {invoicingEnabled ? '⚡ סגירת תורים מהירה' : '✓ סימון נוכחות'}
           </h1>
           {!loading && (
             <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
@@ -227,8 +246,10 @@ export function QuickSettle() {
                 apt={apt}
                 busy={!!busy[apt.id]}
                 businessType={businessType}
+                invoicingEnabled={invoicingEnabled}
                 onPay={(method) => handlePay(apt, method)}
                 onNoShow={() => handleNoShow(apt)}
+                onAttended={() => handleAttended(apt)}
                 onOther={() => setOtherModal({ apt, method: 'cash', amount: String(apt.services?.price || ''), extraProducts: [] })}
               />
             ))}
@@ -236,8 +257,8 @@ export function QuickSettle() {
         )}
       </div>
 
-      {/* "אחר" modal */}
-      {otherModal && (
+      {/* "אחר" modal — only in invoicing mode */}
+      {invoicingEnabled && otherModal && (
         <OtherModal
           modal={otherModal}
           products={products}
@@ -395,7 +416,7 @@ function OtherModal({ modal, products, onChange, onClose, onConfirm }) {
   )
 }
 
-function AppointmentRow({ apt, busy, businessType, onPay, onNoShow, onOther }) {
+function AppointmentRow({ apt, busy, businessType, invoicingEnabled, onPay, onNoShow, onAttended, onOther }) {
   const price = Number(apt.price || apt.services?.price || 0)
 
   return (
@@ -418,15 +439,17 @@ function AppointmentRow({ apt, busy, businessType, onPay, onNoShow, onOther }) {
             {apt.services?.name} · {apt.staff?.name} · {formatDate(apt.start_at)} {formatTime(apt.start_at)}
           </p>
         </div>
-        <span className="font-black text-base flex-shrink-0 mr-2" style={{ color: 'var(--color-gold)' }}>
-          ₪{price.toLocaleString('he-IL')}
-        </span>
+        {invoicingEnabled && (
+          <span className="font-black text-base flex-shrink-0 mr-2" style={{ color: 'var(--color-gold)' }}>
+            ₪{price.toLocaleString('he-IL')}
+          </span>
+        )}
       </div>
 
       {/* Action buttons */}
       {busy ? (
         <div className="flex justify-center py-2"><Spinner size="sm" /></div>
-      ) : (
+      ) : invoicingEnabled ? (
         <div className="flex gap-1.5">
           {PAY_METHODS.map(m => (
             <button key={m.key}
@@ -450,6 +473,23 @@ function AppointmentRow({ apt, busy, businessType, onPay, onNoShow, onOther }) {
             style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', border: '1.5px solid var(--color-border)' }}>
             <span className="text-base">➕</span>
             <span>אחר</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={onAttended}
+            className="flex-1 py-3 rounded-xl text-sm font-black flex flex-col items-center gap-1 transition-all active:scale-95"
+            style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.3)' }}>
+            <span className="text-xl">✅</span>
+            <span>הגיע</span>
+          </button>
+          <button
+            onClick={onNoShow}
+            className="flex-1 py-3 rounded-xl text-sm font-black flex flex-col items-center gap-1 transition-all active:scale-95"
+            style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', border: '1.5px solid var(--color-border)' }}>
+            <span className="text-xl">👻</span>
+            <span>לא הגיע</span>
           </button>
         </div>
       )}

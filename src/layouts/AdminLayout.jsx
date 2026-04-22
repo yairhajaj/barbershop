@@ -186,7 +186,9 @@ export function AdminLayout({ children }) {
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  const NAV_LINKS = BASE_NAV_LINKS
+  const invEnabled = settings?.invoicing_enabled !== false
+  const NAV_LINKS = invEnabled ? BASE_NAV_LINKS : BASE_NAV_LINKS.filter(l => l.to !== '/admin/finance')
+  const moreLinks = invEnabled ? BOTTOM_MORE : BOTTOM_MORE.filter(l => l.to !== '/admin/finance')
 
   const online = useOnline()
 
@@ -324,7 +326,7 @@ export function AdminLayout({ children }) {
 
             {/* Grid of items */}
             <div className="grid grid-cols-4 gap-2 px-4 pb-3">
-              {BOTTOM_MORE.map(link => {
+              {moreLinks.map(link => {
                 const active = location.pathname === link.to
                 return (
                   <Link
