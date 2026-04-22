@@ -35,7 +35,7 @@ export function Dashboard() {
   // Next 4 upcoming from any date (for the appointments list)
   const { appointments: futureAppts, refetch: refetchFuture } = useAllAppointments({
     startDate: startOfDay(today),
-    endDate: addDays(today, 60),
+    endDate: endOfDay(addDays(today, 60)),
     branchId: currentBranch?.id ?? null,
   })
 
