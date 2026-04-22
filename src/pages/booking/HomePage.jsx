@@ -623,8 +623,8 @@ export function HomePage() {
           backdropFilter: 'blur(18px)',
           WebkitBackdropFilter: 'blur(18px)',
           background: isDark
-            ? 'linear-gradient(to bottom, rgba(18,14,10,0) 0%, rgba(18,14,10,1) 100%)'
-            : 'linear-gradient(to bottom, rgba(243,240,234,0) 0%, rgba(243,240,234,1) 100%)',
+            ? 'linear-gradient(to bottom, rgba(18,14,10,0) 0%, rgba(18,14,10,0.92) 100%)'
+            : 'linear-gradient(to bottom, rgba(243,240,234,0) 0%, rgba(243,240,234,0.92) 100%)',
           zIndex: 0, pointerEvents: 'none',
         }} />
 
