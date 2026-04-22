@@ -770,156 +770,166 @@
   min-height: 65vh !important;
 }
 
-/* ── LAYOUT: luxury — Cinematic Dark / Glassmorphism ── */
-/* Only radius/shadow on html — color vars ONLY inside .booking-root */
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT: luxury — פרימיום גלאס
+   עיצוב כמו דף ההתחברות: רקע כהה-חם, כרטיסי זכוכית עם blur,
+   גבול עדין עם הבהוב עליון. חל על כל הדפים (לא רק booking).
+══════════════════════════════════════════════════════════════════ */
 [data-layout="luxury"] {
-  --radius-card: 1.5rem;
+  --radius-card: 1.75rem;
   --radius-btn: 9999px;
-  --shadow-card: 0 8px 40px rgba(0,0,0,0.35);
-  --shadow-elevated: 0 20px 60px rgba(0,0,0,0.5);
+  --shadow-card: 0 20px 56px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+  --shadow-elevated: 0 32px 80px rgba(0,0,0,0.7);
+  /* צבעים גלובליים — כל הדפים כולל admin */
+  --color-surface: #0a0806;
+  --color-card:    rgba(255,255,255,0.08);
+  --color-border:  rgba(255,255,255,0.13);
+  --color-text:    #ffffff;
+  --color-muted:   rgba(255,255,255,0.50);
+  --color-navbar:  rgba(8,6,4,0.88);
+  background: #0a0806;
+  color: #ffffff;
 }
+[data-layout="luxury"] body { background: #0a0806; }
 
-/* Color vars scoped ONLY to booking pages — admin is untouched */
-[data-layout="luxury"] .booking-root {
-  --color-surface: #0a0a0a;
-  --color-card:    #161616;
-  --color-border:  rgba(255,255,255,0.1);
-  --color-text:    #f0f0f0;
-  --color-muted:   rgba(255,255,255,0.52);
-  --color-navbar:  rgba(8,8,8,0.88);
-  background: #0a0a0a;
-  color: #f0f0f0;
-}
-
-/* Badge / pill labels with light-bg become invisible on dark — fix (booking only) */
-[data-layout="luxury"] .booking-root [style*="rgba(0,0,0,0.05)"],
-[data-layout="luxury"] .booking-root [style*="rgba(0,0,0,0.06)"],
-[data-layout="luxury"] .booking-root [style*="rgba(0,0,0,0.07)"],
-[data-layout="luxury"] .booking-root [style*="rgba(0,0,0,0.08)"] {
+/* ── כרטיסים — glass effect גלובלי ── */
+[data-layout="luxury"] .card {
+  backdrop-filter: blur(24px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
   background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.13) !important;
+  border-top: 1px solid rgba(255,255,255,0.22) !important;
+  box-shadow: 0 20px 56px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  border-radius: 1.75rem !important;
+  transition: all 0.3s cubic-bezier(0.22,1,0.36,1) !important;
+}
+[data-layout="luxury"] .card:hover {
+  background: rgba(255,255,255,0.11) !important;
+  border-top-color: rgba(255,255,255,0.28) !important;
+  box-shadow: 0 28px 70px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+  transform: translateY(-2px) !important;
 }
 
-/* Typography — dramatic ONLY in hero */
-[data-layout="luxury"] .booking-root .hero-section h1 {
-  font-size: clamp(2.2rem, 6vw, 3.5rem) !important;
-  letter-spacing: -0.02em !important;
-  font-weight: 900;
-  line-height: 1.08;
-}
-
-/* Cards — glassmorphism (booking only) */
-[data-layout="luxury"] .booking-root .card {
-  border-radius: 1.5rem !important;
-  background: rgba(255,255,255,0.05) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07) !important;
-}
-
-/* Booking item list → glass items with stagger */
-[data-layout="luxury"] .booking-root .booking-item-list {
-  gap: 1rem !important;
-}
-[data-layout="luxury"] .booking-root .booking-item-list > * {
-  border-radius: 1.5rem !important;
-  background: rgba(255,255,255,0.05) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
-}
-
-/* Stagger animation */
-@keyframes luxurySlideUp {
-  from { opacity: 0; transform: translateY(22px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(1) { animation: luxurySlideUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.04s both; }
-[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(2) { animation: luxurySlideUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.11s both; }
-[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(3) { animation: luxurySlideUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.17s both; }
-[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(4) { animation: luxurySlideUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.22s both; }
-[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(n+5) { animation: luxurySlideUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.26s both; }
-
-/* Buttons (booking) — large pill, glow */
-[data-layout="luxury"] .booking-root .btn-primary {
-  border-radius: 9999px !important;
-  font-weight: 800;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 1rem 2.5rem !important;
-  box-shadow: 0 4px 24px var(--color-accent-glow), 0 0 0 1px rgba(255,255,255,0.08) !important;
-  transition: all 360ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-[data-layout="luxury"] .booking-root .btn-primary:hover {
-  transform: translateY(-3px) scale(1.04) !important;
-  box-shadow: 0 12px 40px var(--color-accent-glow), 0 0 0 1px rgba(255,255,255,0.12) !important;
-  filter: brightness(1.08);
-}
-[data-layout="luxury"] .booking-root .btn-primary:active {
-  transform: scale(0.96) !important;
-  transition-duration: 100ms !important;
-}
-[data-layout="luxury"] .booking-root .btn-outline {
-  border-radius: 9999px !important;
-  border-width: 1px !important;
-  border-color: rgba(255,255,255,0.18) !important;
-  color: rgba(255,255,255,0.78) !important;
-}
-[data-layout="luxury"] .booking-root .btn-outline:hover {
-  border-color: var(--color-gold) !important;
-  background: rgba(255,255,255,0.05) !important;
-}
-[data-layout="luxury"] .booking-root .btn-ghost {
-  border-radius: 9999px !important;
-}
-[data-layout="luxury"] .booking-root .input {
-  border-radius: 9999px !important;
-  background: rgba(255,255,255,0.06) !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  color: #f0f0f0 !important;
-  padding: 0.875rem 1.5rem !important;
-}
-[data-layout="luxury"] .booking-root .input:focus {
-  border-color: var(--color-gold) !important;
-  box-shadow: 0 0 0 3px var(--color-accent-glow) !important;
+/* ── שדות קלט — glass style (כמו Login.jsx) ── */
+[data-layout="luxury"] .input {
   background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 0.75rem 1rem !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
 }
-[data-layout="luxury"] .booking-root .input::placeholder {
+[data-layout="luxury"] .input:focus {
+  border-color: rgba(201,169,110,0.65) !important;
+  box-shadow: 0 0 0 3px rgba(201,169,110,0.12) !important;
+  background: rgba(255,255,255,0.10) !important;
+  outline: none !important;
+}
+[data-layout="luxury"] .input::placeholder {
   color: rgba(255,255,255,0.35) !important;
 }
 
-/* Hero */
-[data-layout="luxury"] .booking-root .hero-section {
-  min-height: 88vh !important;
+/* ── כפתורים ── */
+[data-layout="luxury"] .btn-primary {
+  border-radius: 9999px !important;
+  font-weight: 800;
+  box-shadow: 0 4px 20px var(--color-accent-glow), 0 0 0 1px rgba(255,255,255,0.06) !important;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1) !important;
 }
-[data-layout="luxury"] .booking-root .hero-section .relative.z-10::before {
-  content: '';
-  display: block;
-  width: 48px;
-  height: 2px;
-  background: var(--color-gold);
-  margin: 0 auto 1.25rem;
-  border-radius: 1px;
-  opacity: 0.9;
+[data-layout="luxury"] .btn-primary:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 10px 36px var(--color-accent-glow), 0 0 0 1px rgba(255,255,255,0.10) !important;
+  filter: brightness(1.08);
+}
+[data-layout="luxury"] .btn-primary:active {
+  transform: scale(0.96) !important;
+  transition-duration: 100ms !important;
+}
+[data-layout="luxury"] .btn-outline {
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  color: rgba(255,255,255,0.78) !important;
+  background: rgba(255,255,255,0.05) !important;
+}
+[data-layout="luxury"] .btn-outline:hover {
+  border-color: var(--color-gold) !important;
+  background: rgba(255,255,255,0.08) !important;
+  color: var(--color-gold) !important;
+}
+[data-layout="luxury"] .btn-ghost {
+  border-radius: 9999px !important;
+  color: rgba(255,255,255,0.6) !important;
+}
+[data-layout="luxury"] .btn-ghost:hover {
+  background: rgba(255,255,255,0.07) !important;
+  color: #ffffff !important;
 }
 
-/* Navbar */
+/* ── Badge / pill fix — dark bg ── */
+[data-layout="luxury"] [style*="rgba(0,0,0,0.05)"],
+[data-layout="luxury"] [style*="rgba(0,0,0,0.06)"],
+[data-layout="luxury"] [style*="rgba(0,0,0,0.07)"],
+[data-layout="luxury"] [style*="rgba(0,0,0,0.08)"] {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* ── Booking list items ── */
+[data-layout="luxury"] .booking-root .booking-item-list { gap: 0.875rem !important; }
+[data-layout="luxury"] .booking-root .booking-item-list > * {
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-top: 1px solid rgba(255,255,255,0.20) !important;
+  border-radius: 1.75rem !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+  transition: all 0.3s cubic-bezier(0.22,1,0.36,1) !important;
+}
+[data-layout="luxury"] .booking-root .booking-item-list > *:hover {
+  background: rgba(255,255,255,0.11) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 14px 44px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+}
+
+/* ── Stagger entrance animation ── */
+@keyframes luxuryGlassUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(1) { animation: luxuryGlassUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.04s both; }
+[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(2) { animation: luxuryGlassUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.11s both; }
+[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(3) { animation: luxuryGlassUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.17s both; }
+[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(4) { animation: luxuryGlassUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.22s both; }
+[data-layout="luxury"] .booking-root .booking-item-list > *:nth-child(n+5) { animation: luxuryGlassUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.26s both; }
+
+/* ── Navbar ── */
+[data-layout="luxury"] .booking-navbar,
 [data-layout="luxury"] .booking-root .booking-navbar {
-  background: rgba(8,8,8,0.85) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  background: rgba(8,6,4,0.88) !important;
+  backdrop-filter: blur(24px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
 }
 
-/* Time slots */
+/* ── Time slots / date picker ── */
 [data-layout="luxury"] .booking-root .grid.grid-cols-3 button,
 [data-layout="luxury"] .booking-root .grid.grid-cols-4 button {
-  border-radius: 9999px !important;
-  background: rgba(255,255,255,0.05) !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  color: #f0f0f0 !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.11) !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease !important;
+}
+[data-layout="luxury"] .booking-root .grid.grid-cols-3 button:hover,
+[data-layout="luxury"] .booking-root .grid.grid-cols-4 button:hover {
+  background: rgba(255,255,255,0.10) !important;
+  border-color: rgba(201,169,110,0.4) !important;
+}
+
+/* ── Scrollbar ── */
+[data-layout="luxury"] ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12) !important;
+  border-radius: 4px;
 }
 
 /* ══════════════════════════════════════════════════════════════════
