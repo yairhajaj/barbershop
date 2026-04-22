@@ -487,7 +487,7 @@ export function HomePage() {
   // ── v6 glass panel style ──────────────────────────────────────────
   const glassPanel = isDark
     ? {
-        position: 'relative', zIndex: 10, marginTop: -52,
+        position: 'relative', zIndex: 10, marginTop: -130,
         borderRadius: '26px 26px 0 0',
         background: 'rgba(18,14,10,1)',
         borderTop: '1px solid rgba(255,255,255,0.07)',
@@ -495,7 +495,7 @@ export function HomePage() {
         minHeight: '60vh',
       }
     : {
-        position: 'relative', zIndex: 10, marginTop: -52,
+        position: 'relative', zIndex: 10, marginTop: -130,
         borderRadius: '26px 26px 0 0',
         background: 'rgba(243,240,234,1)',
         borderTop: 'none',
@@ -606,13 +606,13 @@ export function HomePage() {
       <div style={glassPanel}>
         {/* Blur bridge — blurs the hero image visible through the overlap zone */}
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 90,
+          position: 'absolute', top: 0, left: 0, right: 0, height: 150,
           borderRadius: '26px 26px 0 0',
-          backdropFilter: 'blur(28px) saturate(1.6)',
-          WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
+          backdropFilter: 'blur(32px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(32px) saturate(1.6)',
           background: isDark
-            ? 'linear-gradient(to bottom, rgba(18,14,10,0.05) 0%, rgba(18,14,10,0.92) 100%)'
-            : 'linear-gradient(to bottom, rgba(243,240,234,0.05) 0%, rgba(243,240,234,0.92) 100%)',
+            ? 'linear-gradient(to bottom, rgba(18,14,10,0.0) 0%, rgba(18,14,10,0.95) 100%)'
+            : 'linear-gradient(to bottom, rgba(243,240,234,0.0) 0%, rgba(243,240,234,0.95) 100%)',
           zIndex: 0, pointerEvents: 'none',
         }} />
 

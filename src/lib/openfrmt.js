@@ -36,16 +36,27 @@ function padText(val, len) {
   const s = toAscii((val ?? '').toString()).replace(/[\r\n\t]/g, ' ').slice(0, len)
   return s + ' '.repeat(Math.max(0, len - s.length))
 }
-// Numeric monetary/quantity field — EBCDIC Overpunch (as required by Israeli Tax Authority).
-// Per spec §4: "שדות Num — ממולאים באפסים מימין" — pure zero-padded digits, no sign char.
-// Negative values (credit notes) are indicated via the document type (field 1203), not via
-// an embedded sign char. The simulator rejects any non-digit in Num fields ("ספרות בלבד").
-// Example: numField(80, 13, 2) → "000000000008000" (15 digits, 80.00 ILS)
+// Unsigned numeric field — pure zero-padded digits, no sign.
+// Used only for non-monetary counters/codes (serial numbers, VAT IDs, etc.).
+// Example: numField(80, 13, 2) → "000000000008000"
 function numField(val, intLen, decLen = 0) {
   const totalLen = intLen + decLen
   const n = Number(val || 0)
   const scaled = Math.round(Math.abs(n) * Math.pow(10, decLen))
   return scaled.toString().padStart(totalLen, '0').slice(-totalLen)
+}
+
+// Signed numeric field for X9(n)v99 / X9(n)v9999 monetary/quantity fields.
+// Per spec §4 and confirmed by Tax Authority simulator: ALL X9 fields require a leading
+// '+' or '-' sign character. Total field length = 1 (sign) + intLen + decLen.
+// Example: signedField(80, 12, 2) → "+000000000008000" (16 chars = sign+12+2, value 80.00)
+// Example: signedField(0, 12, 2, true) → "-000000000000000" (discount field — always '-')
+function signedField(val, intLen, decLen = 0, forceNegative = false) {
+  const n = Number(val || 0)
+  const sign = (n < 0 || forceNegative) ? '-' : '+'
+  const scaled = Math.round(Math.abs(n) * Math.pow(10, decLen))
+  const digits = scaled.toString().padStart(intLen + decLen, '0').slice(-(intLen + decLen))
+  return sign + digits
 }
 
 // ── Date helpers ─────────────────────────────────────────────────
@@ -293,14 +304,14 @@ function recordC100({
     padText(customerPhone || '', 15),          // 1214: 15
     padLeft(customerVatId || '0', 9),          // 1215: 9
     padLeft(docYMD, 8),                        // 1216: 8 value date YYYYMMDD
-    numField(0, 13, 2),                        // 1217: 15 FC amount
+    signedField(0, 12, 2),                     // 1217: 15 FC amount (+)
     padText(currency, 3),                      // 1218: 3
-    numField(beforeVat, 13, 2),                // 1219: 15 ⚠
-    numField(0, 13, 2),                        // 1220: 15 discount
-    numField(beforeVat, 13, 2),                // 1221: 15 after discount before VAT
-    numField(vatAmount, 13, 2),                // 1222: 15 VAT
-    numField(total, 13, 2),                    // 1223: 15 ⚠
-    numField(0, 10, 2),                        // 1224: 12 withholding
+    signedField(beforeVat, 12, 2),             // 1219: 15 ⚠ (+)
+    signedField(0, 12, 2, true),               // 1220: 15 discount — always '-' per spec
+    signedField(beforeVat, 12, 2),             // 1221: 15 after discount before VAT (+)
+    signedField(vatAmount, 12, 2),             // 1222: 15 VAT (+)
+    signedField(total, 12, 2),                 // 1223: 15 ⚠ (+)
+    signedField(0, 9, 2),                      // 1224: 12 withholding (sign+9+2)
     padLeft(customerVatId || '1', 15),         // 1225: 15 customer key
     padText('', 10),                           // 1226: 10
     padText(isCancelled ? 'X' : ' ', 1),       // 1228: 1
@@ -330,7 +341,7 @@ function recordC100({
 // 123   50  1261 manufacturer name
 // 173   30  1262 product serial
 // 203   20  1263 unit of measure
-// 223   17  1264 quantity (14 int + 3 dec = 17)
+// 223   17  1264 quantity (sign + 12 int + 4 dec = 17, X9(12)v9999)
 // 240   15  1265 unit price excl VAT
 // 255   15  1266 line discount
 // 270   15  1267 line total ⚠ sum must = C100.1219
@@ -361,10 +372,10 @@ function recordD110({
     padText('', 50),                                   // 1261: 50 mfr name
     padText('', 30),                                   // 1262: 30 product serial
     padText('', 20),                                   // 1263: 20 unit
-    numField(quantity, 14, 3),                         // 1264: 17 qty
-    numField(unitPrice, 13, 2),                        // 1265: 15 unit price
-    numField(discount || 0, 13, 2),                    // 1266: 15 discount
-    numField(lineTotal, 13, 2),                        // 1267: 15 ⚠
+    signedField(quantity, 12, 4),                      // 1264: 17 qty (+, X9(12)v9999)
+    signedField(unitPrice, 12, 2),                     // 1265: 15 unit price (+)
+    signedField(discount || 0, 12, 2, true),           // 1266: 15 discount (always '-')
+    signedField(lineTotal, 12, 2),                     // 1267: 15 ⚠ (+)
     padLeft(Math.round(Number(vatRate || 0) * 100), 4),// 1268: 4 e.g. 1800
     padText('', 7),                                    // 1270: 7 branch
     padLeft(dateYMD(docDate), 8),                      // 1272: 8 YYYYMMDD
@@ -420,7 +431,7 @@ function recordD120({
     padLeft(code === 2 ? (accountNumber || '123456789012345') : '0', 15), // 1309: 15
     padLeft(code === 2 ? (checkNumber || '1')  : '0', 10), // 1310: 10
     padLeft(dateYMD(paymentDate || docDate), 8),   // 1311: 8 YYYYMMDD
-    numField(amount, 13, 2),                       // 1312: 15 ⚠
+    signedField(amount, 12, 2),                    // 1312: 15 ⚠ (+)
     padLeft('0', 1),                               // 1313: 1
     padText(cardType || '', 20),                   // 1314: 20
     padLeft('0', 1),                               // 1315: 1
@@ -474,13 +485,13 @@ function recordB110({ serial, vatId, accountKey, accountName }) {
     padText('', 30),                // 1411: 30
     padText('', 2),                 // 1412: 2
     padText('', 15),                // 1413: 15
-    numField(0, 13, 2),             // 1414: 15
-    numField(0, 13, 2),             // 1415: 15
-    numField(0, 13, 2),             // 1416: 15
+    signedField(0, 12, 2),          // 1414: 15 opening balance (+/-)
+    signedField(0, 12, 2),          // 1415: 15 total debit (+)
+    signedField(0, 12, 2),          // 1416: 15 total credit (+)
     padLeft('0', 4),                // 1417: 4
     padLeft('0', 9),                // 1419: 9
     padText('', 7),                 // 1421: 7
-    numField(0, 13, 2),             // 1422: 15
+    signedField(0, 12, 2),          // 1422: 15 FC balance (+/-)
     padText('ILS', 3),              // 1423: 3
     padText('', 16),                // 1424: 16
   ]
@@ -590,7 +601,8 @@ export function buildBkmvdata({ vatId, primaryId, invoices, services, businessTy
       counts.D110++
     })
 
-    if (inv.status === 'paid' || inv.paid_at) {
+    // Credit notes (330/405) never get a D120 — simulator rejects D120 for credit doc types
+    if (!inv.is_credit_note && (inv.status === 'paid' || inv.paid_at)) {
       lines.push(recordD120({
         serial: serial++, vatId, docType,
         docNumber: inv.invoice_number,
