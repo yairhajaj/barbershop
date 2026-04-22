@@ -58,6 +58,27 @@ function FanGallery({ items }) {
   const [lightboxIdx, setLightboxIdx] = useState(null)
   const [dir, setDir] = useState(0)
   const touchStartX = useRef(null)
+  const scrollYRef = useRef(0)
+
+  // Body scroll lock — iOS Safari fix (same pattern as Modal.jsx)
+  useEffect(() => {
+    if (lightboxIdx !== null) {
+      scrollYRef.current = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollYRef.current}px`
+      document.body.style.width = '100%'
+    } else {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollYRef.current)
+    }
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+    }
+  }, [lightboxIdx])
 
   useEffect(() => {
     if (!stageRef.current) return
