@@ -448,39 +448,89 @@ export function BookingLayout({ children }) {
       )}
 
       {/* ── Announcement modal ── */}
-      {announcement && annOpen && (() => {
-        const colorMap = { gold: 'var(--color-gold)', red: '#ef4444', blue: '#3b82f6' }
-        const iconMap  = { gold: '📢', red: '⚠️', blue: 'ℹ️' }
-        const color    = colorMap[announcement.announcement_color] ?? colorMap.gold
-        const icon     = iconMap[announcement.announcement_color]  ?? iconMap.gold
-        return (
-          <Modal open={annOpen} onClose={handleAnnouncementClose}>
-            {/* Colored accent strip at top */}
-            <div className="rounded-t-xl -mx-6 -mt-6 mb-5 px-6 pt-5 pb-4 text-center"
-              style={{ background: `${color}18`, borderBottom: `3px solid ${color}` }}>
-              <div className="text-3xl mb-2">{icon}</div>
-              <h2 className="text-lg font-bold leading-snug" style={{ color }}>
-                {announcement.announcement_title}
-              </h2>
-            </div>
-
-            {/* Body */}
-            <p className="text-sm leading-relaxed text-center mb-6"
-              style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', opacity: 0.85 }}>
-              {announcement.announcement_body}
-            </p>
-
-            {/* Button */}
-            <button
+      <AnimatePresence>
+        {announcement && annOpen && (() => {
+          const colorMap = { gold: 'var(--color-gold)', red: '#ef4444', blue: '#3b82f6' }
+          const iconMap  = { gold: '📢', red: '⚠️', blue: 'ℹ️' }
+          const color    = colorMap[announcement.announcement_color] ?? colorMap.gold
+          const icon     = iconMap[announcement.announcement_color]  ?? iconMap.gold
+          return (
+            <motion.div
+              key="ann-backdrop"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 110,
+                background: 'rgba(0,0,0,0.72)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '24px',
+              }}
               onClick={handleAnnouncementClose}
-              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: color }}
             >
-              הבנתי ✓
-            </button>
-          </Modal>
-        )
-      })()}
+              <motion.div
+                key="ann-panel"
+                initial={{ scale: 0.9, opacity: 0, y: 12 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.94, opacity: 0, y: 8 }}
+                transition={{ type: 'spring', damping: 26, stiffness: 340 }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  width: '100%', maxWidth: 320,
+                  borderRadius: 24,
+                  background: 'var(--color-card)',
+                  overflow: 'hidden',
+                  boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px var(--color-border)',
+                }}
+              >
+                {/* Color accent bar */}
+                <div style={{ height: 4, background: `linear-gradient(to left, ${color}, ${color}55)` }} />
+
+                {/* Content */}
+                <div style={{ padding: '28px 24px 0', textAlign: 'center' }}>
+                  {/* Icon circle */}
+                  <div style={{
+                    width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                    background: `${color}18`,
+                    border: `1.5px solid ${color}40`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 24,
+                  }}>{icon}</div>
+
+                  <h2 style={{
+                    fontSize: 18, fontWeight: 800, margin: '0 0 10px',
+                    color: 'var(--color-text)', letterSpacing: '-0.02em', lineHeight: 1.3,
+                  }}>{announcement.announcement_title}</h2>
+
+                  <p style={{
+                    fontSize: 13, lineHeight: 1.65, margin: '0 0 8px',
+                    color: 'var(--color-muted)', whiteSpace: 'pre-wrap',
+                  }}>{announcement.announcement_body}</p>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: 'var(--color-border)', margin: '20px 24px 0' }} />
+
+                {/* Buttons */}
+                <div style={{ padding: '16px 20px 20px' }}>
+                  <button
+                    onClick={handleAnnouncementClose}
+                    style={{
+                      width: '100%', padding: '13px 0',
+                      borderRadius: 14, border: 'none', cursor: 'pointer',
+                      background: color,
+                      fontSize: 14, fontWeight: 700, color: '#fff',
+                      letterSpacing: '0.01em',
+                    }}
+                  >
+                    הבנתי ✓
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )
+        })()}
+      </AnimatePresence>
 
       <main>{children}</main>
 
