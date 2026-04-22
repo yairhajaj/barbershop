@@ -26,7 +26,8 @@ export function BookingLayout({ children }) {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const isHome = location.pathname === '/'
+  const isHome    = location.pathname === '/'
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
 
   // Fetch pending debts when customer is blocked
   useEffect(() => {
@@ -525,11 +526,11 @@ export function BookingLayout({ children }) {
       {/* ── v6 mobile toolbar ── */}
       <div className="v6-toolbar md:hidden fixed bottom-0 left-0 right-0 z-50"
         style={{
-          background: isDark ? 'rgba(12,12,12,0.92)' : 'rgba(255,255,255,0.94)',
+          background: (isDark || isAuthPage) ? 'rgba(10,8,4,0.88)' : 'rgba(255,255,255,0.94)',
           backdropFilter: 'blur(36px) saturate(2)',
           WebkitBackdropFilter: 'blur(36px) saturate(2)',
-          borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.72)',
-          boxShadow: isDark
+          borderTop: (isDark || isAuthPage) ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(255,255,255,0.72)',
+          boxShadow: (isDark || isAuthPage)
             ? '0 -1px 0 rgba(255,255,255,0.05), 0 -8px 40px rgba(0,0,0,0.55)'
             : '0 -1px 0 rgba(0,0,0,0.05), 0 -4px 20px rgba(0,0,0,0.07), 0 -16px 40px rgba(0,0,0,0.03)',
           borderRadius: '22px 22px 0 0',
@@ -539,8 +540,8 @@ export function BookingLayout({ children }) {
           justifyContent: 'space-around',
         }}
       >
-        <V6BarBtn to="/" icon="home" label="בית" active={location.pathname === '/'} isDark={isDark} />
-        <V6BarBtn to="/products" icon="bag" label="מוצרים" active={location.pathname === '/products'} isDark={isDark} />
+        <V6BarBtn to="/" icon="home" label="בית" active={location.pathname === '/'} isDark={isDark || isAuthPage} />
+        <V6BarBtn to="/products" icon="bag" label="מוצרים" active={location.pathname === '/products'} isDark={isDark || isAuthPage} />
 
         {/* CENTER FAB */}
         <Link to={bookHref} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: -24, cursor: 'pointer', textDecoration: 'none' }}>
@@ -558,7 +559,7 @@ export function BookingLayout({ children }) {
               <line x1="8.12" y1="8.12" x2="12" y2="12"/>
             </svg>
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.04em', color: isDark ? 'rgba(255,255,255,0.5)' : 'var(--color-gold)' }}>קבע תור</span>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.04em', color: (isDark || isAuthPage) ? 'rgba(255,255,255,0.5)' : 'var(--color-gold)' }}>קבע תור</span>
         </Link>
 
         <V6BarBtn
@@ -566,13 +567,13 @@ export function BookingLayout({ children }) {
           icon="calendar"
           label={user ? 'התורים שלי' : 'כניסה'}
           active={location.pathname === '/my-appointments'}
-          isDark={isDark} />
+          isDark={isDark || isAuthPage} />
         <V6BarBtn
           to={isAdmin ? '/admin' : '/login'}
           icon={isAdmin ? 'settings' : 'person'}
           label={isAdmin ? 'ניהול' : 'פרופיל'}
           active={location.pathname.startsWith('/admin') || location.pathname.startsWith('/login')}
-          isDark={isDark} />
+          isDark={isDark || isAuthPage} />
       </div>
     </div>
   )
