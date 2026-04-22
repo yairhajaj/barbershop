@@ -19,9 +19,9 @@ import { supabase } from '../../lib/supabase'
 const DAYS_AHEAD = 30
 
 const pageVariants = {
-  enter: (dir) => ({ x: dir > 0 ? '55%' : '-55%', opacity: 0, filter: 'blur(6px)' }),
+  enter: (dir) => ({ x: dir > 0 ? '-55%' : '55%', opacity: 0, filter: 'blur(6px)' }),
   center: { x: 0, opacity: 1, filter: 'blur(0px)', transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
-  exit:  (dir) => ({ x: dir > 0 ? '-55%' : '55%', opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeIn' } }),
+  exit:  (dir) => ({ x: dir > 0 ? '55%' : '-55%', opacity: 0, filter: 'blur(4px)', transition: { duration: 0.25, ease: 'easeIn' } }),
 }
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
@@ -163,10 +163,26 @@ export default function BookCinematic() {
 
   const bgPhoto = selStaff?.photo_url ?? null
 
+  // Lock scroll on iOS (position:fixed is the only reliable method)
+  useEffect(() => {
+    const y = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top      = `-${y}px`
+    document.body.style.left     = '0'
+    document.body.style.right    = '0'
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top      = ''
+      document.body.style.left     = ''
+      document.body.style.right    = ''
+      window.scrollTo(0, y)
+    }
+  }, [])
+
   return (
-    // ── Outer container: locked to screen height ──────────────────
+    // ── Outer container: fixed to viewport, no scroll possible ────
     <div dir="rtl" style={{
-      height: '100dvh', overflow: 'hidden', position: 'relative', background: '#0d0a07',
+      position: 'fixed', inset: 0, overflow: 'hidden', background: '#0d0a07',
     }}>
       {/* Ambient blurred bg photo */}
       <AnimatePresence>
@@ -464,9 +480,13 @@ function LoadingDots() {
 
 /* ── Styles ────────────────────────────────────────────────────────── */
 const cardStyle = (active) => ({
-  background:   active ? 'var(--color-gold-tint, rgba(212,175,55,0.12))' : 'rgba(255,255,255,0.04)',
-  border:       `1.5px solid ${active ? 'var(--color-gold)' : 'rgba(255,255,255,0.08)'}`,
-  borderRadius: 16, padding: '12px 16px',
+  background:   active
+    ? 'linear-gradient(to left, rgba(212,175,55,0.14) 0%, rgba(212,175,55,0.05) 100%)'
+    : 'rgba(255,255,255,0.05)',
+  border:       'none',
+  borderRight:  `3px solid ${active ? 'var(--color-gold)' : 'transparent'}`,
+  boxShadow:    active ? '0 4px 24px rgba(212,175,55,0.12)' : 'none',
+  borderRadius: 16, padding: '13px 13px 13px 16px',
   display: 'flex', alignItems: 'center', gap: 14,
   cursor: 'pointer', textAlign: 'right', width: '100%', transition: 'all 0.22s',
 })
