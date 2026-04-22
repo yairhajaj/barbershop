@@ -117,6 +117,21 @@ export function useInvoices({ status, startDate, endDate, includeCancelled = fal
           .select().single()
         if (cnErr) throw cnErr
         creditNote = cn
+
+        // Deduct from income: insert negative manual_income so dashboard totals decrease
+        const creditAmount = Math.abs(Number(original.total_amount || 0))
+        if (creditAmount > 0) {
+          await supabase.from('manual_income').insert({
+            description: `זיכוי לחשבונית ${original.invoice_number}`,
+            amount: -creditAmount,
+            vat_amount: -Math.abs(Number(original.vat_amount || 0)),
+            date: nowIso.slice(0, 10),
+            payment_method: original.notes || 'credit',
+            customer_name: original.customer_name || null,
+            appointment_id: original.appointment_id || null,
+            notes: `חשבונית זיכוי ${invoiceNumber}`,
+          })
+        }
       }
 
       return { cancelled: { ...original, is_cancelled: true }, creditNote }
