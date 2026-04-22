@@ -253,12 +253,8 @@ export function Dashboard() {
       },
     ]
 
-    const filteredStats = settings?.invoicing_enabled !== false
-      ? stats
-      : stats.filter(s => !['הכנסה בפועל', 'צפוי היום', 'חובות פתוחים'].includes(s.label))
-
-    return { nextApt: next, upcoming: rest, stats: filteredStats }
-  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff, settings?.invoicing_enabled])
+    return { nextApt: next, upcoming: rest, stats }
+  }, [todayAppts, openDebts, waitlistActive, manualIncomeToday, manualIncomeBreakdown, staff])
 
   // ── Handle schedule from waitlist ──
   function handleScheduleWaitlist(entry) {
@@ -374,7 +370,7 @@ export function Dashboard() {
                         </div>
                       </div>
                       <div className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
-                        {done}/{total} תורים{invEnabled ? ` · ₪${revenue.toLocaleString('he-IL')}` : ''}
+                        {done}/{total} תורים · ₪{revenue.toLocaleString('he-IL')}
                       </div>
                     </div>
                   )

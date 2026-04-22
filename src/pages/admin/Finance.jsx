@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { DashboardTab } from './finance/DashboardTab'
 import { IncomeTab } from './finance/IncomeTab'
 import { ExpensesTab } from './finance/ExpensesTab'
@@ -11,22 +12,26 @@ import { DebtsTab } from './finance/DebtsTab'
 import { AccountantTab } from './finance/AccountantTab'
 import { IncomeTaxTab } from './finance/IncomeTaxTab'
 
-const TABS = [
+const ALL_TABS = [
   { key: 'dashboard',  icon: '\u{1F4CA}', label: '\u05E1\u05D9\u05DB\u05D5\u05DD' },
   { key: 'income',     icon: '\u{1F4B0}', label: '\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA' },
   { key: 'expenses',   icon: '\u{1F4B8}', label: '\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA' },
-  { key: 'invoices',   icon: '\u{1F9FE}', label: '\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05D5\u05EA' },
+  { key: 'invoices',   icon: '\u{1F9FE}', label: '\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05D5\u05EA', invoicingOnly: true },
   { key: 'debts',      icon: '💳', label: 'חובות' },
-  { key: 'income_tax', icon: '🏛', label: 'מס הכנסה' },
-  { key: 'tax',        icon: '📊', label: 'דוח & רו״ח' },
-  { key: 'accountant', icon: '👨‍💼', label: 'רואה חשבון' },
+  { key: 'income_tax', icon: '🏛', label: 'מס הכנסה', invoicingOnly: true },
+  { key: 'tax',        icon: '📊', label: 'דוח & רו״ח', invoicingOnly: true },
+  { key: 'accountant', icon: '👨‍💼', label: 'רואה חשבון', invoicingOnly: true },
   { key: 'settings',   icon: '\u2699\uFE0F', label: '\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA' },
 ]
 
 export function Finance() {
   const location = useLocation()
+  const { settings } = useBusinessSettings()
+  const invoicingEnabled = settings?.invoicing_enabled !== false
+  const TABS = invoicingEnabled ? ALL_TABS : ALL_TABS.filter(t => !t.invoicingOnly)
   const initialTab = location.state?.tab || 'dashboard'
   const [tab, setTab] = useState(initialTab)
+  const activeTab = TABS.find(t => t.key === tab) ? tab : 'dashboard'
 
   return (
     <div>
@@ -50,7 +55,7 @@ export function Finance() {
         style={{ '--lg-bg': 'var(--color-card)' }}
       >
         {TABS.map(t => {
-          const active = tab === t.key
+          const active = activeTab === t.key
           return (
             <button
               key={t.key}
@@ -71,20 +76,20 @@ export function Finance() {
 
       {/* Active tab content */}
       <motion.div
-        key={tab}
+        key={activeTab}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
-        {tab === 'dashboard' && <DashboardTab />}
-        {tab === 'income' && <IncomeTab />}
-        {tab === 'expenses' && <ExpensesTab />}
-        {tab === 'invoices' && <InvoicesTab />}
-        {tab === 'debts' && <DebtsTab />}
-        {tab === 'income_tax' && <IncomeTaxTab />}
-        {tab === 'tax' && <TaxReportTab />}
-        {tab === 'accountant' && <AccountantTab />}
-        {tab === 'settings' && <SettingsTab />}
+        {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'income' && <IncomeTab />}
+        {activeTab === 'expenses' && <ExpensesTab />}
+        {activeTab === 'invoices' && <InvoicesTab />}
+        {activeTab === 'debts' && <DebtsTab />}
+        {activeTab === 'income_tax' && <IncomeTaxTab />}
+        {activeTab === 'tax' && <TaxReportTab />}
+        {activeTab === 'accountant' && <AccountantTab />}
+        {activeTab === 'settings' && <SettingsTab />}
       </motion.div>
     </div>
   )

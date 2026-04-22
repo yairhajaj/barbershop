@@ -151,15 +151,35 @@ export function QuickSettle() {
     }
   }
 
-  async function handleAttended(apt) {
+  async function handlePayNoInvoice(apt, method) {
     if (busy[apt.id]) return
     setBusy(b => ({ ...b, [apt.id]: true }))
     try {
+      const price = Number(apt.services?.price || 0)
+      const nowIso = new Date().toISOString()
+
+      if (price > 0) {
+        await supabase.from('manual_income').insert({
+          amount: price,
+          vat_amount: 0,
+          description: apt.services?.name || 'תור',
+          customer_name: apt.profiles?.name || '',
+          customer_id: apt.profiles?.id ?? null,
+          staff_id: apt.staff_id ?? null,
+          service_id: apt.service_id ?? null,
+          appointment_id: apt.id,
+          payment_method: method,
+          date: nowIso.slice(0, 10),
+          branch_id: currentBranch?.id ?? null,
+        })
+      }
+
       await supabase.from('appointments')
-        .update({ status: 'completed' })
+        .update({ status: 'completed', payment_status: price > 0 ? 'paid' : null, cash_paid: method === 'cash' && price > 0 })
         .eq('id', apt.id)
+
       markDone(apt.id)
-      showToast({ message: `✅ ${apt.profiles?.name} — סומן "הגיע"`, type: 'success' })
+      showToast({ message: `✅ ${apt.profiles?.name} · ${price > 0 ? `₪${price}` : 'הגיע'}`, type: 'success' })
     } catch (err) {
       showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
     } finally {
@@ -248,8 +268,8 @@ export function QuickSettle() {
                 businessType={businessType}
                 invoicingEnabled={invoicingEnabled}
                 onPay={(method) => handlePay(apt, method)}
+                onPayNoInvoice={(method) => handlePayNoInvoice(apt, method)}
                 onNoShow={() => handleNoShow(apt)}
-                onAttended={() => handleAttended(apt)}
                 onOther={() => setOtherModal({ apt, method: 'cash', amount: String(apt.services?.price || ''), extraProducts: [] })}
               />
             ))}
@@ -416,7 +436,7 @@ function OtherModal({ modal, products, onChange, onClose, onConfirm }) {
   )
 }
 
-function AppointmentRow({ apt, busy, businessType, invoicingEnabled, onPay, onNoShow, onAttended, onOther }) {
+function AppointmentRow({ apt, busy, businessType, invoicingEnabled, onPay, onPayNoInvoice, onNoShow, onOther }) {
   const price = Number(apt.price || apt.services?.price || 0)
 
   return (
@@ -439,7 +459,7 @@ function AppointmentRow({ apt, busy, businessType, invoicingEnabled, onPay, onNo
             {apt.services?.name} · {apt.staff?.name} · {formatDate(apt.start_at)} {formatTime(apt.start_at)}
           </p>
         </div>
-        {invoicingEnabled && (
+        {price > 0 && (
           <span className="font-black text-base flex-shrink-0 mr-2" style={{ color: 'var(--color-gold)' }}>
             ₪{price.toLocaleString('he-IL')}
           </span>
@@ -476,19 +496,21 @@ function AppointmentRow({ apt, busy, businessType, invoicingEnabled, onPay, onNo
           </button>
         </div>
       ) : (
-        <div className="flex gap-2">
-          <button
-            onClick={onAttended}
-            className="flex-1 py-3 rounded-xl text-sm font-black flex flex-col items-center gap-1 transition-all active:scale-95"
-            style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.3)' }}>
-            <span className="text-xl">✅</span>
-            <span>הגיע</span>
-          </button>
+        <div className="flex gap-1.5">
+          {PAY_METHODS.map(m => (
+            <button key={m.key}
+              onClick={() => onPayNoInvoice(m.key)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-black flex flex-col items-center gap-0.5 transition-all active:scale-95"
+              style={{ background: m.bg, color: m.color, border: `1.5px solid ${m.border}` }}>
+              <span className="text-base">{m.icon}</span>
+              <span>הגיע · {m.label}</span>
+            </button>
+          ))}
           <button
             onClick={onNoShow}
-            className="flex-1 py-3 rounded-xl text-sm font-black flex flex-col items-center gap-1 transition-all active:scale-95"
+            className="flex-1 py-2.5 rounded-xl text-xs font-black flex flex-col items-center gap-0.5 transition-all active:scale-95"
             style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', border: '1.5px solid var(--color-border)' }}>
-            <span className="text-xl">👻</span>
+            <span className="text-base">👻</span>
             <span>לא הגיע</span>
           </button>
         </div>

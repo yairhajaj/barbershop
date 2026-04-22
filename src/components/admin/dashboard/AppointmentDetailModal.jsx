@@ -102,11 +102,31 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
     }
   }
 
-  async function handleAttended() {
+  async function handleAttendedPay(method) {
     setBusy(true)
     try {
-      await supabase.from('appointments').update({ status: 'completed' }).eq('id', apt.id)
-      toast({ message: 'סומן: הגיע ✅', type: 'success' })
+      const price = Number(apt.services?.price || 0)
+      const nowIso = new Date().toISOString()
+
+      if (price > 0) {
+        await supabase.from('manual_income').insert({
+          amount: price,
+          vat_amount: 0,
+          description: apt.services?.name || 'תור',
+          customer_name: apt.profiles?.name || '',
+          staff_id: apt.staff_id,
+          service_id: apt.service_id,
+          appointment_id: apt.id,
+          payment_method: method,
+          date: apt.start_at?.slice(0, 10) || nowIso.slice(0, 10),
+        })
+      }
+
+      await supabase.from('appointments')
+        .update({ status: 'completed', payment_status: price > 0 ? 'paid' : null, cash_paid: method === 'cash' && price > 0 })
+        .eq('id', apt.id)
+
+      toast({ message: `סומן: הגיע ✅${price > 0 ? ` · ₪${price}` : ''}`, type: 'success' })
       onChange?.(); onClose()
     } catch (e) { toast({ message: e.message, type: 'error' }) }
     finally { setBusy(false) }
@@ -370,15 +390,27 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
             </div>
           </div>
         ) : !invoicingEnabled && apt.status === 'confirmed' ? (
-          /* Mode B — attendance only */
-          <div className="flex gap-2">
-            <button onClick={handleAttended} disabled={busy}
-              className="flex-1 py-2.5 px-3 rounded-xl font-bold text-sm"
-              style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.3)', opacity: busy ? 0.6 : 1 }}>
-              ✅ הגיע
-            </button>
+          /* Mode B — income tracking without formal invoices */
+          <div className="space-y-2">
+            <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>✅ הגיע — בחר אמצעי תשלום:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: 'cash',     icon: '💵', label: 'מזומן' },
+                { key: 'credit',   icon: '💳', label: 'אשראי' },
+                { key: 'bit',      icon: '📱', label: 'ביט' },
+                { key: 'transfer', icon: '🏦', label: 'העברה' },
+              ].map(({ key, icon, label }) => (
+                <motion.button key={key} whileTap={{ scale: 0.96 }}
+                  onClick={() => handleAttendedPay(key)}
+                  disabled={busy}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm"
+                  style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1.5px solid rgba(22,163,74,0.25)', opacity: busy ? 0.6 : 1 }}>
+                  {icon} {label}
+                </motion.button>
+              ))}
+            </div>
             <button onClick={handleNoShow} disabled={busy}
-              className="flex-1 py-2 px-3 rounded-xl font-medium text-sm"
+              className="w-full py-2 px-3 rounded-xl font-medium text-sm"
               style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-muted)', opacity: busy ? 0.6 : 1 }}>
               👻 לא הגיע
             </button>
