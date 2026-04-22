@@ -315,6 +315,7 @@ export function Dashboard() {
             debtsTotal={openDebts.reduce((s, d) => s + Number(d.amount || 0), 0)}
             waitlist={waitlistActive}
             onScheduleWaitlist={handleScheduleWaitlist}
+            businessType={settings?.business_type}
           />
         </div>
 

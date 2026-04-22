@@ -4,6 +4,7 @@ import { useToast } from '../../ui/Toast'
 import { Modal } from '../../ui/Modal'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatTime } from '../../../lib/utils'
+import { docLabel } from '../../../lib/finance'
 import { BUSINESS } from '../../../config/business'
 
 const PAYMENT_LABELS = {
@@ -105,7 +106,7 @@ export function NextAppointmentHero({ apt, onChange }) {
         .eq('id', apt.id)
 
       setPayModal(false)
-      toast({ message: 'הגיע + שולם · חשבונית הופקה ✓', type: 'success' })
+      toast({ message: `הגיע + שולם · ${docLabel(settings?.business_type)} הופקה ✓`, type: 'success' })
       onChange?.()
     } catch (e) {
       toast({ message: e.message || 'שגיאה', type: 'error' })
@@ -234,7 +235,7 @@ export function NextAppointmentHero({ apt, onChange }) {
           <button onClick={confirmArrived} disabled={busy}
             className="w-full py-3 rounded-xl font-bold text-sm"
             style={{ background: 'var(--color-gold)', color: '#000', opacity: busy ? 0.7 : 1 }}>
-            {busy ? 'מעבד...' : 'אשר + הפק חשבונית'}
+            {busy ? 'מעבד...' : `אשר + הפק ${docLabel(settings?.business_type)}`}
           </button>
         </div>
       </Modal>

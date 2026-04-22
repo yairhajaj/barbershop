@@ -9,7 +9,7 @@ import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useStaffCommissions } from '../../../hooks/useStaffCommissions'
 import { useServices } from '../../../hooks/useServices'
 import { useStaff } from '../../../hooks/useStaff'
-import { formatILS, calcVat, hasVat, PAYMENT_METHODS } from '../../../lib/finance'
+import { formatILS, calcVat, hasVat, PAYMENT_METHODS, docLabel } from '../../../lib/finance'
 import { Spinner } from '../../../components/ui/Spinner'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
 import { useToast } from '../../../components/ui/Toast'
@@ -234,7 +234,7 @@ function QuickReceiptPanel() {
 
       qc.invalidateQueries({ queryKey: ['invoices'] })
       qc.invalidateQueries({ queryKey: ['finance'] })
-      showToast({ message: 'חשבונית הופקה ✓', type: 'success' })
+      showToast({ message: `${docLabel(settings?.business_type)} הופקה ✓`, type: 'success' })
       resetForm()
     } catch (err) {
       showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
@@ -450,14 +450,14 @@ function QuickReceiptPanel() {
       <div className="flex gap-2">
         <button onClick={isDebt ? handleSaveReceipt : handleSaveAndInvoice} disabled={saving || cartItems.length === 0}
           className="btn-primary flex-1 py-3 text-sm font-bold">
-          {saving ? 'שומר...' : isDebt ? '📋 רשום חוב' : '📄 רשום תקבול + חשבונית'}
+          {saving ? 'שומר...' : isDebt ? '📋 רשום חוב' : `📄 רשום תקבול + ${docLabel(settings?.business_type)}`}
         </button>
         {!isDebt && (
           <button onClick={handleSaveReceipt} disabled={saving || cartItems.length === 0}
             className="py-3 px-4 rounded-xl text-sm font-bold transition-colors"
             style={{ background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-            title="רשום ללא הפקת חשבונית">
-            ללא חשבונית
+            title={`רשום ללא הפקת ${docLabel(settings?.business_type)}`}>
+            ללא {docLabel(settings?.business_type)}
           </button>
         )}
       </div>

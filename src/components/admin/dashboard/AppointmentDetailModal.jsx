@@ -9,6 +9,7 @@ import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useProducts } from '../../../hooks/useProducts'
 import { BUSINESS } from '../../../config/business'
 import { printInvoice } from '../../../lib/invoice'
+import { docLabel } from '../../../lib/finance'
 import { formatDate, formatTime } from '../../../lib/utils'
 
 const PAYMENT_LABELS = { cash: 'מזומן', credit: 'כרטיס אשראי', bit: 'ביט', paybox: 'Paybox', transfer: 'העברה בנקאית' }
@@ -92,7 +93,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
       setInvoiceData({ ...inv, paymentMethod: method, appointment: apt, items: [] })
       setInvoiceStep('done')
       onChange?.()
-      toast({ message: 'תשלום נרשם וחשבונית נוצרה ✓', type: 'success' })
+      toast({ message: `תשלום נרשם ו${docLabel(settings?.business_type)} נוצרה ✓`, type: 'success' })
     } catch (e) {
       toast({ message: e.message || 'שגיאה', type: 'error' })
       setInvoiceStep(null)
@@ -154,8 +155,8 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
     const waPhone = rawPhone.startsWith('0') ? '972' + rawPhone.slice(1) : rawPhone
     const msg = encodeURIComponent(
       `שלום ${apt.profiles?.name || ''}! 🧾\n` +
-      `חשבונית מס׳ ${inv?.invoice_number} עבור ${apt.services?.name}.\n` +
-      `לצפייה בחשבונית: ${invoiceUrl}\nתודה על הביקור! 💈`
+      `${docLabel(settings?.business_type)} מס׳ ${inv?.invoice_number} עבור ${apt.services?.name}.\n` +
+      `לצפייה ב${docLabel(settings?.business_type)}: ${invoiceUrl}\nתודה על הביקור! 💈`
     )
     window.open(`https://wa.me/${waPhone}?text=${msg}`, '_blank')
   }
@@ -252,13 +253,13 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
           <div className="space-y-2">
             <div className="text-center text-sm py-2 rounded-xl font-bold"
               style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
-              ✅ שולם ב{PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod} · חשבונית {invoiceData.invoice_number}
+              ✅ שולם ב{PAYMENT_LABELS[invoiceData.paymentMethod] || invoiceData.paymentMethod} · {docLabel(settings?.business_type)} {invoiceData.invoice_number}
             </div>
             <div className="flex gap-2">
               <button onClick={() => doPrint(invoiceData)}
                 className="flex-1 py-2.5 rounded-xl font-bold text-sm"
                 style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}>
-                🖨 הדפס חשבונית
+                🖨 הדפס {docLabel(settings?.business_type)}
               </button>
               {phone && (
                 <button onClick={() => shareInvoiceWhatsApp(invoiceData, phone)}
@@ -271,7 +272,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
           </div>
         ) : invoiceStep === 'paying' ? (
           <div className="flex items-center justify-center gap-2 py-3 text-sm" style={{ color: 'var(--color-muted)' }}>
-            <Spinner size="sm" /> רושם תשלום ומפיק חשבונית...
+            <Spinner size="sm" /> רושם תשלום ומפיק {docLabel(settings?.business_type)}...
           </div>
         ) : isPaid ? (
           <div className="flex items-center gap-2">
@@ -282,7 +283,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
             <button onClick={handlePrintExisting}
               className="py-2 px-3 rounded-xl font-bold text-sm"
               style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)' }}>
-              🖨 חשבונית
+              🖨 {docLabel(settings?.business_type)}
             </button>
           </div>
         ) : apt.status === 'confirmed' ? (
@@ -290,7 +291,7 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
             {/* Invoice preview */}
             <div className="rounded-xl p-3 text-xs" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold" style={{ color: 'var(--color-text)' }}>פרטי חשבונית</span>
+                <span className="font-bold" style={{ color: 'var(--color-text)' }}>פרטי {docLabel(settings?.business_type)}</span>
                 <span className="font-black" style={{ color: 'var(--color-gold)' }}>סה"כ ₪{invoiceTotal.toLocaleString('he-IL')}</span>
               </div>
               <div className="flex items-center justify-between py-1" style={{ color: 'var(--color-muted)' }}>
@@ -327,11 +328,11 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
                 <button onClick={() => setShowAddProduct(true)}
                   className="w-full mt-2 py-1.5 rounded-lg text-xs font-bold"
                   style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1px dashed var(--color-success-ring)' }}>
-                  ➕ הוסף מוצר לחשבונית
+                  ➕ הוסף מוצר ל{docLabel(settings?.business_type)}
                 </button>
               )}
             </div>
-            <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>בחר אמצעי תשלום להפקת חשבונית:</p>
+            <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>בחר אמצעי תשלום להפקת {docLabel(settings?.business_type)}:</p>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { key: 'cash',     icon: '💵', label: 'מזומן' },

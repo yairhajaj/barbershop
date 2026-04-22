@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatTime, formatDate } from '../../../lib/utils'
+import { docLabel } from '../../../lib/finance'
 
 /**
  * "Action inbox" — items that need the shop owner's attention.
@@ -11,7 +12,7 @@ import { formatTime, formatDate } from '../../../lib/utils'
  *   waitlist:   [entry]          — active pending (already filtered)
  *   onScheduleWaitlist:(entry)=>void
  */
-export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, waitlist = [], onScheduleWaitlist }) {
+export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, waitlist = [], onScheduleWaitlist, businessType }) {
   const hasAny = uninvoiced.length > 0 || openDebts.length > 0 || waitlist.length > 0
   if (!hasAny) {
     return (
@@ -39,8 +40,8 @@ export function ActionInbox({ uninvoiced = [], openDebts = [], debtsTotal = 0, w
             to="/admin/appointments"
             icon="🧾"
             color="#f59e0b"
-            title={`${uninvoiced.length} תורים ללא חשבונית`}
-            subtitle="לחץ להפקת חשבוניות"
+            title={`${uninvoiced.length} תורים ללא ${docLabel(businessType)}`}
+            subtitle={`לחץ להפקת ${docLabel(businessType, true)}`}
             bg="rgba(245,158,11,0.08)"
             border="rgba(245,158,11,0.3)"
           >

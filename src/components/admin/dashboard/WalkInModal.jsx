@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { useServices } from '../../../hooks/useServices'
 import { useStaff } from '../../../hooks/useStaff'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
+import { docLabel } from '../../../lib/finance'
 
 const PAYMENT_METHODS = [
   { k: 'cash',     label: '💵 מזומן' },
@@ -239,7 +240,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
       })
       await supabase.from('manual_income').insert(incomeRows)
 
-      toast({ message: 'תקבול נרשם + חשבונית הופקה ✓', type: 'success' })
+      toast({ message: `תקבול נרשם + ${docLabel(settings?.business_type)} הופקה ✓`, type: 'success' })
       onSaved?.()
       onClose()
     } catch (e) {
@@ -462,7 +463,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
         <button onClick={save} disabled={busy || cartItems.length === 0}
           className="w-full py-3 rounded-xl font-black text-sm disabled:opacity-50"
           style={{ background: 'var(--color-gold)', color: '#000' }}>
-          {busy ? 'מעבד...' : isDebt ? '📋 רשום חוב' : `✓ אשר + הפק חשבונית${total ? ' ₪' + total.toLocaleString('he-IL') : ''}`}
+          {busy ? 'מעבד...' : isDebt ? '📋 רשום חוב' : `✓ אשר + הפק ${docLabel(settings?.business_type)}${total ? ' ₪' + total.toLocaleString('he-IL') : ''}`}
         </button>
       </div>
     </Modal>

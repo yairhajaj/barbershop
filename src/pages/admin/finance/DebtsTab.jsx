@@ -5,6 +5,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatDate } from '../../../lib/utils'
+import { docLabel } from '../../../lib/finance'
 
 const PAYMENT_LABELS = {
   cash: '💵 מזומן', credit: '💳 אשראי', bit: '📱 ביט', paybox: '📦 Paybox', transfer: '🏦 העברה',
@@ -109,7 +110,7 @@ export function DebtsTab() {
       }
 
       setPayModal({ open: false, debt: null })
-      toast({ message: 'חוב שולם + חשבונית הופקה ✓', type: 'success' })
+      toast({ message: `חוב שולם + ${docLabel(businessType)} הופקה ✓`, type: 'success' })
       fetchDebts()
     } catch (e) {
       toast({ message: e.message || 'שגיאה', type: 'error' })
@@ -252,7 +253,7 @@ export function DebtsTab() {
               className="w-full py-3 rounded-xl font-bold text-sm transition-opacity"
               style={{ background: 'var(--color-gold)', color: '#000', opacity: paying ? 0.7 : 1 }}
             >
-              {paying ? 'מעבד...' : 'אשר תשלום + הפק חשבונית'}
+              {paying ? 'מעבד...' : `אשר תשלום + הפק ${docLabel(settings?.business_type || 'osek_morsheh')}`}
             </button>
           </div>
         )}

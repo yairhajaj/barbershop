@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { useInvoices } from '../../../hooks/useInvoices'
 import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
-import { formatILS, calcVat, invoiceTitle, hasVat } from '../../../lib/finance'
+import { formatILS, calcVat, invoiceTitle, hasVat, docLabel } from '../../../lib/finance'
 import { printInvoice } from '../../../lib/invoice'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
@@ -141,7 +141,7 @@ export function InvoicesTab() {
       }
     }
 
-    showToast({ message: `${count} חשבוניות הופקו בהצלחה`, type: 'success' })
+    showToast({ message: `${count} ${docLabel(businessType, true)} הופקו בהצלחה`, type: 'success' })
     setGenerating(false)
     setShowGenerate(false)
   }
@@ -252,7 +252,7 @@ export function InvoicesTab() {
           onClick={() => setShowGenerate(true)}
           className="btn-primary px-4 py-2 text-sm"
         >
-          + הפק חשבונית
+          + הפק {docLabel(businessType)}
         </button>
       </div>
 
@@ -295,10 +295,10 @@ export function InvoicesTab() {
         >
           <div className="text-5xl mb-4">🧾</div>
           <p className="font-bold text-lg mb-1" style={{ color: 'var(--color-text)' }}>
-            {searchQuery || dateFilter ? 'לא נמצאו חשבוניות' : 'אין חשבוניות'}
+            {searchQuery || dateFilter ? `לא נמצאו ${docLabel(businessType, true)}` : `אין ${docLabel(businessType, true)}`}
           </p>
           <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            {searchQuery || dateFilter ? 'נסה חיפוש אחר' : 'לחץ "הפק חשבונית" כדי ליצור חשבונית חדשה'}
+            {searchQuery || dateFilter ? 'נסה חיפוש אחר' : `לחץ "הפק ${docLabel(businessType)}" כדי ליצור ${docLabel(businessType)} חדשה`}
           </p>
         </div>
       ) : (
@@ -429,7 +429,7 @@ export function InvoicesTab() {
       )}
 
       {/* Generate Invoice Modal */}
-      <Modal open={showGenerate} onClose={() => setShowGenerate(false)} title="הפקת חשבוניות" size="lg">
+      <Modal open={showGenerate} onClose={() => setShowGenerate(false)} title={`הפקת ${docLabel(businessType, true)}`} size="lg">
         <div className="space-y-4">
           {/* Month picker */}
           <div>
@@ -520,7 +520,7 @@ export function InvoicesTab() {
                   <Spinner size="sm" /> מפיק...
                 </span>
               ) : (
-                `הפק ${selectedCount} חשבוניות`
+                `הפק ${selectedCount} ${docLabel(businessType, true)}`
               )}
             </button>
           )}

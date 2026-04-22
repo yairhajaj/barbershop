@@ -89,7 +89,17 @@ export const PAYMENT_METHODS = {
  * Invoice document title based on business type
  */
 export function invoiceTitle(businessType) {
-  return businessType === 'osek_patur' ? 'חשבונית עסקה' : 'חשבונית מס'
+  return businessType === 'osek_patur' ? 'קבלה' : 'חשבונית מס'
+}
+
+/**
+ * Generic document label (singular or plural) based on business type.
+ * עוסק פטור → "קבלה" / "קבלות"
+ * otherwise  → "חשבונית" / "חשבוניות"
+ */
+export function docLabel(businessType, plural = false) {
+  if (businessType === 'osek_patur') return plural ? 'קבלות' : 'קבלה'
+  return plural ? 'חשבוניות' : 'חשבונית'
 }
 
 /**
