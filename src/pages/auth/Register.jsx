@@ -31,6 +31,10 @@ export function Register() {
     name: '', phone: '', password: '', confirmPassword: '',
     birthDate: '', gender: '', termsAccepted: false,
   })
+  // pre-fill phone from URL (e.g. redirected from login when no profile found)
+  useEffect(() => {
+    if (phoneFromUrl) setForm(f => ({ ...f, phone: phoneFromUrl }))
+  }, [phoneFromUrl])
   const [code, setCode]         = useState('')
   const [loading, setLoading]   = useState(false)
   const [cooldown, setCooldown] = useState(0)
@@ -41,6 +45,7 @@ export function Register() {
   const [searchParams]     = useSearchParams()
   const toast              = useToast()
   const redirect           = searchParams.get('redirect') ?? '/'
+  const phoneFromUrl       = searchParams.get('phone') ?? ''
   const { settings }       = useBusinessSettings()
 
   // hero bg
@@ -88,14 +93,15 @@ export function Register() {
     finally { setLoading(false) }
   }
 
-  async function handleStep2(e) {
-    e.preventDefault()
-    if (code.length !== 6) { toast({ message: 'יש להזין קוד בן 6 ספרות', type: 'error' }); return }
+  async function handleStep2(e, autoCode) {
+    if (e) e.preventDefault()
+    const finalCode = autoCode ?? code
+    if (finalCode.length !== 6) { toast({ message: 'יש להזין קוד בן 6 ספרות', type: 'error' }); return }
 
     setLoading(true)
     try {
       const { data: verifyData, error: verifyErr } = await supabase.functions.invoke('verify-otp', {
-        body: { phone: form.phone, code, purpose: 'register' },
+        body: { phone: form.phone, code: finalCode, purpose: 'register' },
       })
       if (verifyErr) throw verifyErr
       if (!verifyData?.valid) throw new Error(verifyData?.error ?? 'קוד שגוי')
@@ -295,9 +301,13 @@ export function Register() {
                 <label className="block text-xs font-semibold mb-2 text-center tracking-wide uppercase"
                   style={{ color: 'rgba(255,255,255,0.6)' }}>קוד אימות (6 ספרות)</label>
                 <input className="gi text-center text-2xl tracking-widest font-bold" style={gi}
-                  type="tel" inputMode="numeric" maxLength={6} placeholder="000000"
+                  type="text" inputMode="numeric" maxLength={6} placeholder="000000"
                   value={code} dir="ltr" autoFocus autoComplete="one-time-code"
-                  onChange={e => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} />
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 6)
+                    setCode(val)
+                    if (val.length === 6) handleStep2(null, val)
+                  }} />
               </div>
 
               <button type="submit" className="btn-primary justify-center" disabled={loading || code.length !== 6}>

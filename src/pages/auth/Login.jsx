@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 import { useToast } from '../../components/ui/Toast'
 import { Spinner } from '../../components/ui/Spinner'
 import { BUSINESS } from '../../config/business'
@@ -65,12 +66,26 @@ export function Login() {
     } finally { setLoading(false) }
   }
 
-  async function handleVerify(e) {
-    e.preventDefault()
-    if (code.length !== 6) return
+  async function handleVerify(e, autoCode) {
+    if (e) e.preventDefault()
+    const finalCode = autoCode ?? code
+    if (finalCode.length !== 6) return
     setLoading(true)
     try {
-      await verifyOtpAndLogin(confirmation, code)
+      await verifyOtpAndLogin(confirmation, finalCode)
+
+      // בדוק אם קיים profile — אם לא, שלח להרשמה
+      const { data: { user: sbUser } } = await supabase.auth.getUser()
+      const { data: profileRow } = await supabase
+        .from('profiles').select('id').eq('id', sbUser.id).maybeSingle()
+
+      if (!profileRow) {
+        await supabase.auth.signOut()
+        toast({ message: 'מספר זה לא רשום — אנא הירשם תחילה', type: 'info' })
+        navigate(`/register?phone=${encodeURIComponent(phone)}`, { replace: true })
+        return
+      }
+
       navigate(redirect, { replace: true })
     } catch (err) {
       toast({ message: err.message ?? 'קוד שגוי', type: 'error' })
@@ -176,9 +191,13 @@ export function Login() {
                   <p className="font-semibold text-white" dir="ltr">{phone}</p>
                 </div>
                 <input className="gi text-center text-3xl tracking-[0.35em] font-bold" style={gi}
-                  type="tel" inputMode="numeric" maxLength={6} placeholder="——————"
+                  type="text" inputMode="numeric" maxLength={6} placeholder="——————"
                   value={code} dir="ltr" autoFocus autoComplete="one-time-code"
-                  onChange={e => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} />
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 6)
+                    setCode(val)
+                    if (val.length === 6) handleVerify(null, val)
+                  }} />
                 <button type="submit" className="btn-primary justify-center" disabled={loading || code.length !== 6}>
                   {loading ? <Spinner size="sm" className="border-white border-t-transparent" /> : 'כניסה'}
                 </button>
