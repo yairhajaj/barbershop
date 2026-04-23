@@ -1,51 +1,41 @@
+import imageCompression from 'browser-image-compression'
 import { supabase } from './supabase'
 
-const BUCKET = 'uploads'
-
-async function ensureBucket() {
-  await supabase.storage.createBucket(BUCKET, {
-    public: true,
-    fileSizeLimit: 50 * 1024 * 1024,   // 50 MB
-    allowedMimeTypes: [
-      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif',
-      'video/mp4', 'video/webm', 'video/quicktime',
-    ],
-  }).catch(() => { /* bucket probably already exists */ })
+async function compressIfImage(file) {
+  if (!file.type.startsWith('image/')) return file
+  return imageCompression(file, {
+    maxSizeMB: 0.4,
+    maxWidthOrHeight: 1200,
+    useWebWorker: true,
+  })
 }
 
-/**
- * Upload a single file to Supabase Storage.
- * @param {File}   file   — File object from <input type="file">
- * @param {string} folder — Sub-folder: 'staff' | 'gallery' | 'hero' | 'logo' | 'products'
- * @returns {Promise<string>} Public URL
- */
 export async function uploadFile(file, folder = 'misc') {
-  await ensureBucket()
-
-  const ext  = file.name.split('.').pop().toLowerCase()
-  const name = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(name, file, { upsert: false, cacheControl: '3600' })
-
-  if (error) {
-    const msg = error.message ?? ''
-    if (
-      msg.includes('Bucket not found') ||
-      msg.includes('bucket') ||
-      (error.statusCode ?? error.status) === 404 ||
-      (error.statusCode ?? error.status) === '404'
-    ) {
-      throw new Error(
-        'Storage לא מוגדר.\n' +
-        'עבור ל-Supabase → Storage → New bucket\n' +
-        'שם: uploads | Public bucket: ✓ | לחץ Create'
-      )
-    }
-    throw new Error(msg || 'שגיאה בהעלאת הקובץ')
+  if (file.type.startsWith('video/') && file.size > 50 * 1024 * 1024) {
+    throw new Error('הסרטון גדול מ-50MB — דחוס אותו לפני ההעלאה (למשל עם HandBrake)')
   }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(name)
-  return data.publicUrl
+  const compressed = await compressIfImage(file)
+
+  const form = new FormData()
+  form.append('file', compressed, file.name)
+  form.append('folder', folder)
+
+  const { data: { session } } = await supabase.auth.getSession()
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-r2`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: form,
+    }
+  )
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || 'שגיאה בהעלאת הקובץ')
+  }
+
+  const { url } = await res.json()
+  return url
 }
