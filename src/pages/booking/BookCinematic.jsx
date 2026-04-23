@@ -580,16 +580,23 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
           )}
         </AnimatePresence>
         {waitlistEnabled && slots.length > 0 && (
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}
+            style={{ marginTop: 20, borderRadius: 16, border: '1.5px solid var(--color-border)', background: 'var(--color-card)', padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             {wlSuccess ? (
-              <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ נרשמת לרשימת המתנה {wlSuccess.timeFrom}–{wlSuccess.timeTo}</div>
+              <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 700 }}>✓ נרשמת לרשימת המתנה {wlSuccess.timeFrom}–{wlSuccess.timeTo}</div>
             ) : (
-              <motion.button whileTap={{ scale: 0.95 }} onClick={onWaitlist}
-                style={{ fontSize: 12, color: 'var(--color-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '4px 8px' }}>
-                📋 {user ? 'הצטרף לרשימת המתנה' : 'התחבר להצטרפות לרשימת המתנה'}
-              </motion.button>
+              <>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: 'var(--color-text)', fontWeight: 700, fontSize: 14, margin: 0 }}>השעות לא מתאימות לך?</p>
+                  <p style={{ color: 'var(--color-muted)', fontSize: 12, margin: '3px 0 0' }}>הצטרף לרשימת המתנה</p>
+                </div>
+                <motion.button whileTap={{ scale: 0.93 }} onClick={onWaitlist}
+                  style={{ flexShrink: 0, padding: '10px 18px', borderRadius: 12, border: '2px solid var(--color-gold)', background: 'var(--color-gold-tint, rgba(201,169,110,0.1))', color: 'var(--color-gold)', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  📋 הצטרפות
+                </motion.button>
+              </>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
