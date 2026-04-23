@@ -98,7 +98,7 @@ export function IncomeTaxTab() {
     try {
       const { data, error } = await supabase
         .from('invoices')
-        .select('*, invoice_line_items(*)')
+        .select('*, invoice_items(*)')
         .gte('issue_date', range.from)
         .lte('issue_date', range.to)
         .eq('is_cancelled', false)
@@ -170,7 +170,7 @@ export function IncomeTaxTab() {
       // Fetch full invoice with line items
       const { data: full, error: e1 } = await supabase
         .from('invoices')
-        .select('*, invoice_line_items(*)')
+        .select('*, invoice_items(*)')
         .eq('id', inv.id)
         .single()
       if (e1) throw e1
@@ -203,8 +203,8 @@ export function IncomeTaxTab() {
       if (e2) throw e2
 
       // Copy line items
-      if (full.invoice_line_items?.length) {
-        const lineItems = full.invoice_line_items.map(li => ({
+      if (full.invoice_items?.length) {
+        const lineItems = full.invoice_items.map(li => ({
           invoice_id:   credit.id,
           description:  li.description,
           quantity:     li.quantity,
@@ -212,7 +212,7 @@ export function IncomeTaxTab() {
           line_total:   li.line_total,
           vat_rate:     li.vat_rate,
         }))
-        await supabase.from('invoice_line_items').insert(lineItems)
+        await supabase.from('invoice_items').insert(lineItems)
       }
 
       // Increment next number
