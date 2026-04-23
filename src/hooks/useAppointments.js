@@ -5,7 +5,7 @@ import { findGapOpportunities } from '../lib/utils'
 
 const APPT_SELECT = `
   *,
-  profiles ( id, name, phone ),
+  profiles ( id, name, phone, push_token ),
   services ( id, name, duration_minutes, price ),
   staff    ( id, name, photo_url )
 `

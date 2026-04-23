@@ -609,6 +609,38 @@ export function Settings() {
                   {'\n'}ערך 0.5 = חצי שעה לפני
                 </p>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">ערוץ התראות</label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'push',      label: '🔔 פוש',    desc: 'הודעת Push ישירות לטלפון — לחיצה פותחת חלון אישור' },
+                    { value: 'whatsapp',  label: '💬 ווצאפ',  desc: 'הודעת WhatsApp עם קישור לאישור/דחייה' },
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                      style={{
+                        background: form.gap_closer_notification_channel === opt.value ? 'var(--color-gold-tint)' : 'transparent',
+                        border: `2px solid ${form.gap_closer_notification_channel === opt.value ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="gap_closer_notification_channel"
+                        value={opt.value}
+                        checked={(form.gap_closer_notification_channel ?? 'push') === opt.value}
+                        onChange={e => setForm(f => ({ ...f, gap_closer_notification_channel: e.target.value }))}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.label}</div>
+                        <div className="text-xs" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </section>

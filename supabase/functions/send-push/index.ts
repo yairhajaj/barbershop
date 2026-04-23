@@ -11,10 +11,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, body, tokens } = await req.json() as {
+    const { title, body, tokens, url } = await req.json() as {
       title: string
       body: string
       tokens: string[]
+      url?: string
     }
 
     const vapidPublicKey  = Deno.env.get('VAPID_PUBLIC_KEY')
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
 
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
 
-    const payload = JSON.stringify({ title, body })
+    const payload = JSON.stringify({ title, body, ...(url ? { url } : {}) })
 
     const results = await Promise.allSettled(
       tokens.map(token => webpush.sendNotification(JSON.parse(token), payload))

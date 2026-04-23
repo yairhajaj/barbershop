@@ -13,16 +13,22 @@ self.addEventListener('push', event => {
       lang:  'he',
       tag:   'barbershop-msg',
       renotify: true,
+      data: { url: data.url || '/' },
     })
   )
 })
 
 self.addEventListener('notificationclick', event => {
   event.notification.close()
+  const url = event.notification.data?.url || '/'
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      if (list.length > 0) return list[0].focus()
-      return clients.openWindow('/')
+      const existing = list.find(c => c.url.startsWith(self.location.origin))
+      if (existing) {
+        existing.focus()
+        return existing.navigate(url)
+      }
+      return clients.openWindow(url)
     })
   )
 })

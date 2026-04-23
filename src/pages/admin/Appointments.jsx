@@ -524,6 +524,7 @@ export function Appointments() {
     const mode = settings?.gap_closer_mode || 'off'
     const threshold = settings?.gap_closer_threshold_minutes || 30
     const advanceHours = settings?.gap_closer_advance_hours ?? 2
+    const notifChannel = settings?.gap_closer_notification_channel || 'push'
 
     // Always notify waitlist
     let waitlistResult = 'none'
@@ -531,13 +532,14 @@ export function Appointments() {
       try {
         const { data } = await supabase.functions.invoke('notify-waitlist', {
           body: {
-            serviceId:   cancelledAppt.service_id,
-            branchId:    cancelledAppt.branch_id ?? null,
-            staffId:     cancelledAppt.staff_id  ?? null,
-            staffName:   cancelledAppt.staff?.name ?? '',
-            slotStart:   cancelledAppt.start_at,
-            slotEnd:     cancelledAppt.end_at,
-            serviceName: cancelledAppt.services?.name ?? '',
+            serviceId:           cancelledAppt.service_id,
+            branchId:            cancelledAppt.branch_id ?? null,
+            staffId:             cancelledAppt.staff_id  ?? null,
+            staffName:           cancelledAppt.staff?.name ?? '',
+            slotStart:           cancelledAppt.start_at,
+            slotEnd:             cancelledAppt.end_at,
+            serviceName:         cancelledAppt.services?.name ?? '',
+            notificationChannel: notifChannel,
           },
         })
         waitlistResult = data?.notified > 0 ? 'sent' : 'none'
@@ -605,6 +607,7 @@ export function Appointments() {
 
   async function sendRescheduleOffer(candidate, cancelledAppt) {
     const { appointment, newStart, newEnd } = candidate
+    const notifChannel = settings?.gap_closer_notification_channel || 'push'
 
     // Insert offer with token
     const { data: offer, error } = await supabase
@@ -623,19 +626,34 @@ export function Appointments() {
 
     if (error || !offer) { toast({ message: 'שגיאה ביצירת הצעה', type: 'error' }); return }
 
-    // Send WhatsApp
     const APP_URL = window.location.origin
-    const message = `היי ${appointment.profiles?.name || 'לקוח/ה'}! 🙋‍♂️\n` +
-      `יש אפשרות להקדים את התור שלך ל-${formatTime(newStart)} (במקום ${formatTime(appointment.start_at)}).\n` +
-      `אישור: ${APP_URL}/reschedule/confirm?token=${offer.token}&action=accept\n` +
-      `לא מתאים: ${APP_URL}/reschedule/confirm?token=${offer.token}&action=decline`
+    const confirmUrl = `${APP_URL}/reschedule/confirm?token=${offer.token}`
 
-    await supabase.functions.invoke('send-whatsapp', {
-      body: {
-        recipients: [{ name: appointment.profiles?.name || '', phone: appointment.profiles?.phone }],
-        message,
-      },
-    })
+    if (notifChannel === 'whatsapp') {
+      const message = `היי ${appointment.profiles?.name || 'לקוח/ה'}! 🙋‍♂️\n` +
+        `יש אפשרות להקדים את התור שלך ל-${formatTime(newStart)} (במקום ${formatTime(appointment.start_at)}).\n` +
+        `אישור: ${confirmUrl}&action=accept\n` +
+        `לא מתאים: ${confirmUrl}&action=decline`
+      await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          recipients: [{ name: appointment.profiles?.name || '', phone: appointment.profiles?.phone }],
+          message,
+        },
+      })
+    } else {
+      // Push notification
+      const pushToken = appointment.profiles?.push_token
+      if (pushToken) {
+        await supabase.functions.invoke('send-push', {
+          body: {
+            title: '📅 יש אפשרות להקדים את התור!',
+            body: `${formatTime(newStart)} במקום ${formatTime(appointment.start_at)}`,
+            tokens: [pushToken],
+            url: confirmUrl,
+          },
+        })
+      }
+    }
 
     // Mark sent
     await supabase.from('reschedule_offers').update({ notification_sent: true }).eq('token', offer.token)

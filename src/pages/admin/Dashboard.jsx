@@ -397,9 +397,9 @@ export function Dashboard() {
 
 /* ── Gap Closer Quick Card (unchanged) ─────────────────────────── */
 const MODE_OPTIONS = [
-  { value: 'off',      label: 'כבוי',    icon: '⭕' },
-  { value: 'approval', label: 'ידני',    icon: '👆' },
-  { value: 'auto',     label: 'אוטומטי', icon: '⚡' },
+  { value: 'off',      label: 'כבוי',    icon: '⭕', desc: 'לא נשלחות הודעות — רק התראה בלוח הבקרה' },
+  { value: 'approval', label: 'ידני',    icon: '👆', desc: 'מציג הצעות ואתה שולח כל הצעה בלחיצה' },
+  { value: 'auto',     label: 'אוטומטי', icon: '⚡', desc: 'שולח הודעות ללקוחות אוטומטית ללא אישור' },
 ]
 
 function GapCloserCard({ settings, saveSettings }) {
@@ -438,6 +438,7 @@ function GapCloserCard({ settings, saveSettings }) {
               <button key={opt.value}
                 onClick={() => updateField('gap_closer_mode', opt.value)}
                 disabled={saving}
+                title={opt.desc}
                 className="px-2.5 py-1.5 text-sm font-bold transition-all"
                 style={{
                   background: mode === opt.value ? 'var(--color-gold)' : 'transparent',
@@ -447,13 +448,18 @@ function GapCloserCard({ settings, saveSettings }) {
               </button>
             ))}
           </div>
-          <button onClick={() => setExpanded(!expanded)}
-            className="text-sm px-2 py-1 rounded-lg"
-            style={{ color: 'var(--color-muted)' }}>
-            {expanded ? '▲' : '⚙️'}
-          </button>
+          {mode !== 'off' && (
+            <button onClick={() => setExpanded(!expanded)}
+              className="text-sm px-2 py-1 rounded-lg"
+              style={{ color: 'var(--color-muted)' }}>
+              {expanded ? '▲' : '⚙️'}
+            </button>
+          )}
         </div>
       </div>
+      <p className="text-[11px] mt-1.5" style={{ color: 'var(--color-muted)' }}>
+        {currentMode.desc}
+      </p>
 
       <AnimatePresence>
         {expanded && mode !== 'off' && (

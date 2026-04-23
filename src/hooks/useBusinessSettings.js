@@ -71,9 +71,10 @@ const DEFAULT_SETTINGS = {
   hero_title:   '',
   hero_tagline: '',
   // Gap Closer
-  gap_closer_mode:              'off',   // 'off' | 'approval' | 'auto'
-  gap_closer_threshold_minutes: 30,
-  gap_closer_advance_hours:     2,      // hours before gap to start acting
+  gap_closer_mode:                 'off',    // 'off' | 'approval' | 'auto'
+  gap_closer_threshold_minutes:    30,
+  gap_closer_advance_hours:        2,       // hours before gap to start acting
+  gap_closer_notification_channel: 'push',  // 'push' | 'whatsapp'
   // Invoicing / financial subsystem toggle
   invoicing_enabled: true,
 }

@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     }
 
     // ── MODE: notify (called when appointment is cancelled) ─────────────────
-    const { serviceId, branchId, staffId, staffName, slotStart, slotEnd, serviceName: svcNameParam } = body
+    const { serviceId, branchId, staffId, staffName, slotStart, slotEnd, serviceName: svcNameParam, notificationChannel = 'push' } = body
 
     // Fetch service name if not provided
     let serviceName = svcNameParam ?? ''
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     }
 
     const notified = await notifyNextInQueue(supabase, {
-      serviceId, branchId, staffId, slotStart, slotEnd, serviceName,
+      serviceId, branchId, staffId, slotStart, slotEnd, serviceName, notificationChannel,
     })
 
     return json({ ok: true, notified })
@@ -142,15 +142,16 @@ Deno.serve(async (req) => {
 async function notifyNextInQueue(
   supabase: ReturnType<typeof createClient>,
   params: {
-    serviceId:   string | null
-    branchId:    string | null
-    staffId:     string | null
-    slotStart:   string
-    slotEnd:     string
-    serviceName: string
+    serviceId:           string | null
+    branchId:            string | null
+    staffId:             string | null
+    slotStart:           string
+    slotEnd:             string
+    serviceName:         string
+    notificationChannel: string
   }
 ): Promise<boolean> {
-  const { serviceId, branchId, slotStart, slotEnd, serviceName } = params
+  const { serviceId, branchId, slotStart, slotEnd, serviceName, notificationChannel } = params
 
   const slotDate      = toIsraelDate(slotStart)   // "YYYY-MM-DD"
   const slotLocalTime = toIsraelTime(slotStart)    // "HH:MM"
@@ -210,51 +211,55 @@ async function notifyNextInQueue(
     `❌ לא, תודה:\n${declineUrl}\n\n` +
     `ההצעה תפוג בעוד 30 דקות.`
 
-  // Send WhatsApp via Twilio
-  const twilioSid  = Deno.env.get('TWILIO_ACCOUNT_SID')
-  const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN')
-  const twilioFrom = Deno.env.get('TWILIO_WHATSAPP_FROM')
+  // Send WhatsApp via Twilio (only when channel = 'whatsapp')
+  if (notificationChannel === 'whatsapp') {
+    const twilioSid  = Deno.env.get('TWILIO_ACCOUNT_SID')
+    const twilioAuth = Deno.env.get('TWILIO_AUTH_TOKEN')
+    const twilioFrom = Deno.env.get('TWILIO_WHATSAPP_FROM')
 
-  if (twilioSid && twilioAuth && twilioFrom && profile?.phone) {
-    try {
-      await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            From: twilioFrom,
-            To:   formatPhone(profile.phone),
-            Body: message,
-          }).toString(),
-        }
-      )
-    } catch (_) {
-      // Non-fatal — still try push
+    if (twilioSid && twilioAuth && twilioFrom && profile?.phone) {
+      try {
+        await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Basic ' + btoa(`${twilioSid}:${twilioAuth}`),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: twilioFrom,
+              To:   formatPhone(profile.phone),
+              Body: message,
+            }).toString(),
+          }
+        )
+      } catch (_) {
+        // Non-fatal
+      }
     }
   }
 
-  // Send Push notification
-  const vapidPublic  = Deno.env.get('VAPID_PUBLIC_KEY')
-  const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
-  const vapidSubject = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:admin@barbershop.com'
+  // Send Push notification (only when channel = 'push')
+  if (notificationChannel === 'push') {
+    const vapidPublic  = Deno.env.get('VAPID_PUBLIC_KEY')
+    const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
+    const vapidSubject = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:admin@barbershop.com'
 
-  if (vapidPublic && vapidPrivate && profile?.push_token) {
-    try {
-      webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
-      await webpush.sendNotification(
-        JSON.parse(profile.push_token),
-        JSON.stringify({
-          title: '🗓 התפנה תור!',
-          body:  `${serviceName} ב-${dateStr} ${timeStr}`,
-          url:   acceptUrl,
-        })
-      )
-    } catch (_) {
-      // Non-fatal
+    if (vapidPublic && vapidPrivate && profile?.push_token) {
+      try {
+        webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
+        await webpush.sendNotification(
+          JSON.parse(profile.push_token),
+          JSON.stringify({
+            title: '🗓 התפנה תור!',
+            body:  `${serviceName} ב-${dateStr} ${timeStr}`,
+            url:   `${appUrl}/waitlist/confirm?token=${token}`,
+          })
+        )
+      } catch (_) {
+        // Non-fatal
+      }
     }
   }
 
