@@ -117,16 +117,19 @@ export function Dashboard() {
 
   useEffect(() => { fetchInbox() }, [fetchInbox])
 
-  // Re-filter waitlist as the minute ticks over
+  // Re-filter waitlist + full data refresh every minute tick
   useEffect(() => {
     setWaitlistActive(prev => prev.filter(e => !isWaitlistExpired(e)))
-  }, [nowTick])
+    refetchAppts()
+    refetchFuture()
+    fetchInbox()
+  }, [nowTick]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Realtime subscriptions for inbox data ──
   useEffect(() => {
     const invoicesCh = supabase.channel(`dash-invoices-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, fetchInbox)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, fetchInbox)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => { fetchInbox(); refetchAppts(); refetchFuture() })
       .subscribe()
     const debtsCh = supabase.channel(`dash-debts-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_debts' }, fetchInbox)
@@ -279,8 +282,9 @@ export function Dashboard() {
   const upcoming4 = useMemo(() =>
     futureAppts
       .filter(a => a.status === 'confirmed' || a.status === 'pending_reschedule')
+      .filter(a => new Date(a.start_at).getTime() > Date.now() - 30 * 60_000)
       .slice(0, 4)
-  , [futureAppts])
+  , [futureAppts, nowTick])
 
   const refreshAll = () => { refetchAppts(); refetchFuture(); fetchInbox() }
 
