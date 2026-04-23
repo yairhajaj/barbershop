@@ -3188,6 +3188,109 @@ export function Appointments() {
           </div>
         )}
       </Modal>
+
+      {/* ── Day Settings Modal ── */}
+      {daySettingsModal && (() => {
+        const dow = daySettingsModal.date.getDay()
+        const hourEntry = hoursForm.find(h => h.day_of_week === dow) || { day_of_week: dow, is_closed: false, open_time: '09:00', close_time: '19:00' }
+        const dayBreaks = recurringBreaks.filter(b => b.day_of_week === dow)
+        return (
+          <Modal open onClose={() => setDaySettingsModal(null)}
+            title={`⚙️ ${format(daySettingsModal.date, 'EEEE d MMM', { locale: he })}`}>
+            <div className="space-y-5">
+
+              {/* Business hours */}
+              <div>
+                <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>שעות פעילות</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!hourEntry.is_closed}
+                      onChange={e => updateHour(dow, 'is_closed', !e.target.checked)}
+                      className="accent-[var(--color-primary)] w-4 h-4"
+                    />
+                    <span style={{ color: 'var(--color-text)' }}>פתוח</span>
+                  </label>
+                  {!hourEntry.is_closed && (
+                    <>
+                      <input type="time" className="input py-1 text-sm w-24" value={hourEntry.open_time || '09:00'} onChange={e => updateHour(dow, 'open_time', e.target.value)} />
+                      <span style={{ color: 'var(--color-muted)' }}>—</span>
+                      <input type="time" className="input py-1 text-sm w-24" value={hourEntry.close_time || '19:00'} onChange={e => updateHour(dow, 'close_time', e.target.value)} />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Recurring breaks */}
+              <div>
+                <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>הפסקות קבועות</p>
+                {dayBreaks.length === 0 && (
+                  <p className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>אין הפסקות מוגדרות</p>
+                )}
+                <div className="space-y-2 mb-3">
+                  {dayBreaks.map(b => (
+                    <div key={b.id} className="flex items-center justify-between rounded-xl px-3 py-2"
+                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                      <div className="text-sm">
+                        <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{b.label || 'הפסקה'}</span>
+                        <span className="mr-2 text-xs" style={{ color: 'var(--color-muted)' }}>{b.start_time?.slice(0,5)} — {b.end_time?.slice(0,5)}</span>
+                      </div>
+                      <button
+                        onClick={async () => { try { await deleteRecurringBreak(b.id) } catch {} }}
+                        className="text-xs px-2 py-1 rounded-lg transition-colors"
+                        style={{ color: '#ef4444', background: '#fee2e2' }}
+                      >מחק</button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add break form */}
+                <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>הוסף הפסקה</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="text"
+                      placeholder="תיאור"
+                      className="input py-1 text-sm flex-1 min-w-0"
+                      style={{ minWidth: 80 }}
+                      value={newBreakForm.label}
+                      onChange={e => setNewBreakForm(f => ({ ...f, label: e.target.value }))}
+                    />
+                    <input type="time" className="input py-1 text-sm w-24" value={newBreakForm.start_time} onChange={e => setNewBreakForm(f => ({ ...f, start_time: e.target.value }))} />
+                    <span style={{ color: 'var(--color-muted)' }}>—</span>
+                    <input type="time" className="input py-1 text-sm w-24" value={newBreakForm.end_time} onChange={e => setNewBreakForm(f => ({ ...f, end_time: e.target.value }))} />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { error } = await supabase.from('recurring_breaks').insert({ day_of_week: dow, start_time: newBreakForm.start_time, end_time: newBreakForm.end_time, label: newBreakForm.label || 'הפסקה', is_active: true })
+                        if (!error) { await refetchBreaks(); setNewBreakForm(f => ({ ...f, label: 'הפסקה', start_time: '13:00', end_time: '14:00' })) }
+                      } catch {}
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    style={{ background: 'var(--color-primary)', color: '#fff' }}
+                  >+ הוסף</button>
+                </div>
+              </div>
+
+              {/* Save hours */}
+              <button
+                onClick={async () => {
+                  setSavingDaySettings(true)
+                  try { await saveBusinessHours(hoursForm) } finally { setSavingDaySettings(false) }
+                  setDaySettingsModal(null)
+                }}
+                disabled={savingDaySettings}
+                className="w-full py-3 rounded-xl font-bold text-sm transition-colors"
+                style={{ background: 'var(--color-primary)', color: '#fff', opacity: savingDaySettings ? 0.7 : 1 }}
+              >
+                {savingDaySettings ? 'שומר…' : 'שמור שינויים'}
+              </button>
+            </div>
+          </Modal>
+        )
+      })()}
     </div>
   )
 }
@@ -3609,108 +3712,6 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
       </Modal>
     )}
 
-    {/* ── Day Settings Modal ── */}
-    {daySettingsModal && (() => {
-      const dow = daySettingsModal.date.getDay()
-      const hourEntry = hoursForm.find(h => h.day_of_week === dow) || { day_of_week: dow, is_closed: false, open_time: '09:00', close_time: '19:00' }
-      const dayBreaks = recurringBreaks.filter(b => b.day_of_week === dow)
-      return (
-        <Modal open onClose={() => setDaySettingsModal(null)}
-          title={`⚙️ ${format(daySettingsModal.date, 'EEEE d MMM', { locale: he })}`}>
-          <div className="space-y-5">
-
-            {/* Business hours */}
-            <div>
-              <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>שעות פעילות</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!hourEntry.is_closed}
-                    onChange={e => updateHour(dow, 'is_closed', !e.target.checked)}
-                    className="accent-[var(--color-primary)] w-4 h-4"
-                  />
-                  <span style={{ color: 'var(--color-text)' }}>פתוח</span>
-                </label>
-                {!hourEntry.is_closed && (
-                  <>
-                    <input type="time" className="input py-1 text-sm w-24" value={hourEntry.open_time || '09:00'} onChange={e => updateHour(dow, 'open_time', e.target.value)} />
-                    <span style={{ color: 'var(--color-muted)' }}>—</span>
-                    <input type="time" className="input py-1 text-sm w-24" value={hourEntry.close_time || '19:00'} onChange={e => updateHour(dow, 'close_time', e.target.value)} />
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Recurring breaks */}
-            <div>
-              <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>הפסקות קבועות</p>
-              {dayBreaks.length === 0 && (
-                <p className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>אין הפסקות מוגדרות</p>
-              )}
-              <div className="space-y-2 mb-3">
-                {dayBreaks.map(b => (
-                  <div key={b.id} className="flex items-center justify-between rounded-xl px-3 py-2"
-                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                    <div className="text-sm">
-                      <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{b.label || 'הפסקה'}</span>
-                      <span className="mr-2 text-xs" style={{ color: 'var(--color-muted)' }}>{b.start_time?.slice(0,5)} — {b.end_time?.slice(0,5)}</span>
-                    </div>
-                    <button
-                      onClick={async () => { try { await deleteRecurringBreak(b.id) } catch {} }}
-                      className="text-xs px-2 py-1 rounded-lg transition-colors"
-                      style={{ color: '#ef4444', background: '#fee2e2' }}
-                    >מחק</button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add break form */}
-              <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>הוסף הפסקה</p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <input
-                    type="text"
-                    placeholder="תיאור"
-                    className="input py-1 text-sm flex-1 min-w-0"
-                    style={{ minWidth: 80 }}
-                    value={newBreakForm.label}
-                    onChange={e => setNewBreakForm(f => ({ ...f, label: e.target.value }))}
-                  />
-                  <input type="time" className="input py-1 text-sm w-24" value={newBreakForm.start_time} onChange={e => setNewBreakForm(f => ({ ...f, start_time: e.target.value }))} />
-                  <span style={{ color: 'var(--color-muted)' }}>—</span>
-                  <input type="time" className="input py-1 text-sm w-24" value={newBreakForm.end_time} onChange={e => setNewBreakForm(f => ({ ...f, end_time: e.target.value }))} />
-                </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      const { error } = await supabase.from('recurring_breaks').insert({ day_of_week: dow, start_time: newBreakForm.start_time, end_time: newBreakForm.end_time, label: newBreakForm.label || 'הפסקה', is_active: true })
-                      if (!error) { await refetchBreaks(); setNewBreakForm(f => ({ ...f, label: 'הפסקה', start_time: '13:00', end_time: '14:00' })) }
-                    } catch {}
-                  }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                  style={{ background: 'var(--color-primary)', color: '#fff' }}
-                >+ הוסף</button>
-              </div>
-            </div>
-
-            {/* Save hours */}
-            <button
-              onClick={async () => {
-                setSavingDaySettings(true)
-                try { await saveBusinessHours(hoursForm) } finally { setSavingDaySettings(false) }
-                setDaySettingsModal(null)
-              }}
-              disabled={savingDaySettings}
-              className="w-full py-3 rounded-xl font-bold text-sm transition-colors"
-              style={{ background: 'var(--color-primary)', color: '#fff', opacity: savingDaySettings ? 0.7 : 1 }}
-            >
-              {savingDaySettings ? 'שומר…' : 'שמור שינויים'}
-            </button>
-          </div>
-        </Modal>
-      )
-    })()}
     </>
   )
 }
