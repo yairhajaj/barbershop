@@ -131,6 +131,11 @@ export function Appointments() {
   // WhatsApp prompt after move
   const [whatsappAfterMove, setWhatsappAfterMove] = useState(null)
 
+  // Day settings modal (click on date in week/day header)
+  const [daySettingsModal, setDaySettingsModal] = useState(null) // { date: Date }
+  const [newBreakForm, setNewBreakForm] = useState({ start_time: '13:00', end_time: '14:00', label: 'הפסקה', staff_id: '' })
+  const [savingDaySettings, setSavingDaySettings] = useState(false)
+
   // Waitlist prefill — id of waitlist entry to mark booked after manual scheduling
   const [waitlistPrefillId, setWaitlistPrefillId] = useState(null)
 
@@ -167,7 +172,7 @@ export function Appointments() {
   const toast = useToast()
   const { currentBranch } = useBranch()
   const { debts: apptDebts, totalPending: apptDebtTotal, createDebt } = useCustomerDebts({ customerId: selectedAppt?.customer_id })
-  const { breaks: recurringBreaks } = useRecurringBreaks()
+  const { breaks: recurringBreaks, deleteBreak: deleteRecurringBreak, refetch: refetchBreaks } = useRecurringBreaks()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { services } = useServices({ activeOnly: false })
   const { products } = useProducts({ activeOnly: true })
@@ -230,6 +235,17 @@ export function Appointments() {
     setSavingHours(true)
     try { await saveBusinessHours(hoursForm) } finally { setSavingHours(false) }
   }
+
+  // Lock page scroll — calendar is full-height, only inner grid scrolls
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+      document.documentElement.style.overflow = ''
+    }
+  }, [])
 
   // ── ?book=1 query param → open book modal directly ───────────────────────────
   useEffect(() => {
@@ -990,7 +1006,7 @@ export function Appointments() {
 
   // Open book modal pre-filled from a slot click in DayView
   function handleSlotClick(staffId, minuteOffset, date) {
-    const h = START_HOUR + Math.floor(minuteOffset / 60)
+    const h = calStartHour + Math.floor(minuteOffset / 60)
     const m = minuteOffset % 60
     const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
     const dateStr = format(date, 'yyyy-MM-dd')
@@ -1177,73 +1193,114 @@ export function Appointments() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div>
-      {/* ── Top bar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>יומן תורים</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 56px)', overflow: 'hidden' }}>
+      {/* ── Compact toolbar — single row ── */}
+      <div className="flex items-center gap-1.5 px-1 pb-2 flex-shrink-0" style={{ minHeight: 48 }}>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Book for customer — primary action */}
-          <button
-            onClick={() => setBookOpen(true)}
-            className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-semibold"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>
-            </svg>
-            קבע תור ללקוח
-          </button>
+        {/* Navigation */}
+        <button
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+          title="הקודם"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
 
-          <button
-            onClick={() => setAddEventOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg border transition-colors"
-            style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-          >
-            🚫 חסימת שעות
-          </button>
+        <button
+          onClick={() => setCurrentDate(new Date())}
+          className="h-9 px-3 rounded-xl text-xs font-bold flex-shrink-0 transition-colors"
+          style={{ background: 'var(--color-gold)', color: '#fff' }}
+        >
+          היום
+        </button>
 
-          <button
-            onClick={() => setSettingsOpen(o => !o)}
-            className="flex items-center gap-1.5 px-3 py-2.5 text-sm rounded-lg border font-medium transition-colors"
-            style={settingsOpen
-              ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: '#fff' }
-              : { background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }
-            }
-          >
-            ⚙ הגדרות
-          </button>
+        <button
+          onClick={() => navigate(1)}
+          className="w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+          title="הבא"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
 
-          {/* View switcher */}
-          <div
-            className="flex gap-1 p-1 rounded-2xl"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-          >
-            {VIEWS.map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-                style={view === v
-                  ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 2px 8px var(--color-gold-ring)' }
-                  : { background: 'transparent', color: 'var(--color-muted)' }
-                }
-                onMouseEnter={e => { if (view !== v) e.currentTarget.style.color = 'var(--color-text)' }}
-                onMouseLeave={e => { if (view !== v) e.currentTarget.style.color = 'var(--color-muted)' }}
-              >
-                <span>{VIEW_ICONS[v]}</span>
-                <span className="hidden sm:inline">{VIEW_LABELS[v]}</span>
-              </button>
-            ))}
-          </div>
+        {/* Date label */}
+        <button
+          className="flex-1 min-w-0 text-center text-sm font-bold truncate px-1"
+          style={{ color: 'var(--color-text)', background: 'none', border: 'none', cursor: view === 'day' ? 'pointer' : 'default' }}
+          onClick={() => { if (view === 'day') setDaySettingsModal({ date: currentDate }) }}
+          title={view === 'day' ? 'הגדרות יום' : undefined}
+        >
+          {view === 'day'
+            ? format(currentDate, 'EEE, d MMM', { locale: he })
+            : `${format(startDate, 'd MMM', { locale: he })} — ${format(endDate, 'd MMM', { locale: he })}`
+          }
+        </button>
 
-          <select
-            className="input w-auto py-2.5 text-sm font-medium"
-            value={filterStaff}
-            onChange={e => setFilterStaff(e.target.value)}
-          >
-            <option value="">כל הספרים</option>
-            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+        {/* Staff filter */}
+        <select
+          className="h-9 rounded-xl border text-xs font-medium px-2 flex-shrink-0 max-w-[90px]"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)', outline: 'none' }}
+          value={filterStaff}
+          onChange={e => setFilterStaff(e.target.value)}
+        >
+          <option value="">כולם</option>
+          {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+
+        {/* + Book */}
+        <button
+          onClick={() => setBookOpen(true)}
+          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all btn-primary"
+          title="קבע תור"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>
+          </svg>
+        </button>
+
+        {/* Block hours */}
+        <button
+          onClick={() => setAddEventOpen(true)}
+          className="w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors text-base"
+          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+          title="חסימת שעות"
+        >
+          🚫
+        </button>
+
+        {/* Settings */}
+        <button
+          onClick={() => setSettingsOpen(o => !o)}
+          className="w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors text-base"
+          style={settingsOpen
+            ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: '#fff' }
+            : { background: 'var(--color-card)', borderColor: 'var(--color-border)' }
+          }
+          title="הגדרות יומן"
+        >
+          ⚙️
+        </button>
+
+        {/* View switcher */}
+        <div
+          className="flex gap-0.5 p-0.5 rounded-xl flex-shrink-0"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+        >
+          {VIEWS.map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={view === v
+                ? { background: 'var(--color-primary)', color: '#fff', boxShadow: '0 1px 4px var(--color-gold-ring)' }
+                : { background: 'transparent', color: 'var(--color-muted)' }
+              }
+            >
+              <span>{VIEW_ICONS[v]}</span>
+              <span className="hidden sm:inline">{VIEW_LABELS[v]}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1255,9 +1312,9 @@ export function Appointments() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
+            className="overflow-hidden flex-shrink-0"
           >
-            <div className="card p-5 mb-4 space-y-5">
+            <div className="card p-4 mb-2 space-y-4 overflow-y-auto" style={{ maxHeight: '40vh' }}>
               <h2 className="text-base font-bold" style={{ color: 'var(--color-text)' }}>הגדרות יומן</h2>
 
               {/* Slot size */}
@@ -1420,39 +1477,6 @@ export function Appointments() {
         )}
       </AnimatePresence>
 
-      {/* ── Navigation ── */}
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-colors shadow-sm"
-          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          הקודם
-        </button>
-        <button
-          onClick={() => setCurrentDate(new Date())}
-          className="px-4 py-2.5 rounded-xl text-sm font-bold transition-colors"
-          style={{ background: 'var(--color-gold)', color: '#fff' }}
-        >
-          היום
-        </button>
-        <button
-          onClick={() => navigate(1)}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border font-semibold text-sm transition-colors shadow-sm"
-          style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-        >
-          הבא
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <span className="text-base font-bold" style={{ color: 'var(--color-text)' }}>
-          {view === 'day'
-            ? format(currentDate, 'EEEE, d בMMMM', { locale: he })
-            : `${format(startDate, 'd MMM', { locale: he })} — ${format(endDate, 'd MMM yyyy', { locale: he })}`
-          }
-        </span>
-      </div>
-
       {/* ── Day-at-a-glance stats ── */}
       {view === 'day' && !loading && (() => {
         const active    = appointments.filter(a => a.status !== 'cancelled')
@@ -1462,16 +1486,16 @@ export function Appointments() {
           .filter(a => a.status === 'completed')
           .reduce((s, a) => s + (Number(a.services?.price) || 0), 0)
         return (
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-4 gap-1.5 mb-2 flex-shrink-0">
             {[
-              { label: 'תורים היום', value: active.length,                      color: 'var(--color-gold)' },
-              { label: 'הושלמו',     value: completed,                          color: '#22c55e' },
-              { label: 'ממתינים',    value: pending,                            color: '#f97316' },
-              { label: 'הכנסה',      value: revenue > 0 ? `₪${revenue}` : '—', color: 'var(--color-primary)' },
+              { label: 'תורים', value: active.length,                      color: 'var(--color-gold)' },
+              { label: 'הושלמו', value: completed,                         color: '#22c55e' },
+              { label: 'ממתינים', value: pending,                          color: '#f97316' },
+              { label: 'הכנסה',  value: revenue > 0 ? `₪${revenue}` : '—', color: 'var(--color-primary)' },
             ].map(stat => (
-              <div key={stat.label} className="card p-3 text-center" style={{ border: '1px solid var(--color-border)' }}>
-                <div className="text-xl font-black" style={{ color: stat.color }}>{stat.value}</div>
-                <div className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--color-muted)' }}>{stat.label}</div>
+              <div key={stat.label} className="card py-2 px-1 text-center" style={{ border: '1px solid var(--color-border)' }}>
+                <div className="text-lg font-black leading-tight" style={{ color: stat.color }}>{stat.value}</div>
+                <div className="text-[9px] font-medium mt-0.5" style={{ color: 'var(--color-muted)' }}>{stat.label}</div>
               </div>
             ))}
           </div>
@@ -1483,7 +1507,7 @@ export function Appointments() {
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-5 mb-4"
+          className="rounded-2xl p-4 mb-2 flex-shrink-0"
           style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
         >
           <div className="flex items-center justify-between mb-4">
@@ -1608,10 +1632,13 @@ export function Appointments() {
       )}
 
       {/* ── Calendar Content ── */}
+      <div className="flex-1 overflow-hidden">
       {loading ? (
         <AdminSkeleton />
       ) : view === 'list' ? (
-        <ListViewAppointments appointments={appointments} onSelect={setSelectedAppt} staff={staff} />
+        <div className="overflow-y-auto h-full">
+          <ListViewAppointments appointments={appointments} onSelect={setSelectedAppt} staff={staff} />
+        </div>
       ) : view === 'day' ? (
         <DayView
           date={currentDate}
@@ -1640,8 +1667,11 @@ export function Appointments() {
           waitlistByDate={waitlistByDate}
           onScheduleWaitlist={handleScheduleFromWaitlist}
           onReschedule={openReschedule}
+          onDayClick={day => setDaySettingsModal({ date: day })}
+          onCellClick={handleSlotClick}
         />
       )}
+      </div>
 
       {/* ── Appointment detail modal ── */}
       <Modal open={!!selectedAppt} onClose={() => setSelectedAppt(null)} title="פרטי תור">
@@ -3276,7 +3306,7 @@ function ListViewAppointments({ appointments, onSelect, staff = [] }) {
 }
 
 // ─── Week View ─────────────────────────────────────────────────────────────────
-function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist }) {
+function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, recurringBreaks = [], blockedTimes = [], startHour = 7, endHour = 20, waitlistByDate = {}, onScheduleWaitlist, onDayClick, onCellClick }) {
   const SLOT_PX   = 24                                   // px per 15-minute slot
   const HOUR_PX   = SLOT_PX * 4                         // 96px per hour
   const TOTAL_H   = (endHour - startHour) * HOUR_PX     // total grid height
@@ -3330,13 +3360,13 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
 
   return (
     <>
-    <div className="card overflow-hidden select-none" style={{ border: '1px solid var(--color-border)' }}>
+    <div className="card overflow-hidden select-none flex flex-col" style={{ border: '1px solid var(--color-border)', height: '100%' }}>
 
-      {/* ── Column headers (sticky below AdminLayout top bar h-14=56px) ── */}
-      <div className="flex border-b sticky top-[56px] z-10"
+      {/* ── Column headers ── */}
+      <div className="flex border-b flex-shrink-0"
         style={{ borderColor: 'var(--color-border)', background: 'var(--color-card)' }}>
         {/* time gutter */}
-        <div className="flex-shrink-0 border-r" style={{ width: 52, borderColor: 'var(--color-border)' }} />
+        <div className="flex-shrink-0 border-r" style={{ width: 44, borderColor: 'var(--color-border)' }} />
         {days.map(day => {
           const isNow     = isSameDay(day, new Date())
           const count     = activeAppts.filter(a => isSameDay(new Date(a.start_at), day)).length
@@ -3345,13 +3375,16 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
           const wlCount   = wlEntries.length
           return (
             <div key={day.toISOString()}
-              className="flex-1 py-2 px-1 text-center border-r last:border-0 min-w-0"
-              style={{ background: isNow ? 'var(--color-gold-tint)' : undefined, borderColor: 'var(--color-border)' }}>
+              className="flex-1 py-1.5 px-1 text-center border-r last:border-0 min-w-0 cursor-pointer transition-colors"
+              style={{ background: isNow ? 'var(--color-gold-tint)' : undefined, borderColor: 'var(--color-border)' }}
+              onClick={() => onDayClick && onDayClick(day)}
+              title="הגדרות יום"
+            >
               <div className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-muted)' }}>
                 {format(day, 'EEE', { locale: he })}
               </div>
-              <div className="text-lg font-black leading-tight"
+              <div className="text-base font-black leading-tight"
                 style={{ color: isNow ? 'var(--color-primary)' : 'var(--color-text)' }}>
                 {format(day, 'd')}
               </div>
@@ -3364,7 +3397,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                 )}
                 {wlCount > 0 && (
                   <button type="button"
-                    onClick={() => setWaitlistModal({ date: day, entries: wlEntries })}
+                    onClick={e => { e.stopPropagation(); setWaitlistModal({ date: day, entries: wlEntries }) }}
                     className="text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none hover:opacity-75"
                     style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}>
                     📋{wlCount}
@@ -3377,11 +3410,11 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="overflow-auto" style={{ maxHeight: '75vh' }}>
+      <div className="overflow-auto flex-1">
         <div className="flex" style={{ height: TOTAL_H }}>
 
           {/* Time-label gutter */}
-          <div className="flex-shrink-0 relative border-r" style={{ width: 52, height: TOTAL_H, borderColor: 'var(--color-border)' }}>
+          <div className="flex-shrink-0 relative border-r" style={{ width: 44, height: TOTAL_H, borderColor: 'var(--color-border)' }}>
             {slots.filter(s => s.isHour || s.isHalf).map(s => (
               <div key={s.i}
                 className="absolute right-0 left-0 flex items-center justify-end pr-1.5"
@@ -3406,12 +3439,21 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
 
             return (
               <div key={day.toISOString()}
-                className="flex-1 relative border-r last:border-0 min-w-0"
+                className="flex-1 relative border-r last:border-0 min-w-0 cursor-pointer"
                 style={{
                   height: TOTAL_H,
                   background: isNow ? 'var(--color-gold-tint)' : 'transparent',
                   borderColor: 'var(--color-border)',
-                }}>
+                }}
+                onClick={e => {
+                  if (!onCellClick) return
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const relY = e.clientY - rect.top
+                  const totalMins = Math.round((relY / SLOT_PX) * 15 / 15) * 15
+                  const clampedMins = Math.max(0, Math.min(totalMins, (endHour - startHour) * 60 - 15))
+                  onCellClick(null, clampedMins, day)
+                }}
+              >
 
                 {/* 15-minute slot lines */}
                 {slots.map(s => (
@@ -3464,6 +3506,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                       key={appt.id}
                       className="absolute"
                       style={{ top, height: height - 2, left: 2, right: 2, zIndex: 10 }}
+                      onClick={e => e.stopPropagation()}
                     >
                       <button
                         type="button"
@@ -3565,6 +3608,109 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
         </div>
       </Modal>
     )}
+
+    {/* ── Day Settings Modal ── */}
+    {daySettingsModal && (() => {
+      const dow = daySettingsModal.date.getDay()
+      const hourEntry = hoursForm.find(h => h.day_of_week === dow) || { day_of_week: dow, is_closed: false, open_time: '09:00', close_time: '19:00' }
+      const dayBreaks = recurringBreaks.filter(b => b.day_of_week === dow)
+      return (
+        <Modal open onClose={() => setDaySettingsModal(null)}
+          title={`⚙️ ${format(daySettingsModal.date, 'EEEE d MMM', { locale: he })}`}>
+          <div className="space-y-5">
+
+            {/* Business hours */}
+            <div>
+              <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>שעות פעילות</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!hourEntry.is_closed}
+                    onChange={e => updateHour(dow, 'is_closed', !e.target.checked)}
+                    className="accent-[var(--color-primary)] w-4 h-4"
+                  />
+                  <span style={{ color: 'var(--color-text)' }}>פתוח</span>
+                </label>
+                {!hourEntry.is_closed && (
+                  <>
+                    <input type="time" className="input py-1 text-sm w-24" value={hourEntry.open_time || '09:00'} onChange={e => updateHour(dow, 'open_time', e.target.value)} />
+                    <span style={{ color: 'var(--color-muted)' }}>—</span>
+                    <input type="time" className="input py-1 text-sm w-24" value={hourEntry.close_time || '19:00'} onChange={e => updateHour(dow, 'close_time', e.target.value)} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Recurring breaks */}
+            <div>
+              <p className="text-xs font-bold mb-2 tracking-wide uppercase" style={{ color: 'var(--color-muted)' }}>הפסקות קבועות</p>
+              {dayBreaks.length === 0 && (
+                <p className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>אין הפסקות מוגדרות</p>
+              )}
+              <div className="space-y-2 mb-3">
+                {dayBreaks.map(b => (
+                  <div key={b.id} className="flex items-center justify-between rounded-xl px-3 py-2"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <div className="text-sm">
+                      <span className="font-semibold" style={{ color: 'var(--color-text)' }}>{b.label || 'הפסקה'}</span>
+                      <span className="mr-2 text-xs" style={{ color: 'var(--color-muted)' }}>{b.start_time?.slice(0,5)} — {b.end_time?.slice(0,5)}</span>
+                    </div>
+                    <button
+                      onClick={async () => { try { await deleteRecurringBreak(b.id) } catch {} }}
+                      className="text-xs px-2 py-1 rounded-lg transition-colors"
+                      style={{ color: '#ef4444', background: '#fee2e2' }}
+                    >מחק</button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add break form */}
+              <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <p className="text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>הוסף הפסקה</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    placeholder="תיאור"
+                    className="input py-1 text-sm flex-1 min-w-0"
+                    style={{ minWidth: 80 }}
+                    value={newBreakForm.label}
+                    onChange={e => setNewBreakForm(f => ({ ...f, label: e.target.value }))}
+                  />
+                  <input type="time" className="input py-1 text-sm w-24" value={newBreakForm.start_time} onChange={e => setNewBreakForm(f => ({ ...f, start_time: e.target.value }))} />
+                  <span style={{ color: 'var(--color-muted)' }}>—</span>
+                  <input type="time" className="input py-1 text-sm w-24" value={newBreakForm.end_time} onChange={e => setNewBreakForm(f => ({ ...f, end_time: e.target.value }))} />
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase.from('recurring_breaks').insert({ day_of_week: dow, start_time: newBreakForm.start_time, end_time: newBreakForm.end_time, label: newBreakForm.label || 'הפסקה', is_active: true })
+                      if (!error) { await refetchBreaks(); setNewBreakForm(f => ({ ...f, label: 'הפסקה', start_time: '13:00', end_time: '14:00' })) }
+                    } catch {}
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{ background: 'var(--color-primary)', color: '#fff' }}
+                >+ הוסף</button>
+              </div>
+            </div>
+
+            {/* Save hours */}
+            <button
+              onClick={async () => {
+                setSavingDaySettings(true)
+                try { await saveBusinessHours(hoursForm) } finally { setSavingDaySettings(false) }
+                setDaySettingsModal(null)
+              }}
+              disabled={savingDaySettings}
+              className="w-full py-3 rounded-xl font-bold text-sm transition-colors"
+              style={{ background: 'var(--color-primary)', color: '#fff', opacity: savingDaySettings ? 0.7 : 1 }}
+            >
+              {savingDaySettings ? 'שומר…' : 'שמור שינויים'}
+            </button>
+          </div>
+        </Modal>
+      )
+    })()}
     </>
   )
 }
@@ -3673,11 +3819,11 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden flex flex-col" style={{ height: '100%' }}>
         {/* Header */}
         <div
-          className="grid border-b sticky top-0 z-10"
-          style={{ gridTemplateColumns: `52px repeat(${staffColumns.length}, 1fr)`, background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+          className="grid border-b flex-shrink-0"
+          style={{ gridTemplateColumns: `44px repeat(${staffColumns.length}, 1fr)`, background: 'var(--color-card)', borderColor: 'var(--color-border)' }}
         >
           <div className="border-r" style={{ borderColor: 'var(--color-border)' }} />
           {staffColumns.map(s => {
@@ -3685,7 +3831,7 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
             return (
               <div
                 key={s.id}
-                className="p-3 text-center font-bold border-r last:border-0"
+                className="p-2 text-center font-bold border-r last:border-0"
                 style={{ fontSize: '13px', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
               >
                 {s.name}
@@ -3703,17 +3849,17 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
         </div>
 
         {/* Scrollable grid */}
-        <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+        <div ref={scrollRef} className="overflow-auto flex-1">
           <div
             className="grid"
             style={{
-              gridTemplateColumns: `52px repeat(${staffColumns.length}, 1fr)`,
+              gridTemplateColumns: `44px repeat(${staffColumns.length}, 1fr)`,
               height: TOTAL_HEIGHT,
               position: 'relative',
             }}
           >
             {/* Time axis */}
-            <div className="relative border-r" style={{ height: TOTAL_HEIGHT, borderColor: 'var(--color-border)' }}>
+            <div className="relative border-r" style={{ height: TOTAL_HEIGHT, borderColor: 'var(--color-border)', width: 44 }}>
               {timeSlots.map(minuteOff => {
                 const isHour   = minuteOff % 60 === 0
                 const isHalf   = !isHour && minuteOff % 30 === 0
