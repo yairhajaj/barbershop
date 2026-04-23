@@ -402,12 +402,81 @@ const MODE_OPTIONS = [
   { value: 'auto',     label: 'אוטומטי', icon: '⚡', desc: 'שולח הודעות ללקוחות אוטומטית ללא אישור' },
 ]
 
+function GapCloserHelp({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+        transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+        className="w-full max-w-md rounded-3xl p-6 overflow-y-auto"
+        style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', maxHeight: '85vh' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🧩</span>
+            <h2 className="font-black text-base" style={{ color: 'var(--color-text)' }}>Gap Closer — מה זה בדיוק?</h2>
+          </div>
+          <button onClick={onClose} className="text-xl leading-none" style={{ color: 'var(--color-muted)' }}>✕</button>
+        </div>
+
+        <div className="space-y-4 text-sm" style={{ color: 'var(--color-text)' }}>
+          <p style={{ color: 'var(--color-muted)' }}>
+            כשלקוח מבטל תור, נוצר "חור" פנוי ביומן — שעה שנשארת ריקה ולא מניבה. Gap Closer מנסה לסגור את החור אוטומטית.
+          </p>
+
+          <div>
+            <p className="font-bold mb-2">איך זה עובד?</p>
+            <div className="space-y-2">
+              {[
+                { n: '1', t: 'מזהה את החור', d: 'מיד כשתור מתבטל, המערכת מחשבת את גודל החור שנוצר.' },
+                { n: '2', t: 'מחפש מועמדים', d: 'מחפש לקוחות עם תורים מאוחרים יותר באותו יום ואותו ספר, שהיה אפשר להקדים אותם לחור.' },
+                { n: '3', t: 'שולח הצעה', d: 'שולח ללקוח הודעה: "יש אפשרות להקדים את התור שלך". הלקוח מאשר או דוחה.' },
+                { n: '4', t: 'סוגר את החור', d: 'אם הלקוח מאשר — התור מוקדם, החור סגור, ואתה מרוויח זמן עבודה.' },
+              ].map(s => (
+                <div key={s.n} className="flex gap-3 p-3 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+                  <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-black mt-0.5"
+                    style={{ background: 'var(--color-gold)', color: '#fff' }}>{s.n}</div>
+                  <div>
+                    <p className="font-bold text-[13px]">{s.t}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{s.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-4" style={{ background: 'var(--color-gold-tint)', border: '1px solid var(--color-gold)' }}>
+            <p className="font-bold text-[13px] mb-2" style={{ color: 'var(--color-gold)' }}>📌 דוגמה</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text)' }}>
+              שרה ביטלה את התור שלה ב-<strong>15:00</strong>. נוצר חור של שעה ביומן.
+              <br /><br />
+              דוד יש לו תור ב-<strong>17:00</strong> — אבל אפשר להקדים אותו ל-15:00 ולחסוך לו שעתיים המתנה.
+              <br /><br />
+              Gap Closer שולח לדוד הודעת Push:<br />
+              <em className="font-medium">"📅 יש אפשרות להקדים את התור שלך ל-15:00 במקום 17:00"</em>
+              <br /><br />
+              דוד לחץ על ההודעה, ראה את הפרטים ואישר — התור הוקדם, החור סגור ✅
+            </p>
+          </div>
+
+          <div className="text-xs pt-1" style={{ color: 'var(--color-muted)' }}>
+            <strong>מצב ידני:</strong> אתה רואה את ההצעה ושולח בלחיצה. <strong>מצב אוטומטי:</strong> נשלח לבד ללא אישורך.
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 function GapCloserCard({ settings, saveSettings }) {
   const mode = settings?.gap_closer_mode || 'off'
   const threshold = settings?.gap_closer_threshold_minutes || 30
   const advanceHours = settings?.gap_closer_advance_hours ?? 2
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   async function updateField(field, value) {
     setSaving(true)
@@ -424,7 +493,14 @@ function GapCloserCard({ settings, saveSettings }) {
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-lg flex-shrink-0">🧩</span>
           <div className="min-w-0">
-            <h2 className="font-black text-sm" style={{ color: 'var(--color-text)' }}>Gap Closer</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-black text-sm" style={{ color: 'var(--color-text)' }}>Gap Closer</h2>
+              <button onClick={() => setShowHelp(true)}
+                className="w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--color-border)', color: 'var(--color-muted)' }}>
+                ?
+              </button>
+            </div>
             <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
               מצב: <strong style={{ color: mode !== 'off' ? 'var(--color-gold)' : 'var(--color-muted)' }}>
                 {currentMode.label}
@@ -488,6 +564,10 @@ function GapCloserCard({ settings, saveSettings }) {
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showHelp && <GapCloserHelp onClose={() => setShowHelp(false)} />}
       </AnimatePresence>
     </section>
   )
