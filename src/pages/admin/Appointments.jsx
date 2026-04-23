@@ -1866,10 +1866,11 @@ export function Appointments() {
 
               // Already paid — show badge + print button
               if (isPaid) {
+                const payMethodLabel = selectedAppt.cash_paid ? ' · מזומן 💵' : ' · ביט/אשראי 💳'
                 return (
                   <div className="flex items-center gap-2">
                     <div className="flex-1 text-center text-sm py-2 rounded-xl font-bold" style={{ background: 'var(--color-success-tint)', color: '#16a34a', border: '1.5px solid var(--color-success-ring)' }}>
-                      ✅ שולם
+                      ✅ שולם{payMethodLabel}
                     </div>
                     <button
                       onClick={() => handlePrintExistingInvoice(selectedAppt)}
@@ -3640,9 +3641,11 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   const showService = height >= SLOT_PX * 2     // ≥ 30 min
                   const showDur     = height >= SLOT_PX * 3     // ≥ 45 min
                   const isGroupAppt = appt.notes?.includes('קבוצה של')
+                  const isWkDone    = appt.status === 'completed' && !appt.no_show
                   const wkStatusBorder = appt.no_show ? undefined
                     : appt.status === 'pending'   ? 'var(--color-warning-solid)'
                     : appt.status === 'confirmed' ? 'var(--color-success-solid)'
+                    : isWkDone                    ? 'rgba(255,255,255,0.4)'
                     : undefined
 
                   return (
@@ -3669,6 +3672,7 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                           borderRight:  wkStatusBorder ? `3px solid ${wkStatusBorder}` : undefined,
                           border:       'none',
                           cursor:       'pointer',
+                          opacity:      isWkDone ? 0.72 : 1,
                         }}
                       >
                         <div className="truncate leading-tight">
@@ -3677,7 +3681,12 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                         {showService && (
                           <div className="truncate opacity-80" style={{ fontSize: 9 }}>{appt.services?.name}</div>
                         )}
-                        {showDur && (
+                        {isWkDone && height >= SLOT_PX * 2 && (
+                          <div className="opacity-90" style={{ fontSize: 9 }}>
+                            {appt.cash_paid ? '₪ מזומן' : appt.payment_status === 'paid' ? '✓ שולם' : '✓ הושלם'}
+                          </div>
+                        )}
+                        {!isWkDone && showDur && (
                           <div className="opacity-60" style={{ fontSize: 9 }}>{dur}ד׳</div>
                         )}
                       </button>
@@ -4050,10 +4059,12 @@ function BreakBlock({ top, height, label }) {
 function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: appt.id })
 
-  const isNoShow = appt.no_show
+  const isNoShow    = appt.no_show
+  const isCompleted = appt.status === 'completed' && !isNoShow
   const statusBorderColor = isNoShow ? undefined
     : appt.status === 'pending'   ? 'var(--color-warning-solid)'
     : appt.status === 'confirmed' ? 'var(--color-success-solid)'
+    : isCompleted                 ? 'rgba(255,255,255,0.4)'
     : undefined
 
   const style = {
@@ -4063,7 +4074,7 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
     left: 3,
     right: 3,
     backgroundColor: color,
-    opacity: isDragging ? 0.55 : 1,
+    opacity: isDragging ? 0.55 : isCompleted ? 0.72 : 1,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     zIndex: isDragging ? 50 : 2,
     borderRadius: 8,
@@ -4108,6 +4119,11 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
         )}
         {isNoShow && height >= 28 && (
           <div className="text-white/90 text-[10px] font-bold leading-tight">✕ לא הגיע</div>
+        )}
+        {isCompleted && height >= 28 && (
+          <div className="text-white/90 text-[10px] font-bold leading-tight">
+            {appt.cash_paid ? '₪ מזומן' : appt.payment_status === 'paid' ? '✓ שולם' : '✓ הושלם'}
+          </div>
         )}
       </button>
     </div>
