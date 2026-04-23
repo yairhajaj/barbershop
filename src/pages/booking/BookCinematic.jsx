@@ -16,6 +16,12 @@ import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 import { generateSlots, formatTime } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
+import { joinWaitlist } from '../../hooks/useWaitlist'
+
+const TIME_OPTIONS = Array.from({ length: 29 }, (_, i) => {
+  const mins = 7 * 60 + i * 30
+  return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`
+})
 
 const DAYS_AHEAD = 30
 
@@ -54,6 +60,14 @@ export default function BookCinematic() {
   const [blockedTimes, setBlockedTimes] = useState([])
   const [slots,        setSlots]        = useState([])
   const [slotsLoading, setSlotsLoading] = useState(false)
+
+  // Waitlist
+  const [showWaitlist,  setShowWaitlist]  = useState(false)
+  const [wlTimeFrom,    setWlTimeFrom]    = useState('09:00')
+  const [wlTimeTo,      setWlTimeTo]      = useState('13:00')
+  const [wlPickerMode,  setWlPickerMode]  = useState('from')
+  const [wlSaving,      setWlSaving]      = useState(false)
+  const [wlSuccess,     setWlSuccess]     = useState(null)
 
   const { appointments } = useAppointments({
     staffId: selStaff?.id || undefined,
@@ -150,6 +164,28 @@ export default function BookCinematic() {
 
   function goBack() { setDir(-1); setStep(s => s - 1) }
 
+  async function handleJoinWaitlist() {
+    if (!user) return
+    setWlSaving(true)
+    try {
+      await joinWaitlist({
+        userId:    user.id,
+        serviceId: selService?.id  ?? null,
+        staffId:   selStaff?.id    ?? null,
+        branchId:  null,
+        date:      selDate.toISOString().slice(0, 10),
+        timeFrom:  wlTimeFrom,
+        timeTo:    wlTimeTo,
+      })
+      setShowWaitlist(false)
+      setWlSuccess({ timeFrom: wlTimeFrom, timeTo: wlTimeTo })
+    } catch (e) {
+      alert(e.message ?? 'שגיאה בהצטרפות')
+    } finally {
+      setWlSaving(false)
+    }
+  }
+
   function goConfirm() {
     sessionStorage.setItem('booking_state', JSON.stringify({
       branchId: null, branchName: null,
@@ -230,9 +266,13 @@ export default function BookCinematic() {
               <motion.div key="datetime" custom={dir} variants={pageVariants} initial="enter" animate="center" exit="exit">
                 <StepDateTime
                   dateOptions={dateOptions} selDate={selDate}
-                  onDate={d => { setSelDate(d); setSelSlot(null) }}
+                  onDate={d => { setSelDate(d); setSelSlot(null); setWlSuccess(null) }}
                   slots={slots} slotsLoading={slotsLoading}
                   selSlot={selSlot} onSlot={setSelSlot}
+                  waitlistEnabled={settings.waitlist_enabled}
+                  user={user}
+                  wlSuccess={wlSuccess}
+                  onWaitlist={() => user ? setShowWaitlist(true) : navigate(`/login?redirect=/book/cinematic`)}
                 />
               </motion.div>
             )}
@@ -269,6 +309,88 @@ export default function BookCinematic() {
             >
               לאישור הזמנה ←
             </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Waitlist Modal ── */}
+      <AnimatePresence>
+        {showWaitlist && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setShowWaitlist(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+              dir="rtl"
+              onClick={e => e.stopPropagation()}
+              style={{
+                width: '100%', maxWidth: 480, borderRadius: '24px 24px 0 0',
+                background: 'var(--color-card)', padding: '24px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+              }}
+            >
+              {/* Drag handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border)', margin: '0 auto 20px' }} />
+
+              <h3 style={{ color: 'var(--color-text)', fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📋 רשימת המתנה</h3>
+              <p style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 20 }}>
+                באיזו שעה נוח לך? נעדכן כשיתפנה תור בטווח זה.
+              </p>
+
+              {/* Time range tabs */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                {[{ key: 'from', label: 'משעה', value: wlTimeFrom }, { key: 'to', label: 'עד שעה', value: wlTimeTo }].map(tab => (
+                  <button key={tab.key} onClick={() => setWlPickerMode(tab.key)}
+                    style={{
+                      padding: '10px 0', borderRadius: 12, border: `2px solid ${wlPickerMode === tab.key ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                      background: wlPickerMode === tab.key ? 'var(--color-gold)' : 'var(--color-surface)',
+                      color: wlPickerMode === tab.key ? '#fff' : 'var(--color-text)',
+                      cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                    }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.8 }}>{tab.label}</span>
+                    <span style={{ fontSize: 20, fontWeight: 800 }}>{tab.value}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Time grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 180, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--color-surface)', marginBottom: 20 }}>
+                {TIME_OPTIONS.map(t => {
+                  const isActive  = wlPickerMode === 'from' ? t === wlTimeFrom : t === wlTimeTo
+                  const inRange   = t > wlTimeFrom && t < wlTimeTo
+                  const disabled  = wlPickerMode === 'to' && t <= wlTimeFrom
+                  return (
+                    <button key={t} disabled={disabled}
+                      onClick={() => {
+                        if (wlPickerMode === 'from') {
+                          setWlTimeFrom(t)
+                          if (wlTimeTo <= t) { const next = TIME_OPTIONS[TIME_OPTIONS.indexOf(t) + 1]; if (next) setWlTimeTo(next) }
+                        } else {
+                          setWlTimeTo(t)
+                        }
+                      }}
+                      style={{
+                        padding: '8px 0', borderRadius: 8, border: `1px solid ${isActive ? 'var(--color-gold)' : inRange ? 'rgba(201,169,110,0.3)' : 'transparent'}`,
+                        background: isActive ? 'var(--color-gold)' : inRange ? 'rgba(201,169,110,0.12)' : 'transparent',
+                        color: isActive ? '#fff' : disabled ? 'var(--color-border)' : 'var(--color-text)',
+                        fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1,
+                      }}
+                    >{t}</button>
+                  )
+                })}
+              </div>
+
+              <motion.button whileTap={{ scale: 0.97 }} onClick={handleJoinWaitlist} disabled={wlSaving}
+                style={{
+                  width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
+                  background: 'var(--color-gold)', color: '#fff', fontSize: 15, fontWeight: 800,
+                  cursor: wlSaving ? 'not-allowed' : 'pointer', opacity: wlSaving ? 0.7 : 1,
+                }}>
+                {wlSaving ? 'שומר...' : 'הוסף לרשימת המתנה ←'}
+              </motion.button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -374,7 +496,7 @@ function StepService({ services, selected, onSelect }) {
 }
 
 /* ── Step 2: Date + Time ───────────────────────────────────────────── */
-function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSlot, onSlot }) {
+function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSlot, onSlot, waitlistEnabled, user, onWaitlist, wlSuccess }) {
   const HE_DAY = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
   const HE_MON = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ']
 
@@ -413,10 +535,28 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
               <LoadingDots />
             </motion.div>
           ) : slots.length === 0 ? (
-            <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ color: 'var(--color-muted)', textAlign: 'center', padding: '40px 0', fontSize: 14 }}>
-              אין שעות פנויות בתאריך זה
-            </motion.p>
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>📅</div>
+              <p style={{ color: 'var(--color-text)', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>אין שעות פנויות ביום זה</p>
+              <p style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 20 }}>נסה תאריך אחר</p>
+              {waitlistEnabled && (
+                wlSuccess ? (
+                  <div style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid #22c55e', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#16a34a', fontWeight: 600 }}>
+                    ✓ נרשמת לרשימת המתנה {wlSuccess.timeFrom}–{wlSuccess.timeTo}
+                  </div>
+                ) : (
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={onWaitlist}
+                    style={{
+                      padding: '12px 24px', borderRadius: 14, border: '2px solid var(--color-gold)',
+                      background: 'var(--color-gold-tint, rgba(201,169,110,0.1))',
+                      color: 'var(--color-gold)', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    }}>
+                    📋 {user ? 'הצטרף לרשימת המתנה' : 'התחבר להצטרפות לרשימת המתנה'}
+                  </motion.button>
+                )
+              )}
+            </motion.div>
           ) : (
             <motion.div key={selDate.toISOString()}
               variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04, delayChildren: 0.06 } } }}
