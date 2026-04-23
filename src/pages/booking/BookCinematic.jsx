@@ -318,21 +318,19 @@ export default function BookCinematic() {
         {showWaitlist && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
             onClick={() => setShowWaitlist(false)}
           >
             <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 16 }}
               transition={{ type: 'spring', stiffness: 320, damping: 30 }}
               dir="rtl"
               onClick={e => e.stopPropagation()}
               style={{
-                width: '100%', maxWidth: 480, borderRadius: '24px 24px 0 0',
-                background: 'var(--color-card)', padding: '24px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+                width: '100%', maxWidth: 480, borderRadius: 24,
+                background: 'var(--color-card)', padding: '24px 20px',
               }}
             >
-              {/* Drag handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-border)', margin: '0 auto 20px' }} />
 
               <h3 style={{ color: 'var(--color-text)', fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📋 רשימת המתנה</h3>
               <p style={{ color: 'var(--color-muted)', fontSize: 13, marginBottom: 20 }}>
@@ -581,6 +579,18 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
             </motion.div>
           )}
         </AnimatePresence>
+        {waitlistEnabled && slots.length > 0 && (
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            {wlSuccess ? (
+              <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ נרשמת לרשימת המתנה {wlSuccess.timeFrom}–{wlSuccess.timeTo}</div>
+            ) : (
+              <motion.button whileTap={{ scale: 0.95 }} onClick={onWaitlist}
+                style={{ fontSize: 12, color: 'var(--color-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '4px 8px' }}>
+                📋 {user ? 'הצטרף לרשימת המתנה' : 'התחבר להצטרפות לרשימת המתנה'}
+              </motion.button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
