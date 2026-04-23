@@ -1,63 +1,55 @@
 import sharp from 'sharp'
-import { mkdirSync } from 'fs'
+import { mkdirSync, copyFileSync } from 'fs'
+import { resolve } from 'path'
+
+const SRC = resolve('C:/Users/yairh/Downloads/WhatsApp Image 2026-04-23 at 20.28.31.jpeg')
 
 mkdirSync('public/icons', { recursive: true })
+mkdirSync('icons', { recursive: true })
 
-// SVG that matches the HAJAJ logo style
-const svg = `<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Light marble-like background -->
-  <rect width="1024" height="1024" fill="#f4f2ef"/>
-
-  <!-- Subtle texture overlay -->
-  <rect width="1024" height="1024" fill="url(#grain)" opacity="0.15"/>
-
-  <defs>
-    <filter id="grain">
-      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
-      <feColorMatrix type="saturate" values="0"/>
-    </filter>
-  </defs>
-
-  <!-- HAJAJ main text -->
-  <text
-    x="512"
-    y="490"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="148"
-    font-weight="bold"
-    text-anchor="middle"
-    fill="#1a1a1a"
-    letter-spacing="28"
-  >HAJAJ</text>
-
-  <!-- Thin separator line -->
-  <line x1="312" y1="540" x2="712" y2="540" stroke="#1a1a1a" stroke-width="1" opacity="0.4"/>
-
-  <!-- Subtitle -->
-  <text
-    x="512"
-    y="590"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="30"
-    text-anchor="middle"
-    fill="#555"
-    letter-spacing="7"
-  >WHERE HAIR BECOMES ART</text>
-</svg>`
-
-// Generate all 3 sizes
-const sizes = [
+// Web / PWA — PNG
+const pngSizes = [
   { size: 1024, file: 'public/icons/icon-1024.png' },
+  { size: 1024, file: 'public/icons/icon-only.png' },
   { size: 512,  file: 'public/icons/icon-512.png'  },
   { size: 192,  file: 'public/icons/icon-192.png'  },
 ]
 
-for (const { size, file } of sizes) {
-  await sharp(Buffer.from(svg))
-    .resize(size, size)
-    .png()
-    .toFile(file)
-  console.log(`✓ ${file} (${size}×${size})`)
+for (const { size, file } of pngSizes) {
+  await sharp(SRC).resize(size, size).png().toFile(file)
+  console.log(`✓ ${file}`)
 }
 
-console.log('\nDone! Now run: npx @capacitor/assets generate --iconBackgroundColor \'#f4f2ef\' --splashBackgroundColor \'#f4f2ef\'')
+// Web / PWA — WebP
+const webpSizes = [512, 256, 192, 128, 96, 72, 48]
+for (const size of webpSizes) {
+  const file = `icons/icon-${size}.webp`
+  await sharp(SRC).resize(size, size).webp({ quality: 90 }).toFile(file)
+  console.log(`✓ ${file}`)
+}
+
+// Android mipmap icons
+const androidSizes = [
+  { size: 36,  dir: 'android/app/src/main/res/mipmap-ldpi'    },
+  { size: 48,  dir: 'android/app/src/main/res/mipmap-mdpi'    },
+  { size: 72,  dir: 'android/app/src/main/res/mipmap-hdpi'    },
+  { size: 96,  dir: 'android/app/src/main/res/mipmap-xhdpi'   },
+  { size: 144, dir: 'android/app/src/main/res/mipmap-xxhdpi'  },
+  { size: 192, dir: 'android/app/src/main/res/mipmap-xxxhdpi' },
+]
+
+for (const { size, dir } of androidSizes) {
+  const buf = await sharp(SRC).resize(size, size).png().toBuffer()
+  for (const name of ['ic_launcher.png', 'ic_launcher_round.png', 'ic_launcher_foreground.png']) {
+    const path = `${dir}/${name}`
+    await sharp(buf).toFile(path)
+    console.log(`✓ ${path}`)
+  }
+}
+
+// iOS — 1024×1024
+const iosPath = 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'
+await sharp(SRC).resize(1024, 1024).png().toFile(iosPath)
+console.log(`✓ ${iosPath}`)
+
+console.log('\nDone!')
