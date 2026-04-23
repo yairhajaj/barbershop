@@ -57,7 +57,7 @@ export function QuickSettle() {
       .order('start_at', { ascending: false })
       .limit(100)
 
-    if (currentBranch?.id) q = q.eq('branch_id', currentBranch.id)
+    if (currentBranch?.id) q = q.or(`branch_id.eq.${currentBranch.id},branch_id.is.null`)
 
     const { data, error } = await q
     if (error) {
