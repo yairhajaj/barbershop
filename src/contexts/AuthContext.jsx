@@ -36,8 +36,12 @@ export function AuthProvider({ children }) {
       // Ensures firebaseUserRef.current is populated when SIGNED_OUT fires on startup.
       await firebaseReady
 
-      // When Supabase session expires (not explicit logout) → silently re-auth via Firebase
-      if (event === 'SIGNED_OUT' && !intentionalSignOut.current) {
+      // When Supabase has no session (expired or cleared) → silently re-auth via Firebase
+      const noSession = !session
+      const needsReauth =
+        (event === 'SIGNED_OUT' && !intentionalSignOut.current) ||
+        (event === 'INITIAL_SESSION' && noSession)
+      if (needsReauth) {
         const fbUser = firebaseUserRef.current
         if (fbUser) {
           try {
