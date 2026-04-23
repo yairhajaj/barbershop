@@ -61,27 +61,17 @@ export function Dashboard() {
 
   // ── Fetch action inbox data ──
   const fetchInbox = useCallback(async () => {
-    // 1a. Uninvoiced completed (Mode A) OR past unresolved confirmed (Mode B)
-    let uninv
-    if (settings?.invoicing_enabled !== false) {
-      const { data } = await supabase
-        .from('appointments')
-        .select('id, start_at, services(name, price), profiles(name)')
-        .eq('status', 'completed')
-        .eq('invoice_sent', false)
-        .order('start_at', { ascending: false })
-        .limit(20)
-      uninv = data ?? []
-    } else {
-      const { data } = await supabase
-        .from('appointments')
-        .select('id, start_at, services(name, price), profiles(name)')
-        .eq('status', 'confirmed')
-        .lt('start_at', new Date().toISOString())
-        .order('start_at', { ascending: false })
-        .limit(20)
-      uninv = data ?? []
-    }
+    // 1a. Past confirmed appointments not yet settled — mirrors QuickSettle's query exactly
+    const { data: uninvData } = await supabase
+      .from('appointments')
+      .select('id, start_at, services(name, price), profiles(name), cash_paid, payment_status')
+      .eq('status', 'confirmed')
+      .lt('start_at', new Date().toISOString())
+      .order('start_at', { ascending: false })
+      .limit(20)
+    const uninv = settings?.invoicing_enabled !== false
+      ? (uninvData ?? []).filter(a => !a.cash_paid && a.payment_status !== 'paid')
+      : (uninvData ?? [])
     setUninvoiced(uninv)
 
     // 2b. Today's manual income (walk-in receipts)
