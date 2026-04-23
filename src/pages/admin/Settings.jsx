@@ -538,19 +538,38 @@ export function Settings() {
           )}
         </section>}
 
+        {/* ── רשימת המתנה ── */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              <h2 className="font-semibold text-lg">רשימת המתנה</h2>
+            </div>
+            <Toggle
+              checked={form.waitlist_enabled ?? false}
+              onChange={v => setForm(f => ({ ...f, waitlist_enabled: v }))}
+            />
+          </div>
+          <p className="text-sm mb-0" style={{ color: 'var(--color-muted)' }}>
+            לקוחות יכולים להצטרף לרשימת המתנה לשירות מבוקש. כשתור מתבטל — הראשון ברשימה מקבל הודעה.
+          </p>
+        </section>
+
         {/* ── Gap Closer ── */}
         <section className="card p-6">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">🧩</span>
-            <h2 className="font-semibold text-lg">Gap Closer — מילוי חורים ביומן</h2>
+            <h2 className="font-semibold text-lg">Gap Closer — מילוי חורים</h2>
           </div>
-          <p className="text-sm text-muted mb-5">כשתור מתבטל, המערכת מנסה למלא את החור אוטומטית</p>
+          <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>
+            כשתור מתבטל ונוצר חור ביומן, המערכת מנסה להקדים תור קיים כדי למלא את החור.
+          </p>
 
           <div className="space-y-2 mb-4">
             {[
-              { value: 'off',      label: 'כבוי',       desc: 'ללא פעולה אוטומטית — רק התראה רגילה' },
-              { value: 'approval', label: 'אישור ידני', desc: 'מציג הצעות ואתה מאשר כל צעד בלחיצה' },
-              { value: 'auto',     label: 'אוטומטי',    desc: 'שולח הודעות ללקוחות אוטומטית ללא אישור' },
+              { value: 'off',      label: 'כבוי',       desc: 'ללא פעולה — רק התראה רגילה בלוח הבקרה' },
+              { value: 'approval', label: 'אישור ידני', desc: 'מציג הצעות ואתה שולח כל הצעה בלחיצה' },
+              { value: 'auto',     label: 'אוטומטי',    desc: 'שולח הודעות להקדמת תור אוטומטית ללא אישור' },
             ].map(opt => (
               <label
                 key={opt.value}
@@ -577,7 +596,7 @@ export function Settings() {
           </div>
 
           {form.gap_closer_mode !== 'off' && (
-            <div className="mt-4 space-y-4">
+            <div className="mt-2 pt-4 space-y-4" style={{ borderTop: '1px solid var(--color-border)' }}>
               <div>
                 <label className="block text-sm font-medium mb-1">סף חור מינימלי (דקות)</label>
                 <input
@@ -605,45 +624,53 @@ export function Settings() {
                   onChange={e => setForm(f => ({ ...f, gap_closer_advance_hours: parseFloat(e.target.value) || 2 }))}
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-                  לדוגמה: אם הערך 2, חור בשעה 17:00 יפעיל הודעות רק מ-15:00.
-                  {'\n'}ערך 0.5 = חצי שעה לפני
+                  לדוגמה: חור בשעה 17:00 עם ערך 2 יפעיל הודעות רק מ-15:00.
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">ערוץ התראות</label>
-                <div className="space-y-2">
-                  {[
-                    { value: 'push',      label: '🔔 פוש',    desc: 'הודעת Push ישירות לטלפון — לחיצה פותחת חלון אישור' },
-                    { value: 'whatsapp',  label: '💬 ווצאפ',  desc: 'הודעת WhatsApp עם קישור לאישור/דחייה' },
-                  ].map(opt => (
-                    <label
-                      key={opt.value}
-                      className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
-                      style={{
-                        background: form.gap_closer_notification_channel === opt.value ? 'var(--color-gold-tint)' : 'transparent',
-                        border: `2px solid ${form.gap_closer_notification_channel === opt.value ? 'var(--color-gold)' : 'var(--color-border)'}`,
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="gap_closer_notification_channel"
-                        value={opt.value}
-                        checked={(form.gap_closer_notification_channel ?? 'push') === opt.value}
-                        onChange={e => setForm(f => ({ ...f, gap_closer_notification_channel: e.target.value }))}
-                        className="mt-1"
-                      />
-                      <div>
-                        <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.label}</div>
-                        <div className="text-xs" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
               </div>
             </div>
           )}
         </section>
+
+        {/* ── ערוץ הודעות אוטומטיות ── */}
+        {(form.waitlist_enabled || form.gap_closer_mode !== 'off') && (
+          <section className="card p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">🔔</span>
+              <h2 className="font-semibold text-lg">ערוץ הודעות אוטומטיות</h2>
+            </div>
+            <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>
+              באיזה ערוץ לשלוח הודעות? חל הן על רשימת המתנה והן על Gap Closer.
+            </p>
+            <div className="space-y-2">
+              {[
+                { value: 'push',     label: '🔔 הודעת Push', desc: 'הודעה ישירה לטלפון — לחיצה פותחת חלון אישור באפליקציה' },
+                { value: 'whatsapp', label: '💬 WhatsApp',   desc: 'הודעת WhatsApp עם קישור לאישור ודחייה' },
+              ].map(opt => (
+                <label
+                  key={opt.value}
+                  className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                  style={{
+                    background: (form.gap_closer_notification_channel ?? 'push') === opt.value ? 'var(--color-gold-tint)' : 'transparent',
+                    border: `2px solid ${(form.gap_closer_notification_channel ?? 'push') === opt.value ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="gap_closer_notification_channel"
+                    value={opt.value}
+                    checked={(form.gap_closer_notification_channel ?? 'push') === opt.value}
+                    onChange={e => setForm(f => ({ ...f, gap_closer_notification_channel: e.target.value }))}
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.label}</div>
+                    <div className="text-xs" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </section>
+        )}
 
         <button type="submit" disabled={saving} className="btn-primary text-base px-8 py-3">
           {saving ? 'שומר...' : 'שמור הגדרות'}
