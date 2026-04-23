@@ -21,18 +21,21 @@ export function AuthProvider({ children }) {
   const intentionalSignOut    = useRef(false)
 
   useEffect(() => {
-    // Track Firebase user — used for silent re-auth when Supabase session expires
+    // firebaseReady resolves when Firebase determines auth state for the first time.
+    // Prevents race condition where SIGNED_OUT fires before firebaseUserRef.current is set.
+    let resolveFirebaseReady
+    const firebaseReady = new Promise((resolve) => { resolveFirebaseReady = resolve })
+
     const unsubFirebase = onAuthStateChanged(firebaseAuth, (fbUser) => {
       firebaseUserRef.current = fbUser
-    })
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else setLoading(false)
+      resolveFirebaseReady()
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Wait for Firebase's first callback before processing any Supabase event.
+      // Ensures firebaseUserRef.current is populated when SIGNED_OUT fires on startup.
+      await firebaseReady
+
       // When Supabase session expires (not explicit logout) → silently re-auth via Firebase
       if (event === 'SIGNED_OUT' && !intentionalSignOut.current) {
         const fbUser = firebaseUserRef.current
