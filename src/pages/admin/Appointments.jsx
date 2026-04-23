@@ -101,6 +101,7 @@ export function Appointments() {
   const [invoiceProducts, setInvoiceProducts] = useState([]) // [{ product_id, name, unit_price, quantity, staff_id }]
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [gapAlert, setGapAlert] = useState(null)
+  const cascadeTimerRef = useRef(null)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
   const [savingEvent, setSavingEvent] = useState(false)
@@ -542,29 +543,7 @@ export function Appointments() {
     const advanceHours = settings?.gap_closer_advance_hours ?? 2
     const notifChannel = settings?.gap_closer_notification_channel || 'push'
 
-    // Always notify waitlist
-    let waitlistResult = 'none'
-    if (cancelledAppt) {
-      try {
-        const { data } = await supabase.functions.invoke('notify-waitlist', {
-          body: {
-            serviceId:           cancelledAppt.service_id,
-            branchId:            cancelledAppt.branch_id ?? null,
-            staffId:             cancelledAppt.staff_id  ?? null,
-            staffName:           cancelledAppt.staff?.name ?? '',
-            slotStart:           cancelledAppt.start_at,
-            slotEnd:             cancelledAppt.end_at,
-            serviceName:         cancelledAppt.services?.name ?? '',
-            notificationChannel: notifChannel,
-          },
-        })
-        waitlistResult = data?.notified > 0 ? 'sent' : 'none'
-      } catch { waitlistResult = 'none' }
-    }
-
-    if (mode === 'off' || !cancelledAppt) return
-
-    // Find reschedule candidates
+    // Compute Gap Closer candidates now (before appointments state changes)
     const remaining = appointments.filter(a => a.id !== id && a.status === 'confirmed')
     const sameDayStaff = remaining.filter(a =>
       a.staff_id === cancelledAppt.staff_id &&
@@ -576,48 +555,97 @@ export function Appointments() {
       threshold
     )
 
-    // Smart timing: check if the gap is too far in the future
     const gapStart = new Date(cancelledAppt.start_at)
     const now = new Date()
     const hoursUntilGap = (gapStart - now) / (1000 * 60 * 60)
     const tooEarly = hoursUntilGap > advanceHours
     const activateAt = tooEarly ? new Date(gapStart.getTime() - advanceHours * 60 * 60 * 1000) : null
-    const msUntilActivation = activateAt ? activateAt - now : 0
 
-    const alert = {
+    // Show alert immediately — step2 hidden until cascade completes
+    setGapAlert({
       cancelledAppt,
       freedSlot: { start: cancelledAppt.start_at, end: cancelledAppt.end_at },
-      step1_waitlist: waitlistResult,
-      step2_reschedule: { candidates, offers: {} },
-      step3_shared: false,
+      step1_waitlist: 'sending',
+      step2_reschedule: null,
       waiting: tooEarly,
       activateAt,
-    }
-    setGapAlert(alert)
+    })
 
-    // If too early — schedule activation via setTimeout
-    if (tooEarly && candidates.length > 0) {
-      const timerId = setTimeout(() => {
-        setGapAlert(prev => {
-          if (!prev) return prev
-          return { ...prev, waiting: false, activateAt: null }
-        })
-        // Auto mode: send when timer fires
-        if (mode === 'auto') {
-          candidates.forEach(c => sendRescheduleOffer(c, cancelledAppt))
+    // Activate Gap Closer (called after waitlist cascade finishes)
+    async function activateGapCloser() {
+      setGapAlert(prev => prev ? { ...prev, step2_reschedule: { candidates, offers: {} } } : prev)
+      if (mode === 'off' || candidates.length === 0) return
+
+      if (tooEarly && activateAt) {
+        const msUntil = Math.max(0, activateAt - new Date())
+        if (msUntil > 0) {
+          const timerId = setTimeout(() => {
+            setGapAlert(p => p ? { ...p, waiting: false, activateAt: null } : p)
+            if (mode === 'auto') candidates.forEach(c => sendRescheduleOffer(c, cancelledAppt))
+          }, msUntil)
+          setGapAlert(p => p ? { ...p, _timerId: timerId } : p)
+          return
         }
-      }, msUntilActivation)
-      // Clean up timer if alert is dismissed
-      const origSetGapAlert = setGapAlert
-      // Store timer ID on the alert for potential cleanup
-      setGapAlert(prev => prev ? { ...prev, _timerId: timerId } : prev)
+      }
+      if (!tooEarly && mode === 'auto') {
+        for (const c of candidates) await sendRescheduleOffer(c, cancelledAppt)
+      }
     }
 
-    // If within window — act now
-    if (!tooEarly && mode === 'auto') {
-      for (const candidate of candidates) {
-        await sendRescheduleOffer(candidate, cancelledAppt)
+    // Cascade step: check if slot was filled, else notify next in waitlist
+    const invokeBody = {
+      serviceId:           cancelledAppt.service_id,
+      branchId:            cancelledAppt.branch_id ?? null,
+      staffId:             cancelledAppt.staff_id  ?? null,
+      staffName:           cancelledAppt.staff?.name ?? '',
+      slotStart:           cancelledAppt.start_at,
+      slotEnd:             cancelledAppt.end_at,
+      serviceName:         cancelledAppt.services?.name ?? '',
+      notificationChannel: notifChannel,
+    }
+
+    async function checkCascadeStep() {
+      // First check if someone from waitlist already booked the slot
+      const { data: booked } = await supabase
+        .from('waitlist')
+        .select('id')
+        .eq('offered_slot_start', cancelledAppt.start_at)
+        .eq('status', 'booked')
+        .limit(1)
+
+      if (booked?.length > 0) {
+        setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'cascade_filled' } : prev)
+        return
       }
+
+      try {
+        const { data } = await supabase.functions.invoke('notify-waitlist', { body: invokeBody })
+        if (data?.notified > 0) {
+          setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'cascade_active' } : prev)
+          cascadeTimerRef.current = setTimeout(checkCascadeStep, 2 * 60 * 1000)
+        } else {
+          setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'cascade_done' } : prev)
+          await activateGapCloser()
+        }
+      } catch {
+        setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'cascade_done' } : prev)
+        await activateGapCloser()
+      }
+    }
+
+    // First call — notify person 1 in waitlist
+    try {
+      const { data } = await supabase.functions.invoke('notify-waitlist', { body: invokeBody })
+      if (data?.notified > 0) {
+        setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'cascade_active' } : prev)
+        cascadeTimerRef.current = setTimeout(checkCascadeStep, 2 * 60 * 1000)
+      } else {
+        setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'none' } : prev)
+        await activateGapCloser()
+      }
+    } catch {
+      setGapAlert(prev => prev ? { ...prev, step1_waitlist: 'none' } : prev)
+      await activateGapCloser()
     }
   }
 
@@ -1517,6 +1545,7 @@ export function Appointments() {
             <button
               onClick={() => {
                 if (gapAlert._timerId) clearTimeout(gapAlert._timerId)
+                if (cascadeTimerRef.current) { clearTimeout(cascadeTimerRef.current); cascadeTimerRef.current = null }
                 setGapAlert(null)
               }}
               className="text-xs font-medium px-2 py-1 rounded-lg"
@@ -1548,21 +1577,33 @@ export function Appointments() {
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
               style={{ background: 'var(--color-gold)', color: '#fff' }}>1</div>
             <span className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>רשימת המתנה</span>
-            <span className="text-xs" style={{ color: gapAlert.step1_waitlist === 'sent' ? '#22c55e' : 'var(--color-muted)' }}>
-              {gapAlert.step1_waitlist === 'sent' ? '— הודעה נשלחה ✓' :
-               gapAlert.step1_waitlist === 'none' ? '— אין ממתינים' :
-               '— שולח...'}
+            <span className="text-xs" style={{ color:
+              gapAlert.step1_waitlist === 'cascade_filled' ? '#22c55e' :
+              gapAlert.step1_waitlist === 'cascade_done'   ? 'var(--color-muted)' :
+              gapAlert.step1_waitlist === 'none'           ? 'var(--color-muted)' :
+              'var(--color-gold)'
+            }}>
+              {gapAlert.step1_waitlist === 'sending'        ? '— שולח...' :
+               gapAlert.step1_waitlist === 'cascade_active' ? '— שלח, ממתין לתשובה ⏳' :
+               gapAlert.step1_waitlist === 'cascade_filled' ? '— התור מולא מהרשימה ✓' :
+               gapAlert.step1_waitlist === 'cascade_done'   ? '— לא נענה, עובר להקדמת תורים' :
+               gapAlert.step1_waitlist === 'none'           ? '— אין ממתינים' :
+               ''}
             </span>
           </div>
 
           {/* Step 2: Reschedule */}
           <div className="flex items-center gap-3 mb-2">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: 'var(--color-gold)', color: '#fff' }}>2</div>
+              style={{ background: gapAlert.step2_reschedule ? 'var(--color-gold)' : 'var(--color-border)', color: '#fff' }}>2</div>
             <span className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>הקדמת תורים</span>
+            {!gapAlert.step2_reschedule && (
+              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>— ממתין לסיום בדיקת רשימה</span>
+            )}
           </div>
           <div className="mr-9 mb-3">
-            {gapAlert.step2_reschedule.candidates.length === 0 ? (
+            {!gapAlert.step2_reschedule ? null :
+            gapAlert.step2_reschedule.candidates.length === 0 ? (
               <p className="text-xs" style={{ color: 'var(--color-muted)' }}>אין תורים מתאימים להקדמה</p>
             ) : (
               <div className="flex flex-col gap-2">

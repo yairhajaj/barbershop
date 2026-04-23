@@ -73,6 +73,29 @@ Deno.serve(async (req) => {
       }
 
       if (action === 'accept') {
+        // Check if slot is already taken (another person from the list got there first)
+        const { data: conflict } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('start_at', entry.offered_slot_start)
+          .eq('staff_id', entry.offered_staff_id ?? null)
+          .neq('status', 'cancelled')
+          .limit(1)
+
+        if (conflict && conflict.length > 0) {
+          // Reset entry back to pending — they stay on the waitlist for future slots
+          await supabase.from('waitlist').update({
+            status:             'pending',
+            token:              null,
+            offered_slot_start: null,
+            offered_slot_end:   null,
+            offered_staff_id:   null,
+            token_expires_at:   null,
+            notified_at:        null,
+          }).eq('id', entry.id)
+          return json({ ok: false, action: 'slot_taken' })
+        }
+
         // Create the appointment
         const { error: apptErr } = await supabase.from('appointments').insert({
           customer_id:       entry.customer_id,
@@ -180,9 +203,9 @@ async function notifyNextInQueue(
 
   const profile = entry.profiles
 
-  // Generate token (30-min expiry)
+  // Token valid until the slot starts — first to confirm gets it
   const token   = crypto.randomUUID()
-  const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+  const expires = slotStart
 
   // Update waitlist entry with slot details + token
   await supabase.from('waitlist').update({
@@ -209,7 +232,7 @@ async function notifyNextInQueue(
     (serviceName ? ` לשירות ${serviceName}` : '') + `.\n\n` +
     `✅ כן, הזמן עבורי:\n${acceptUrl}\n\n` +
     `❌ לא, תודה:\n${declineUrl}\n\n` +
-    `ההצעה תפוג בעוד 30 דקות.`
+    `הראשון שמאשר מקבל את התור — המקום פנוי עד שעת התור.`
 
   // Send WhatsApp via Twilio (only when channel = 'whatsapp')
   if (notificationChannel === 'whatsapp') {

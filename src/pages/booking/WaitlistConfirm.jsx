@@ -47,7 +47,7 @@ export function WaitlistConfirm() {
       if (error) throw new Error(error.message)
       if (data?.error) throw new Error(data.error)
       setResult(data)
-      setPhase('done')
+      setPhase(data?.action === 'slot_taken' ? 'slot_taken' : 'done')
     } catch (err) {
       setPhase('error')
       setErrMsg(err.message ?? 'שגיאה בעיבוד הבקשה')
@@ -109,6 +109,19 @@ export function WaitlistConfirm() {
           </motion.div>
         )}
 
+        {phase === 'slot_taken' && (
+          <motion.div key="slot_taken"
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            className="text-center w-full max-w-sm">
+            <div className="text-5xl mb-4">⏱</div>
+            <h1 className="text-xl font-black mb-2" style={{ color: 'var(--color-text)' }}>התור כבר נתפס</h1>
+            <p className="text-sm mb-1" style={{ color: 'var(--color-muted)' }}>
+              מישהו הגיע לפניך — אתה עדיין ברשימת המתנה ונודיע לך כשיתפנה תור מתאים
+            </p>
+            <Link to="/" className="btn-primary px-6 py-2.5 text-sm mt-6 inline-block">חזרה לדף הבית</Link>
+          </motion.div>
+        )}
+
         {phase === 'confirm' && entry && (
           <motion.div key="confirm"
             initial={{ opacity: 0, y: 32, scale: 0.96 }}
@@ -157,7 +170,7 @@ export function WaitlistConfirm() {
                   )}
                 </div>
                 <p className="text-xs text-center mt-3" style={{ color: 'var(--color-muted)' }}>
-                  ⏰ ההצעה בתוקף ל-30 דקות בלבד
+                  ⚡ הראשון שמאשר מקבל את התור
                 </p>
               </div>
 
