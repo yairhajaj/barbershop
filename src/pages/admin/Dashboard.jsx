@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { startOfDay, endOfDay, addDays } from 'date-fns'
@@ -23,6 +24,7 @@ import { AppointmentDetailModal } from '../../components/admin/dashboard/Appoint
 export function Dashboard() {
   const today = new Date()
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { currentBranch } = useBranch()
   const { staff } = useStaff({ activeOnly: true, branchId: currentBranch?.id ?? null })
   const { settings, saveSettings } = useBusinessSettings()
@@ -44,7 +46,6 @@ export function Dashboard() {
   // ── State ──
   const [walkInOpen, setWalkInOpen] = useState(false)
   const [selectedAppt, setSelectedAppt] = useState(null)
-  const [uninvoiced, setUninvoiced] = useState([])
   const [openDebts, setOpenDebts] = useState([])
   const [waitlistActive, setWaitlistActive] = useState([])
   const [nowTick, setNowTick] = useState(Date.now())
@@ -58,23 +59,31 @@ export function Dashboard() {
   }, [])
 
   const invEnabled = settings?.invoicing_enabled !== false
+  const branchId   = currentBranch?.id ?? null
 
-  // ── Fetch action inbox data ──
+  // ── Inbox appointments — React Query (auto-invalidated by useAllAppointments realtime) ──
+  const { data: uninvoiced = [] } = useQuery({
+    queryKey: ['appointments', 'inbox', { invEnabled, branchId }],
+    queryFn: async () => {
+      let q = supabase
+        .from('appointments')
+        .select('id, start_at, services(name, price), profiles(name), cash_paid, payment_status')
+        .eq('status', 'confirmed')
+        .lt('start_at', new Date().toISOString())
+        .order('start_at', { ascending: false })
+        .limit(50)
+      if (branchId) q = q.or(`branch_id.eq.${branchId},branch_id.is.null`)
+      const { data, error } = await q
+      if (error) throw error
+      return invEnabled
+        ? (data ?? []).filter(a => !a.cash_paid && a.payment_status !== 'paid')
+        : (data ?? [])
+    },
+  })
+
+  // ── Fetch non-appointment inbox data (debts, waitlist, income) ──
   const fetchInbox = useCallback(async () => {
-    // 1a. Past confirmed appointments not yet settled — mirrors QuickSettle's query exactly
-    const { data: uninvData } = await supabase
-      .from('appointments')
-      .select('id, start_at, services(name, price), profiles(name), cash_paid, payment_status')
-      .eq('status', 'confirmed')
-      .lt('start_at', new Date().toISOString())
-      .order('start_at', { ascending: false })
-      .limit(20)
-    const uninv = settings?.invoicing_enabled !== false
-      ? (uninvData ?? []).filter(a => !a.cash_paid && a.payment_status !== 'paid')
-      : (uninvData ?? [])
-    setUninvoiced(uninv)
-
-    // 2b. Today's manual income (walk-in receipts)
+    // Today's manual income (walk-in receipts)
     const todayStr = new Date().toISOString().slice(0, 10)
     const { data: mi } = await supabase
       .from('manual_income')
@@ -85,7 +94,7 @@ export function Dashboard() {
     ;(mi ?? []).forEach(r => { const m = r.payment_method || 'cash'; brkd[m] = (brkd[m] || 0) + Number(r.amount || 0) })
     setManualIncomeBreakdown(brkd)
 
-    // 2. Open debts
+    // Open debts
     const { data: debts } = await supabase
       .from('customer_debts')
       .select('id, amount, description, created_at, customer_id, profiles:customer_id(id, name, phone)')
@@ -93,33 +102,36 @@ export function Dashboard() {
       .order('created_at', { ascending: false })
     setOpenDebts(debts ?? [])
 
-    // 3. Waitlist — pending only, filter expired
+    // Waitlist — pending only, filter expired
     const { data: wl } = await supabase
       .from('waitlist')
       .select('*, profiles(name, phone), services(name)')
       .eq('status', 'pending')
       .order('preferred_date', { ascending: true })
       .order('created_at', { ascending: true })
-    // Fire-and-forget DB sweep
     sweepExpiredWaitlist(wl || [])
     setWaitlistActive((wl || []).filter(e => !isWaitlistExpired(e)))
-  }, [settings?.invoicing_enabled])
+  }, [])
 
   useEffect(() => { fetchInbox() }, [fetchInbox])
 
-  // Re-filter waitlist + full data refresh every minute tick
+  // Re-filter waitlist + full refresh every minute tick
   useEffect(() => {
     setWaitlistActive(prev => prev.filter(e => !isWaitlistExpired(e)))
     refetchAppts()
     refetchFuture()
+    qc.invalidateQueries({ queryKey: ['appointments', 'inbox'] })
     fetchInbox()
   }, [nowTick]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Realtime subscriptions for inbox data ──
+  // ── Realtime subscriptions ──
   useEffect(() => {
-    const invoicesCh = supabase.channel(`dash-invoices-${Date.now()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, fetchInbox)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => { fetchInbox(); refetchAppts(); refetchFuture() })
+    const apptCh = supabase.channel(`dash-appts-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        qc.invalidateQueries({ queryKey: ['appointments'] })
+        refetchAppts()
+        refetchFuture()
+      })
       .subscribe()
     const debtsCh = supabase.channel(`dash-debts-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_debts' }, fetchInbox)
@@ -128,11 +140,11 @@ export function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'waitlist' }, fetchInbox)
       .subscribe()
     return () => {
-      try { supabase.removeChannel(invoicesCh) } catch {}
+      try { supabase.removeChannel(apptCh) } catch {}
       try { supabase.removeChannel(debtsCh) } catch {}
       try { supabase.removeChannel(wlCh) } catch {}
     }
-  }, [fetchInbox])
+  }, [fetchInbox, qc]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived: the "next" appointment + upcoming ──
   const { nextApt, upcoming, stats } = useMemo(() => {
@@ -276,7 +288,7 @@ export function Dashboard() {
       .slice(0, 4)
   , [futureAppts, nowTick])
 
-  const refreshAll = () => { refetchAppts(); refetchFuture(); fetchInbox() }
+  const refreshAll = () => { refetchAppts(); refetchFuture(); fetchInbox(); qc.invalidateQueries({ queryKey: ['appointments'] }) }
 
   return (
     <div className="max-w-full overflow-x-hidden">

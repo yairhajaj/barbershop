@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
@@ -19,6 +20,7 @@ const PAY_METHODS = [
 
 export function QuickSettle() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { settings } = useBusinessSettings()
   const { currentBranch } = useBranch()
   const showToast = useToast()
@@ -123,6 +125,7 @@ export function QuickSettle() {
       await supabase.from('appointments')
         .update({ status: 'completed', payment_status: 'paid', invoice_sent: true, cash_paid: method === 'cash' })
         .eq('id', apt.id)
+      qc.invalidateQueries({ queryKey: ['appointments'] })
 
       // Auto-print
       if (inv) {
@@ -177,6 +180,7 @@ export function QuickSettle() {
       await supabase.from('appointments')
         .update({ status: 'completed', payment_status: price > 0 ? 'paid' : null, cash_paid: method === 'cash' && price > 0 })
         .eq('id', apt.id)
+      qc.invalidateQueries({ queryKey: ['appointments'] })
 
       markDone(apt.id)
       showToast({ message: `✅ ${apt.profiles?.name} · ${price > 0 ? `₪${price}` : 'הגיע'}`, type: 'success' })
@@ -194,6 +198,7 @@ export function QuickSettle() {
       await supabase.from('appointments')
         .update({ status: 'completed', no_show: true })
         .eq('id', apt.id)
+      qc.invalidateQueries({ queryKey: ['appointments'] })
       markDone(apt.id)
       showToast({ message: `${apt.profiles?.name} — סומן "לא הגיע"`, type: 'success' })
     } catch (err) {
