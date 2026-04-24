@@ -119,7 +119,7 @@ export default function BookCinematic() {
         staffHours: staffDay, businessHours: businessDay,
         existingAppointments: appts, blockedTimes, recurringBreaks,
         smartScheduling: {
-          enabled: groupSize > 1 ? false : settings.smart_scheduling_enabled,
+          enabled: settings.smart_scheduling_enabled,
           freeCount: settings.free_slots_count,
           appointmentCount: appts.length, adjacent: settings.smart_adjacent ?? true,
           startOfDay: settings.smart_start_of_day ?? true, endOfDay: settings.smart_end_of_day ?? true,
