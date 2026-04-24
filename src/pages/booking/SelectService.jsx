@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Scissors, Shield, Eye, Wind, Flame, Droplets, Sparkles, Palette, Star, User } from 'lucide-react'
+import { Scissors, Shield, Eye, Wind, Flame, Droplets, Sparkles, Palette, Star, User, Slice } from 'lucide-react'
 import { BookingProgress } from '../../components/booking/BookingProgress'
 import { Spinner } from '../../components/ui/Spinner'
 import { useServices } from '../../hooks/useServices'
@@ -11,14 +11,14 @@ import { useTheme } from '../../contexts/ThemeContext'
 
 function getServiceIcon(name = '') {
   const n = name.toLowerCase()
-  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש')) return Scissors
+  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש')) return Slice
   if (n.includes('גבות')) return Eye
+  if (n.includes('ארגנית') || n.includes('אורגנית') || n.includes('טיפול') || n.includes('מסכ')) return Sparkles
   if (n.includes('החלקה') || n.includes('ישור')) return Wind
   if (n.includes('חייל') || n.includes('צבאי') || n.includes('גיוס')) return Shield
   if (n.includes('שעווה') || n.includes('wax')) return Flame
   if (n.includes('צבע') || n.includes('צביעה') || n.includes('הבהרה') || n.includes('בלונד')) return Palette
   if (n.includes('שטיפה') || n.includes('חפיפה') || n.includes('שמן')) return Droplets
-  if (n.includes('ארגנית') || n.includes('אורגנית') || n.includes('טיפול') || n.includes('מסכ')) return Sparkles
   if (n.includes('ילד') || n.includes('קטן') || n.includes('נוער')) return User
   if (n.includes('עיצוב')) return Star
   return Scissors
