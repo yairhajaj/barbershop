@@ -123,6 +123,22 @@ export function Appearance() {
     toast({ message: next ? 'אפקט ריחוף פעיל ✓' : 'ריחוף כבוי', type: 'success' })
   }
 
+  // ── Gallery mode ───────────────────────────────────────────────
+  const [galleryMode, setGalleryMode] = useState(
+    localStorage.getItem('gallery_mode') || 'fan'
+  )
+
+  useEffect(() => {
+    if (settings?.gallery_mode) setGalleryMode(settings.gallery_mode)
+  }, [settings?.gallery_mode])
+
+  async function handleSaveGalleryMode(mode) {
+    setGalleryMode(mode)
+    localStorage.setItem('gallery_mode', mode)
+    saveSettings({ gallery_mode: mode }).catch(() => {})
+    toast({ message: mode === 'polaroid' ? 'מצב פולארויד פעיל ✓' : 'מצב מניפה פעיל ✓', type: 'success' })
+  }
+
   // ── Portfolio mode ─────────────────────────────────────────────
   const [portfolioMode, setPortfolioMode] = useState(
     localStorage.getItem('portfolio_view_mode') || 'grid'
@@ -587,6 +603,36 @@ export function Appearance() {
                 ))}
               </div>
               {bookingFlow === opt.id && (
+                <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
+              )}
+            </button>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* ── GALLERY MODE ────────────────────────────────────────── */}
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
+        <h2 className="font-semibold text-lg mb-1">סגנון גלריה</h2>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>איך להציג את תמונות הגלריה בדף הבית</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { id: 'fan',      icon: '🎴', title: 'מניפת תמונות', desc: 'עד 5 תמונות נפרסות כמניפה — חוויה אינטראקטיבית' },
+            { id: 'polaroid', icon: '📷', title: 'פולארויד',     desc: 'כל התמונות בגריד — מונפשות כמו תמונות שנזרקו על שולחן' },
+          ].map(opt => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => handleSaveGalleryMode(opt.id)}
+              className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
+              style={{
+                borderColor: galleryMode === opt.id ? 'var(--color-gold)' : 'var(--color-border)',
+                background:  galleryMode === opt.id ? 'var(--color-gold-tint)' : 'var(--color-card)',
+              }}
+            >
+              <div className="text-3xl mb-2">{opt.icon}</div>
+              <div className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>{opt.title}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>{opt.desc}</div>
+              {galleryMode === opt.id && (
                 <div className="text-xs font-bold mt-2" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
               )}
             </button>
