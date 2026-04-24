@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Scissors, Shield, Eye, Wind, Flame, Droplets, Sparkles, Palette, Star, User } from 'lucide-react'
 import { BookingProgress } from '../../components/booking/BookingProgress'
 import { Spinner } from '../../components/ui/Spinner'
 import { useServices } from '../../hooks/useServices'
@@ -9,14 +10,18 @@ import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 import { useTheme } from '../../contexts/ThemeContext'
 
 function getServiceIcon(name = '') {
-  const n = name
-  if (n.includes('ילד') || n.includes('קטן') || n.includes('נוער')) return '👦'
-  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש')) return '🪒'
-  if (n.includes('צבע') || n.includes('צביעה') || n.includes('בלונד')) return '🎨'
-  if (n.includes('שמן') || n.includes('טיפול') || n.includes('מסכ')) return '💆'
-  if (n.includes('פייד') || n.includes('מוהוק') || n.includes('דגרד')) return '💈'
-  if (n.includes('תספורת') || n.includes('שיער') || n.includes('קיצור')) return '✂️'
-  return '✂️'
+  const n = name.toLowerCase()
+  if (n.includes('זקן') || n.includes('גילוח') || n.includes('ריש')) return Scissors
+  if (n.includes('גבות')) return Eye
+  if (n.includes('החלקה') || n.includes('ישור')) return Wind
+  if (n.includes('חייל') || n.includes('צבאי') || n.includes('גיוס')) return Shield
+  if (n.includes('שעווה') || n.includes('wax')) return Flame
+  if (n.includes('צבע') || n.includes('צביעה') || n.includes('הבהרה') || n.includes('בלונד')) return Palette
+  if (n.includes('שטיפה') || n.includes('חפיפה') || n.includes('שמן')) return Droplets
+  if (n.includes('ארגנית') || n.includes('אורגנית') || n.includes('טיפול') || n.includes('מסכ')) return Sparkles
+  if (n.includes('ילד') || n.includes('קטן') || n.includes('נוער')) return User
+  if (n.includes('עיצוב')) return Star
+  return Scissors
 }
 
 export function SelectService() {
@@ -123,10 +128,10 @@ export function SelectService() {
                     <div className="flex items-center gap-4 px-5 py-4">
                       {/* Icon */}
                       <div
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
                         style={{ background: 'rgba(255,133,0,0.08)' }}
                       >
-                        {getServiceIcon(service.name)}
+                        {(() => { const Icon = getServiceIcon(service.name); return <Icon size={22} color="var(--color-gold)" strokeWidth={2} /> })()}
                       </div>
                       {/* Content */}
                       <div className="flex-1 min-w-0">
@@ -197,10 +202,10 @@ export function SelectService() {
                   <div className="flex items-center gap-4 px-5 py-4">
                     {/* Icon */}
                     <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
                       style={{ background: 'rgba(255,133,0,0.08)' }}
                     >
-                      {getServiceIcon(service.name)}
+                      {(() => { const Icon = getServiceIcon(service.name); return <Icon size={22} color="var(--color-gold)" strokeWidth={2} /> })()}
                     </div>
                     {/* Content */}
                     <div className="flex-1 min-w-0">
