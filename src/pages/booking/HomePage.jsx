@@ -264,7 +264,7 @@ function PolaroidGallery({ items }) {
               className="cursor-pointer aspect-square overflow-hidden rounded-sm"
               initial={{ rotate: r.rotation, x: r.offsetX, y: r.offsetY + 20, opacity: 0 }}
               whileInView={{ rotate: 0, x: 0, y: 0, opacity: 1 }}
-              viewport={{ once: true, amount: 0.2, root: undefined }}
+              viewport={{ once: true, amount: 0.5, root: undefined }}
               transition={{ type: 'spring', stiffness: 260, damping: 20, delay: i * 0.07 }}
               whileHover={{
                 y: -8,
