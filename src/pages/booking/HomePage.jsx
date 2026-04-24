@@ -631,11 +631,11 @@ export function HomePage() {
   // eslint-disable-next-line no-unused-vars
   const isGlass = layout === 'glass'
 
-  // Service card link — always start at branch, pass serviceId via branch → service nav
+  // Service card link — route to correct flow based on booking_flow setting
   function serviceHref(serviceId) {
-    return bookingFlow === 'all-in-one'
-      ? `/book/all?service=${serviceId}`
-      : `/book/branch?service=${serviceId}`
+    if (bookingFlow === 'cinematic') return `/book/cinematic?service=${serviceId}`
+    if (bookingFlow === 'all-in-one') return `/book/all?service=${serviceId}`
+    return `/book/branch?service=${serviceId}`
   }
 
   // ── v6 glass panel style ──────────────────────────────────────────

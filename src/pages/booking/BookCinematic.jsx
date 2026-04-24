@@ -56,6 +56,7 @@ export default function BookCinematic() {
   const [selDate,    setSelDate]     = useState(startOfDay(new Date()))
   const [selService, setSelService]  = useState(null)
   const [selSlot,    setSelSlot]     = useState(null)
+  const [groupSize,  setGroupSize]   = useState(1)
 
   const [blockedTimes, setBlockedTimes] = useState([])
   const [slots,        setSlots]        = useState([])
@@ -82,6 +83,14 @@ export default function BookCinematic() {
     if (found) setSelStaff(found)
   }, [searchParams, staff])
 
+  // Pre-select service from URL param (?service=ID)
+  useEffect(() => {
+    const serviceId = searchParams.get('service')
+    if (!serviceId || !services.length) return
+    const found = services.find(s => s.id === serviceId)
+    if (found) setSelService(found)
+  }, [searchParams, services])
+
   // Fetch blocked times
   useEffect(() => {
     if (!selStaff?.id) { setBlockedTimes([]); return }
@@ -106,11 +115,12 @@ export default function BookCinematic() {
       const staffDay = member.staff_hours?.find(h => h.day_of_week === dow)
       const appts    = appointments.filter(a => a.staff_id === member.id)
       generateSlots({
-        date: selDate, durationMinutes: selService.duration_minutes,
+        date: selDate, durationMinutes: selService.duration_minutes * groupSize,
         staffHours: staffDay, businessHours: businessDay,
         existingAppointments: appts, blockedTimes, recurringBreaks,
         smartScheduling: {
-          enabled: settings.smart_scheduling_enabled, freeCount: settings.free_slots_count,
+          enabled: groupSize > 1 ? false : settings.smart_scheduling_enabled,
+          freeCount: settings.free_slots_count,
           appointmentCount: appts.length, adjacent: settings.smart_adjacent ?? true,
           startOfDay: settings.smart_start_of_day ?? true, endOfDay: settings.smart_end_of_day ?? true,
         },
@@ -128,7 +138,7 @@ export default function BookCinematic() {
       .filter(s => isToday(selDate) ? !isBefore(s.start, addMinutes(now, 30)) : true)
       .sort((a, b) => a.start - b.start))
     setSlotsLoading(false)
-  }, [selService, selDate, selStaff, appointments, blockedTimes, hours, staff, settings, recurringBreaks])
+  }, [selService, selDate, selStaff, appointments, blockedTimes, hours, staff, settings, recurringBreaks, groupSize])
 
   // Date options
   const dateOptions = []
@@ -152,7 +162,7 @@ export default function BookCinematic() {
   function handleSelectStaff(m) {
     setSelStaff(m)
     setSelSlot(null)
-    setTimeout(() => { setDir(1); setStep(1) }, 300)
+    setTimeout(() => { setDir(1); setStep(selService ? 2 : 1) }, 300)
   }
 
   // Service: tap → select → 300ms delay → advance to datetime
@@ -195,6 +205,7 @@ export default function BookCinematic() {
       staffName: selSlot.staffName ?? selStaff?.name ?? 'כל ספר פנוי',
       slotStart: selSlot.start.toISOString(),
       slotEnd:   selSlot.end.toISOString(),
+      groupSize,
     }))
     navigate(!user ? '/login?redirect=/book/confirm' : '/book/confirm')
   }
@@ -273,6 +284,7 @@ export default function BookCinematic() {
                   user={user}
                   wlSuccess={wlSuccess}
                   onWaitlist={() => user ? setShowWaitlist(true) : navigate(`/login?redirect=/book/cinematic`)}
+                  groupSize={groupSize} onGroupSize={n => { setGroupSize(n); setSelSlot(null) }}
                 />
               </motion.div>
             )}
@@ -494,7 +506,7 @@ function StepService({ services, selected, onSelect }) {
 }
 
 /* ── Step 2: Date + Time ───────────────────────────────────────────── */
-function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSlot, onSlot, waitlistEnabled, user, onWaitlist, wlSuccess }) {
+function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSlot, onSlot, waitlistEnabled, user, onWaitlist, wlSuccess, groupSize, onGroupSize }) {
   const HE_DAY = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
   const HE_MON = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ']
 
@@ -502,6 +514,32 @@ function StepDateTime({ dateOptions, selDate, onDate, slots, slotsLoading, selSl
     <div>
       <div style={{ padding: '0 20px 18px' }}>
         <StepHeading num={3} title="מתי?" />
+      </div>
+
+      {/* Group size selector */}
+      <div style={{ padding: '0 20px 18px' }}>
+        <div style={{ borderRadius: 16, background: 'var(--color-card)', border: '1px solid var(--color-border)', padding: '14px 16px' }}>
+          <p style={{ color: 'var(--color-muted)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>מזמין עבור:</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[{n:1,label:'רק אני'},{n:2,label:'2 אנשים'},{n:3,label:'3 אנשים'},{n:4,label:'4 אנשים'}].map(({n, label}) => (
+              <button key={n} onClick={() => onGroupSize(n)}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 12,
+                  border: `2px solid ${groupSize===n ? 'var(--color-gold)' : 'var(--color-border)'}`,
+                  background: groupSize===n ? 'var(--color-gold)' : 'var(--color-surface)',
+                  color: groupSize===n ? '#fff' : 'var(--color-text)',
+                  fontSize: 11, fontWeight: 800, cursor: 'pointer',
+                }}>
+                {n===1 ? '👤 ' : '👥 '}{label}
+              </button>
+            ))}
+          </div>
+          {groupSize > 1 && (
+            <p style={{ color: 'var(--color-gold)', fontSize: 12, fontWeight: 600, marginTop: 8 }}>
+              ייקבעו {groupSize} תורים צמודים לאותו ספר
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Date strip */}
