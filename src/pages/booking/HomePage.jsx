@@ -261,10 +261,10 @@ function PolaroidGallery({ items }) {
           return (
             <motion.div
               key={item.id ?? i}
-              className="cursor-pointer relative"
+              className="cursor-pointer aspect-square overflow-hidden rounded-sm"
               initial={{ rotate: r.rotation, x: r.offsetX, y: r.offsetY + 20, opacity: 0 }}
               whileInView={{ rotate: 0, x: 0, y: 0, opacity: 1 }}
-              viewport={{ once: true, amount: 0.15 }}
+              viewport={{ once: true, amount: 0.2, root: undefined }}
               transition={{ type: 'spring', stiffness: 260, damping: 20, delay: i * 0.07 }}
               whileHover={{
                 y: -8,
@@ -273,28 +273,17 @@ function PolaroidGallery({ items }) {
                 transition: { type: 'spring', stiffness: 400, damping: 20 },
               }}
               style={{
-                backgroundColor: '#ffffff',
-                padding: '8px 8px 0',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-                borderRadius: 2,
+                boxShadow: '0 4px 18px rgba(0,0,0,0.22)',
                 willChange: 'transform',
               }}
               onClick={() => { setDir(0); setLightboxIdx(i) }}
             >
-              <div className="aspect-square overflow-hidden">
-                <img
-                  src={item.url}
-                  alt={item.caption || ''}
-                  loading="lazy"
-                  className="w-full h-full object-cover block"
-                />
-              </div>
-              <div
-                className="flex items-center justify-center"
-                style={{ height: 38, fontSize: 11, color: '#666', letterSpacing: '0.02em', fontFamily: 'Georgia, serif' }}
-              >
-                {item.caption || '\u00a0'}
-              </div>
+              <img
+                src={item.url}
+                alt={item.caption || ''}
+                loading="lazy"
+                className="w-full h-full object-cover block"
+              />
             </motion.div>
           )
         })}
