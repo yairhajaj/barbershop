@@ -203,8 +203,8 @@ export function ComplianceGuideModal({ onClose }) {
       style={{ background: 'rgba(0,0,0,0.65)' }}
       onClick={onClose}>
       <div
-        className="card flex flex-col max-w-2xl w-full max-h-[92vh]"
-        style={{ background: 'var(--color-card)', border: '2px solid var(--color-gold)' }}
+        className="card modal-bg flex flex-col max-w-2xl w-full max-h-[92vh]"
+        style={{ background: 'var(--color-modal-panel)', border: '2px solid var(--color-gold)' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -245,7 +245,7 @@ export function ComplianceGuideModal({ onClose }) {
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-2" dir="rtl">
+        <div className="overflow-y-auto flex-1 p-5 space-y-2" dir="rtl" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
           {SECTIONS.map(sec => (
             <Accordion
               key={sec.id}

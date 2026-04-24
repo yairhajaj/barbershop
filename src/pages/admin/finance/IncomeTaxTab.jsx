@@ -671,8 +671,8 @@ function ExportSuccessModal({ result, settings, onClose }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}>
-      <div className="card p-6 max-w-lg w-full space-y-4 overflow-y-auto max-h-[90vh]"
-        style={{ background: 'var(--color-card)', border: '2px solid var(--color-gold)' }}
+      <div className="card modal-bg p-6 max-w-lg w-full space-y-4 overflow-y-auto max-h-[90vh]"
+        style={{ background: 'var(--color-modal-panel)', border: '2px solid var(--color-gold)' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}

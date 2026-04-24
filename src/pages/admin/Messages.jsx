@@ -510,7 +510,7 @@ export function Messages() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="rounded-2xl p-6 max-w-sm w-full text-right"
-            style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+            style={{ background: 'var(--color-modal-panel)', border: '1px solid var(--color-border)' }}
           >
             <h3 className="text-lg font-black mb-2" style={{ color: 'var(--color-text)' }}>אישור שליחה</h3>
             <p className="text-sm mb-1" style={{ color: 'var(--color-muted)' }}>

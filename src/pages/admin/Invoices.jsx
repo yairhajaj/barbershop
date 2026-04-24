@@ -270,8 +270,8 @@ export function Invoices() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.6)' }}
           onClick={() => !creditBusy && setCreditConfirmInv(null)}>
-          <div className="card p-5 max-w-sm w-full space-y-4"
-            style={{ background: 'var(--color-card)', border: '1px solid #fecaca' }}
+          <div className="card modal-bg p-5 max-w-sm w-full space-y-4"
+            style={{ background: 'var(--color-modal-panel)', border: '1px solid #fecaca' }}
             onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-base" style={{ color: '#dc2626' }}>הפקת חשבונית זיכוי</h3>
             <div className="text-sm space-y-2" style={{ color: 'var(--color-text)' }}>

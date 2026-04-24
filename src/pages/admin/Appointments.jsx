@@ -2179,7 +2179,7 @@ export function Appointments() {
               initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
-              style={{ background: 'var(--color-card)', maxHeight: 'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))', marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px var(--color-shadow-lg)' }}
+              style={{ background: 'var(--color-modal-panel)', maxHeight: 'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))', marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))', border: '1px solid var(--color-border)', boxShadow: '0 -8px 40px var(--color-shadow-lg)' }}
               onClick={e => e.stopPropagation()}
             >
               {/* Drag handle */}
@@ -2213,7 +2213,7 @@ export function Appointments() {
               </div>
 
               {/* Scrollable body */}
-              <div className="overflow-y-auto flex-1 p-5 space-y-5">
+              <div className="overflow-y-auto flex-1 p-5 space-y-5" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
 
                 {/* Staff chips */}
                 <div>
@@ -2346,7 +2346,7 @@ export function Appointments() {
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
               style={{
-                background:  'var(--color-card)',
+                background:  'var(--color-modal-panel)',
                 maxHeight:   'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))',
                 marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
                 border:      '1px solid var(--color-border)',
@@ -2370,7 +2370,7 @@ export function Appointments() {
               </div>
 
               {/* Scrollable body */}
-              <div className="overflow-y-auto flex-1 p-5 space-y-5">
+              <div className="overflow-y-auto flex-1 p-5 space-y-5" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
 
                 {/* Preset chips */}
                 <div>
@@ -2664,7 +2664,7 @@ export function Appointments() {
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col"
               style={{
-                background:  'var(--color-card)',
+                background:  'var(--color-modal-panel)',
                 maxHeight:   'calc(100dvh - 100px - env(safe-area-inset-bottom, 0px))',
                 marginBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
                 border:      '1px solid var(--color-border)',
@@ -2701,7 +2701,7 @@ export function Appointments() {
               </div>
 
               {/* ── Scrollable body ── */}
-              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6 min-h-0">
+              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6 min-h-0" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
 
                 {/* 1. Customer */}
                 <section>
