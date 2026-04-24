@@ -339,8 +339,8 @@ function OtherModal({ modal, products, onChange, onClose, onConfirm }) {
       <motion.div
         initial={{ scale: 0.92, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="card w-full max-w-sm overflow-hidden"
-        style={{ background: 'var(--color-card)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        className="card modal-bg w-full max-w-sm overflow-hidden"
+        style={{ background: 'var(--color-modal-panel)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -351,7 +351,7 @@ function OtherModal({ modal, products, onChange, onClose, onConfirm }) {
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-5 space-y-4">
+        <div className="overflow-y-auto flex-1 px-5 space-y-4" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
           {/* Service amount */}
           <div>
             <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--color-muted)' }}>סכום שירות (₪)</label>

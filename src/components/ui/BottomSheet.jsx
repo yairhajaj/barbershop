@@ -125,7 +125,7 @@ function MobileSheet({ panelRef, title, onClose, m, children }) {
         initial="hidden"
         animate="visible"
         exit="exit"
-        className="relative z-10 w-full card rounded-t-3xl flex flex-col"
+        className="relative z-10 w-full card modal-bg rounded-t-3xl flex flex-col"
         style={{
           // Max height: leave ~80px at top for status bar breathing room
           maxHeight: `calc(100dvh - 80px - ${TOOLBAR_H})`,
@@ -199,7 +199,7 @@ function DesktopModal({ panelRef, title, size, onClose, m, children }) {
         initial="hidden"
         animate="visible"
         exit="exit"
-        className={`relative w-full ${SIZES[size]} card flex flex-col z-10 p-6`}
+        className={`relative w-full ${SIZES[size]} card modal-bg flex flex-col z-10 p-6`}
         style={{ maxHeight: 'min(88vh, calc(100dvh - 2rem))' }}
         onClick={(e) => e.stopPropagation()}
       >

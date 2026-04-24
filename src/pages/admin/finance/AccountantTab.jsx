@@ -451,8 +451,8 @@ export function AccountantTab() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           style={{ background: 'var(--color-overlay-lg)' }}
           onClick={() => setOpenfrmtDialog(null)}>
-          <div className="card p-6 max-w-md w-full space-y-4"
-            style={{ background: 'var(--color-card)', border: '1px solid var(--color-gold)' }}
+          <div className="card modal-bg p-6 max-w-md w-full space-y-4"
+            style={{ background: 'var(--color-modal-panel)', border: '1px solid var(--color-gold)' }}
             onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-lg" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
               ✓ קובץ אחיד הופק בהצלחה
