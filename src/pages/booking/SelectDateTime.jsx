@@ -11,7 +11,7 @@ import { useAppointments } from '../../hooks/useAppointments'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
 import { useStaff } from '../../hooks/useStaff'
 import { joinWaitlist } from '../../hooks/useWaitlist'
-import { generateSlots, filterSlotsSmartScheduling, formatTime, dayName, isShabbatDay } from '../../lib/utils'
+import { generateSlots, formatTime, dayName, isShabbatDay } from '../../lib/utils'
 import { supabase } from '../../lib/supabase'
 import { useRecurringBreaks } from '../../hooks/useRecurringBreaks'
 
@@ -120,18 +120,19 @@ export function SelectDateTime() {
         endOfDay: settings.smart_end_of_day ?? true,
       }
 
-      // For group bookings, generate raw slots (smart scheduling OFF) —
-      // smart scheduling will be applied later with group-block awareness.
-      // For single bookings, smart scheduling runs inside generateSlots normally.
+      // For groups, pass N×D as durationMinutes so generateSlots' loop condition
+      // (current + duration ≤ dayEnd) correctly limits the last valid start time
+      // to businessClose - N×D. slot.end = start + N×D, so smart scheduling and
+      // Shabbat/break overlap checks all evaluate the full group block.
       const rawSlots = generateSlots({
         date: selectedDate,
-        durationMinutes: serviceDuration,
+        durationMinutes: groupSize > 1 ? serviceDuration * groupSize : serviceDuration,
         staffHours: staffDay,
         businessHours: businessDay,
         existingAppointments: memberAppts,
         blockedTimes,
         recurringBreaks,
-        smartScheduling: groupSize > 1 ? { enabled: false } : smartBase,
+        smartScheduling: smartBase,
         shabbatConfig,
       })
 
@@ -147,51 +148,11 @@ export function SelectDateTime() {
       .filter(s => isToday(selectedDate) ? !isBefore(s.start, addMinutes(now, 30)) : true)
       .sort((a, b) => a.start - b.start)
 
-    // ── Group booking ──────────────────────────────────────────────────────────
+    // ── Group vs Single booking ────────────────────────────────────────────────
     if (groupSize > 1) {
-      const dur = serviceDuration * 60_000
-      const totalBlockMins = serviceDuration * groupSize
-
-      // Step 1: keep only slots that have N consecutive free slots for the same staff
-      const grouped = future.filter(slot => {
-        for (let n = 1; n < groupSize; n++) {
-          const nextTime = slot.start.getTime() + n * dur
-          if (!future.some(s => s.start.getTime() === nextTime && s.staffId === slot.staffId)) return false
-        }
-        return true
-      })
-
-      // Step 2: apply smart scheduling with full group-block awareness.
-      // Filter per-staff so gap detection is accurate for each barber's calendar.
-      if (settings.smart_scheduling_enabled) {
-        const byStaff = new Map()
-        grouped.forEach(slot => {
-          if (!byStaff.has(slot.staffId)) byStaff.set(slot.staffId, [])
-          byStaff.get(slot.staffId).push(slot)
-        })
-
-        const smartGrouped = []
-        for (const [staffId, staffSlots] of byStaff) {
-          const staffAppts = appointments.filter(a => a.staff_id === staffId)
-          const result = filterSlotsSmartScheduling(
-            staffSlots,
-            staffAppts,
-            selectedDate,
-            {
-              adjacent:   settings.smart_adjacent    ?? true,
-              startOfDay: settings.smart_start_of_day ?? true,
-              endOfDay:   settings.smart_end_of_day   ?? true,
-            },
-            totalBlockMins,
-          )
-          smartGrouped.push(...result)
-        }
-        smartGrouped.sort((a, b) => a.start - b.start)
-        // Fall back to full consecutive set if smart filter would leave nothing
-        setAvailableSlots(smartGrouped.length > 0 ? smartGrouped : grouped)
-      } else {
-        setAvailableSlots(grouped)
-      }
+      // Slots were generated with N×D duration — business-hours boundary is
+      // already correct, and smart scheduling already ran inside generateSlots.
+      setAvailableSlots(future)
     } else {
       // "Any barber" mode — collapse duplicate times so the user picks
       // a time only, and the first available staff is auto-assigned.
