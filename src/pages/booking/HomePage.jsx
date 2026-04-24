@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -191,6 +191,156 @@ function FanGallery({ items }) {
                 {cards[lightboxIdx]?.caption && (
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
                     {cards[lightboxIdx].caption}
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>
+                  {lightboxIdx + 1} / {n}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
+  )
+}
+
+function PolaroidGallery({ items }) {
+  const [lightboxIdx, setLightboxIdx] = useState(null)
+  const [dir, setDir] = useState(0)
+  const touchStartX = useRef(null)
+  const scrollYRef = useRef(0)
+
+  // Deterministic "random" rotation/offset per photo — stable across re-renders
+  const randoms = useMemo(() => items.map((_, i) => {
+    const seed = (i * 2654435761) >>> 0
+    const rotation = ((seed % 2400) / 100) - 12     // -12° to +12°
+    const offsetX  = (((seed >>> 8) % 20)) - 10     // -10px to +10px
+    const offsetY  = (((seed >>> 16) % 16)) - 8     // -8px to +8px
+    return { rotation, offsetX, offsetY }
+  }), [items])
+
+  useEffect(() => {
+    if (lightboxIdx !== null) {
+      scrollYRef.current = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollYRef.current}px`
+      document.body.style.width = '100%'
+    } else {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      window.scrollTo(0, scrollYRef.current)
+    }
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+    }
+  }, [lightboxIdx])
+
+  const n = items.length
+  function navigate(delta) {
+    setDir(delta)
+    setLightboxIdx(i => ((i + delta) + n) % n)
+  }
+  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return
+    const dx = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(dx) > 40) navigate(dx > 0 ? 1 : -1)
+    touchStartX.current = null
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-4">
+        {items.map((item, i) => {
+          const r = randoms[i] ?? { rotation: 0, offsetX: 0, offsetY: 0 }
+          return (
+            <motion.div
+              key={item.id ?? i}
+              className="cursor-pointer relative"
+              initial={{ rotate: r.rotation, x: r.offsetX, y: r.offsetY + 20, opacity: 0 }}
+              whileInView={{ rotate: 0, x: 0, y: 0, opacity: 1 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20, delay: i * 0.07 }}
+              whileHover={{
+                y: -8,
+                scale: 1.04,
+                rotate: i % 2 === 0 ? 3 : -3,
+                transition: { type: 'spring', stiffness: 400, damping: 20 },
+              }}
+              style={{
+                backgroundColor: '#ffffff',
+                padding: '8px 8px 0',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                borderRadius: 2,
+                willChange: 'transform',
+              }}
+              onClick={() => { setDir(0); setLightboxIdx(i) }}
+            >
+              <div className="aspect-square overflow-hidden">
+                <img
+                  src={item.url}
+                  alt={item.caption || ''}
+                  loading="lazy"
+                  className="w-full h-full object-cover block"
+                />
+              </div>
+              <div
+                className="flex items-center justify-center"
+                style={{ height: 38, fontSize: 11, color: '#666', letterSpacing: '0.02em', fontFamily: 'Georgia, serif' }}
+              >
+                {item.caption || '\u00a0'}
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      {createPortal(
+        <AnimatePresence>
+          {lightboxIdx !== null && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setLightboxIdx(null)}
+              onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <button onClick={e => { e.stopPropagation(); setLightboxIdx(null) }}
+                style={{ ...LB_BTN, position: 'absolute', top: 16, right: 16 }}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, width: '100%', justifyContent: 'center' }}
+                onClick={e => e.stopPropagation()}>
+                {n > 1 && <button style={LB_BTN} onClick={() => navigate(-1)}>→</button>}
+                <AnimatePresence mode="wait" custom={dir}>
+                  <motion.img
+                    key={lightboxIdx}
+                    src={items[lightboxIdx]?.url}
+                    alt={items[lightboxIdx]?.caption || ''}
+                    custom={dir}
+                    variants={{
+                      enter: d => ({ opacity: 0, x: d * 80 }),
+                      center: { opacity: 1, x: 0 },
+                      exit: d => ({ opacity: 0, x: d * -80 }),
+                    }}
+                    initial="enter" animate="center" exit="exit"
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ maxWidth: '80vw', maxHeight: '74vh', objectFit: 'contain',
+                      borderRadius: 14, boxShadow: '0 24px 80px rgba(0,0,0,0.6)', flexShrink: 0 }}
+                  />
+                </AnimatePresence>
+                {n > 1 && <button style={LB_BTN} onClick={() => navigate(1)}>←</button>}
+              </div>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+                onClick={e => e.stopPropagation()}>
+                {items[lightboxIdx]?.caption && (
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                    {items[lightboxIdx].caption}
                   </div>
                 )}
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>
@@ -475,6 +625,11 @@ export function HomePage() {
   const portfolioMode = settings?.portfolio_view_mode
     || localStorage.getItem('portfolio_view_mode')
     || 'grid'
+
+  // gallery display mode: 'fan' | 'polaroid'
+  const galleryMode = settings?.gallery_mode
+    || localStorage.getItem('gallery_mode')
+    || 'fan'
 
   // booking flow: 'multistep' | 'all-in-one'
   const bookingFlow = settings?.booking_flow
@@ -998,9 +1153,11 @@ export function HomePage() {
           </div>
           <motion.h2 initial={{ opacity: 0, scale: 0.82, y: 40 }} whileInView={{ opacity: 1, scale: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }} style={{ fontSize: 'clamp(1.45rem,4.5vw,1.8rem)', fontWeight: 900, letterSpacing: '-.025em', lineHeight: 1.1, color: 'var(--color-text)', marginTop: 8, marginBottom: 18 }}>{BUSINESS.address}</motion.h2>
 
-          {/* Fan gallery */}
+          {/* Gallery */}
           {galleryItems.filter(g => g.type === 'image').length > 0 && (
-            <FanGallery items={galleryItems.filter(g => g.type === 'image')} />
+            galleryMode === 'polaroid'
+              ? <PolaroidGallery items={galleryItems.filter(g => g.type === 'image')} />
+              : <FanGallery items={galleryItems.filter(g => g.type === 'image')} />
           )}
 
           {/* v6 location card */}
