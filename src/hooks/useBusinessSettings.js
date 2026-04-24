@@ -77,8 +77,7 @@ const DEFAULT_SETTINGS = {
   gap_closer_notification_channel: 'push',  // 'push' | 'whatsapp'
   // Invoicing / financial subsystem toggle
   invoicing_enabled: true,
-  // Gallery display mode
-  gallery_mode: 'fan', // 'fan' | 'polaroid'
+  // gallery_mode intentionally omitted — uses localStorage fallback pattern like portfolio_view_mode / booking_flow
 }
 
 export function useBusinessSettings() {
