@@ -186,7 +186,7 @@ export function Confirmation() {
           // #4 — admin push: new booking
           const { data: admins } = await supabase
             .from('profiles').select('push_token').eq('role', 'admin').not('push_token', 'is', null)
-          const adminTokens = (admins || []).map((a: any) => a.push_token).filter(Boolean)
+          const adminTokens = (admins || []).map((a) => a.push_token).filter(Boolean)
           if (adminTokens.length > 0) {
             supabase.functions.invoke('send-push', {
               body: {
