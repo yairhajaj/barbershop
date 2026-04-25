@@ -3,11 +3,10 @@ import { motion } from 'framer-motion'
 import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useBranch } from '../../../contexts/BranchContext'
-import { formatILS, getBiMonthlyPeriods, hasVat, downloadCSV } from '../../../lib/finance'
+import { formatILS, getBiMonthlyPeriods, hasVat } from '../../../lib/finance'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
-import { generateSampleFiles } from '../../../lib/bookxTaxExport'
 
 const PERIOD_TYPES = [
   { value: 'monthly',    label: 'חודשי' },
@@ -69,7 +68,6 @@ export function TaxReportTab() {
   const [periodIdx, setPeriodIdx]     = useState(0)
   const [loading, setLoading]         = useState(false)
   const [showAccountant, setShowAccountant] = useState(false)
-  const [sampleLoading, setSampleLoading]   = useState(false)
 
   const [incomeRows, setIncomeRows]     = useState([])
   const [expenseRows, setExpenseRows]   = useState([])
@@ -166,21 +164,6 @@ export function TaxReportTab() {
   const profit         = totalIncome - totalExpenses
   const netVat         = totalIncomeVat - totalExpVat
 
-  function handleExportCSV() {
-    const headers = ['קטגוריה', 'סוג', 'פריטים', 'סכום', ...(showVat ? ['מע"מ'] : [])]
-    const rows = [
-      ...incomeRows.map(r  => [r.category,              'הכנסה', r.count, r.amount,  ...(showVat ? [r.vatAmount]  : [])]),
-      ...expenseRows.map(r => [`${r.icon} ${r.category}`, 'הוצאה', r.count, r.amount, ...(showVat ? [r.vatAmount] : [])]),
-      [],
-      ['סה"כ הכנסות', '', incomeCount, totalIncome,   ...(showVat ? [totalIncomeVat] : [])],
-      ['סה"כ הוצאות', '', expenseCount, totalExpenses, ...(showVat ? [totalExpVat]    : [])],
-      ['רווח גולמי',  '', '',           profit],
-      ...(showVat ? [['מע"מ לתשלום', '', '', '', netVat]] : []),
-    ]
-    downloadCSV(headers, rows, `report-${currentPeriod?.startDate}-${currentPeriod?.endDate}.csv`)
-    showToast({ message: 'הקובץ הורד בהצלחה', type: 'success' })
-  }
-
   function buildWhatsAppText() {
     const lines = [
       `📊 דוח ריכוז — ${currentPeriod?.label}`,
@@ -206,24 +189,6 @@ export function TaxReportTab() {
     const intl  = phone.startsWith('0') ? `972${phone.slice(1)}` : phone
     window.open(`https://wa.me/${intl}?text=${encodeURIComponent(buildWhatsAppText())}`, '_blank')
     setShowAccountant(false)
-  }
-
-  async function handleExportSample() {
-    setSampleLoading(true)
-    try {
-      const { blob, totalRecords, counts, docTypeSummary, primaryId, dirPrefix } = await generateSampleFiles(600)
-      const url = URL.createObjectURL(blob)
-      const a   = document.createElement('a')
-      a.href    = url
-      a.download = 'BOOKX_DEMO_simulator.zip'
-      a.click()
-      URL.revokeObjectURL(url)
-      showToast({ message: `קובץ דמה הופק — ${totalRecords} רשומות. פתח את תיקיית "מסמכי_רישום" ב-ZIP`, type: 'success' })
-    } catch (err) {
-      showToast({ message: err.message, type: 'error' })
-    } finally {
-      setSampleLoading(false)
-    }
   }
 
   return (
@@ -370,24 +335,6 @@ export function TaxReportTab() {
                 📤 שלח לרואה חשבון
               </button>
               <span className="text-xs" style={{ color: 'var(--color-muted)' }}>ריכוז הכנסות/הוצאות + מע״מ בWhatsApp</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <button onClick={handleExportCSV}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-                📥 ייצוא CSV
-              </button>
-              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>טבלה לפי קטגוריה — לייבוא לחשבשבת/אקסל</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={handleExportSample}
-                disabled={sampleLoading}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
-                {sampleLoading ? '⏳ מכין...' : '🧪 קובץ דמה לסימולטור'}
-              </button>
-              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>600 רשומות דמה לאימות בסימולטור הממשלתי</span>
             </div>
           </div>
         </>
