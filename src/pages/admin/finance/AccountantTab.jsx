@@ -3,7 +3,6 @@ import JSZip from 'jszip'
 import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useToast } from '../../../components/ui/Toast'
-import { Spinner } from '../../../components/ui/Spinner'
 import { sendEmail } from '../../../lib/email'
 import { generateFinancialReport, downloadWorkbook, generateWorkLog } from '../../../lib/xlsx-report'
 
@@ -334,43 +333,57 @@ export function AccountantTab() {
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <ActionCard
-          icon="📥"
-          title="הורד קבלות ZIP"
-          description="צילומי כל קבלות ההוצאות בטווח — קובץ ZIP להורדה מקומית"
-          busy={busy === 'receipts-dl'}
-          onClick={downloadReceiptsZip}
-        />
-        <ActionCard
-          icon="📸"
-          title="שלח קבלות לרואה חשבון"
-          description="מייל לרו״ח עם קישורים לכל צילומי הקבלות + טבלת סיכום הוצאות"
-          busy={busy === 'receipts'}
-          onClick={sendReceipts}
-        />
-        <ActionCard
-          icon="📊"
-          title="הורד דוח פיננסי Excel"
-          description="6 גיליונות: סיכום, הכנסות, הוצאות, עמלות, חובות, הכנסות ידניות"
-          busy={busy === 'report'}
-          onClick={downloadReport}
-        />
-        <ActionCard
-          icon="🧾"
-          title="שלח דוח Excel לרואה חשבון"
-          description="מייל לרו״ח עם קישור הורדה לקובץ Excel (קישור תקף 7 ימים)"
-          busy={busy === 'invoices'}
-          onClick={sendInvoicesReport}
-        />
-        <ActionCard
-          icon="📋"
-          title="יומן עבודה"
-          description="כל התורים כולל מבוטלים, ממוין לפי תאריך — לצורך ביקורת מס (הוראות ניהול ספרים)"
-          busy={busy === 'worklog'}
-          onClick={downloadWorkLogReport}
-        />
+      {/* Section cards — grouped download + send */}
+      <div className="space-y-3">
+
+        {/* קבלות הוצאות */}
+        <div className="card p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <span className="text-2xl leading-none">🧾</span>
+            <div>
+              <p className="font-bold text-sm" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>קבלות הוצאות</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+                צילומי קבלות ההוצאות לתקופה הנבחרת — להורדה מקומית או שליחה לרו״ח
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <SectionBtn busy={busy === 'receipts-dl'} onClick={downloadReceiptsZip} label="📥 הורד ZIP" />
+            <SectionBtn busy={busy === 'receipts'}    onClick={sendReceipts}        label="📤 שלח לרו״ח" primary />
+          </div>
+        </div>
+
+        {/* דוח פיננסי Excel */}
+        <div className="card p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <span className="text-2xl leading-none">📊</span>
+            <div>
+              <p className="font-bold text-sm" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>דוח פיננסי Excel</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+                6 גיליונות: סיכום, הכנסות, הוצאות, עמלות, חובות, הכנסות ידניות
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <SectionBtn busy={busy === 'report'}   onClick={downloadReport}      label="📥 הורד" />
+            <SectionBtn busy={busy === 'invoices'} onClick={sendInvoicesReport}  label="📤 שלח לרו״ח" primary />
+          </div>
+        </div>
+
+        {/* יומן עבודה */}
+        <div className="card p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <span className="text-2xl leading-none">📋</span>
+            <div>
+              <p className="font-bold text-sm" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>יומן עבודה</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+                כל התורים כולל מבוטלים, ממוין לפי תאריך — לצורך ביקורת מס (הוראות ניהול ספרים)
+              </p>
+            </div>
+          </div>
+          <SectionBtn busy={busy === 'worklog'} onClick={downloadWorkLogReport} label="📥 הורד Excel" />
+        </div>
+
       </div>
 
       {/* Legal notice */}
@@ -383,29 +396,18 @@ export function AccountantTab() {
   )
 }
 
-function ActionCard({ icon, title, description, busy, onClick, variant }) {
+function SectionBtn({ busy, onClick, label, primary }) {
   return (
     <button
       onClick={onClick}
       disabled={busy}
-      className="card p-4 text-right transition-all hover:scale-[1.01] disabled:opacity-60 disabled:cursor-wait"
-      style={{
-        background: variant === 'tax' ? 'var(--color-gold-tint)' : 'var(--color-card)',
-        border: `1px solid ${variant === 'tax' ? 'var(--color-gold-ring)' : 'var(--color-border)'}`,
-        cursor: busy ? 'wait' : 'pointer',
-      }}
+      className="flex-1 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
+      style={primary
+        ? { background: 'var(--color-gold)', color: '#fff', border: '1px solid var(--color-gold)' }
+        : { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }
+      }
     >
-      <div className="flex items-start gap-3">
-        <div className="text-3xl leading-none">{busy ? <Spinner size="sm" /> : icon}</div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm mb-1" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
-            {title}
-          </p>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-            {description}
-          </p>
-        </div>
-      </div>
+      {busy ? '⏳' : label}
     </button>
   )
 }
