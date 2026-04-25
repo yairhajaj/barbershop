@@ -724,9 +724,9 @@ export function HomePage() {
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: layout === 'luxury' ? '75vh' : '48vh',
-          minHeight: layout === 'luxury' ? '75vh' : 260,
-          maxHeight: layout === 'luxury' ? 'none' : 360,
+          height: layout === 'luxury' ? '75vh' : '44vh',
+          minHeight: layout === 'luxury' ? '75vh' : 240,
+          maxHeight: layout === 'luxury' ? 'none' : 340,
           overflow: 'hidden',
           background: '#0a0806',
         }}
@@ -839,7 +839,7 @@ export function HomePage() {
         </motion.section>
 
         {/* ── CTA BUTTON ───────────────────────────────────────── */}
-        <section className="px-5 pt-5 pb-6">
+        <section className="px-5 pt-8 pb-10">
           <Link
             to={bookHref}
             className="v6-cta-btn"
