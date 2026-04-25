@@ -4031,9 +4031,10 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
 function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const [lpActive, setLpActive] = useState(false)
-  const lpTimer = useRef(null)
-  const startX = useRef(0)
-  const startY = useRef(0)
+  const lpTimer  = useRef(null)
+  const startX   = useRef(0)
+  const startY   = useRef(0)
+  const hasMoved = useRef(false)
 
   let borderTop
   if (isHour)       borderTop = '1.5px solid var(--color-border)'
@@ -4056,16 +4057,22 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
         backgroundColor: isOver || lpActive ? 'var(--color-gold-tint)' : 'transparent',
       }}
       onPointerDown={e => {
+        hasMoved.current = false
         startX.current = e.clientX
         startY.current = e.clientY
         lpTimer.current = setTimeout(() => setLpActive(true), 500)
       }}
       onPointerMove={e => {
-        if (lpTimer.current && (Math.abs(e.clientX - startX.current) > 10 || Math.abs(e.clientY - startY.current) > 10)) clearLP()
+        if (Math.abs(e.clientX - startX.current) > 10 || Math.abs(e.clientY - startY.current) > 10) {
+          hasMoved.current = true
+          clearLP()
+        }
       }}
-      onPointerUp={clearLP}
+      onPointerUp={() => {
+        clearLP()
+        if (!hasMoved.current) onEmptyClick()
+      }}
       onPointerCancel={clearLP}
-      onClick={onEmptyClick}
     />
   )
 }
