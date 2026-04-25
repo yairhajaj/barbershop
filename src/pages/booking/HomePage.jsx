@@ -662,25 +662,17 @@ export function HomePage() {
   }
 
   // ── v6 glass panel style ──────────────────────────────────────────
-  const glassPanel = isDark
-    ? {
-        position: 'relative', zIndex: 10, marginTop: -120,
-        borderRadius: isScrolled ? '24px 24px 0 0' : '0',
-        transition: 'border-radius 0.35s ease',
-        background: 'rgba(18,14,10,0.92)',
-        borderTop: 'none',
-        boxShadow: 'none',
-        minHeight: '60vh',
-      }
-    : {
-        position: 'relative', zIndex: 10, marginTop: -120,
-        borderRadius: isScrolled ? '24px 24px 0 0' : '0',
-        transition: 'border-radius 0.35s ease',
-        background: 'rgba(243,240,234,0.92)',
-        borderTop: 'none',
-        boxShadow: 'none',
-        minHeight: '60vh',
-      }
+  const _panelBg = isDark ? 'rgba(18,14,10,0.92)' : 'rgba(243,240,234,0.92)'
+  const glassPanel = {
+    position: 'relative', zIndex: 10, marginTop: -120,
+    borderRadius: isScrolled ? '24px 24px 0 0' : '0',
+    transition: 'border-radius 0.35s ease',
+    background: isScrolled
+      ? _panelBg
+      : `linear-gradient(to bottom, transparent 0px, ${_panelBg} 120px)`,
+    borderTop: 'none', boxShadow: 'none',
+    minHeight: '60vh',
+  }
 
   return (
     <div style={{ position: 'relative' }}>
