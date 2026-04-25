@@ -610,8 +610,9 @@ export function HomePage() {
         const radius = Math.round(progress * 24)
         const dark = isDarkRef.current
         const fr = layoutRef.current === 'frosted'
-        const bg0 = dark ? 'rgba(18,14,10,0)' : (fr ? 'rgba(188,183,175,0)' : 'rgba(243,240,234,0)')
-        const bg1 = dark ? 'rgba(18,14,10,0.92)' : (fr ? 'rgba(188,183,175,0.85)' : 'rgba(243,240,234,0.92)')
+        // frosted: interpolate white→Branja-grey as scroll progresses
+        const bg0 = dark ? 'rgba(18,14,10,0)' : (fr ? `rgba(${Math.round(255-67*progress)},${Math.round(255-72*progress)},${Math.round(255-80*progress)},0)` : 'rgba(243,240,234,0)')
+        const bg1 = dark ? 'rgba(18,14,10,0.92)' : (fr ? `rgba(${Math.round(255-67*progress)},${Math.round(255-72*progress)},${Math.round(255-80*progress)},${(0.92-0.07*progress).toFixed(2)})` : 'rgba(243,240,234,0.92)')
         const gradStop = Math.round(OVERLAP * (1 - progress))
         panelRef.current.style.borderRadius = `${radius}px ${radius}px 0 0`
         panelRef.current.style.background = gradStop > 0
@@ -679,9 +680,9 @@ export function HomePage() {
   const isFrosted = layout === 'frosted'
   const _panelBg     = isDark
     ? 'rgba(18,14,10,0.92)'
-    : (isFrosted ? 'rgba(188,183,175,0.85)' : 'rgba(228,225,220,0.95)')
+    : (isFrosted ? 'rgba(255,255,255,0.92)' : 'rgba(228,225,220,0.95)')
   const _panelBgZero = isDark ? 'rgba(18,14,10,0)'
-    : (isFrosted ? 'rgba(188,183,175,0)' : 'rgba(228,225,220,0)')
+    : (isFrosted ? 'rgba(255,255,255,0)' : 'rgba(228,225,220,0)')
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: '0',
