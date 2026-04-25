@@ -103,6 +103,7 @@ export function Appointments() {
   const [gapAlert, setGapAlert] = useState(null)
   const cascadeTimerRef = useRef(null)
   const swipeStartX = useRef(null)
+  const swipeStartTime = useRef(null)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
   const [savingEvent, setSavingEvent] = useState(false)
@@ -1688,10 +1689,11 @@ export function Appointments() {
       {/* ── Calendar Content ── */}
       <div
         className="flex-1 overflow-hidden"
-        onTouchStart={e => { swipeStartX.current = e.touches[0].clientX }}
+        onTouchStart={e => { swipeStartX.current = e.touches[0].clientX; swipeStartTime.current = Date.now() }}
         onTouchEnd={e => {
           const dx = e.changedTouches[0].clientX - swipeStartX.current
-          if (Math.abs(dx) > 50) dx < 0 ? navigate(1) : navigate(-1)
+          const dt = Date.now() - swipeStartTime.current
+          if (Math.abs(dx) > 60 && dt < 300) dx > 0 ? navigate(1) : navigate(-1)
         }}
       >
       {loading ? (
@@ -4031,10 +4033,12 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
 function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const [lpActive, setLpActive] = useState(false)
-  const lpTimer  = useRef(null)
-  const startX   = useRef(0)
-  const startY   = useRef(0)
-  const hasMoved = useRef(false)
+  const lpTimer    = useRef(null)
+  const startX     = useRef(0)
+  const startY     = useRef(0)
+  const hasMoved   = useRef(false)
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
 
   let borderTop
   if (isHour)       borderTop = '1.5px solid var(--color-border)'
@@ -4055,6 +4059,7 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
         height,
         borderTop: lpActive ? '2px dashed var(--color-gold)' : borderTop,
         backgroundColor: isOver || lpActive ? 'var(--color-gold-tint)' : 'transparent',
+        touchAction: 'manipulation',
       }}
       onPointerDown={e => {
         hasMoved.current = false
@@ -4073,6 +4078,15 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
         if (!hasMoved.current) onEmptyClick()
       }}
       onPointerCancel={clearLP}
+      onTouchStart={e => {
+        touchStartX.current = e.touches[0].clientX
+        touchStartY.current = e.touches[0].clientY
+      }}
+      onTouchEnd={e => {
+        const dx = Math.abs(e.changedTouches[0].clientX - touchStartX.current)
+        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+        if (dx < 10 && dy < 10) onEmptyClick()
+      }}
     />
   )
 }
