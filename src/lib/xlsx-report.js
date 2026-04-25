@@ -228,7 +228,7 @@ export async function buildWorkbook({ from, to, settings, data }) {
     const r = wsIncome.addRow([
       i.invoice_number,
       fmtDate(i.created_at),
-      i.customer_name  || '',
+      i.customer_name  || 'לקוח מזדמן',
       i.customer_phone || '',
       i.service_name   || '',
       i.staff_name     || '',
@@ -518,7 +518,7 @@ export async function generateWorkLog({ from, to, settings }) {
       fmtDateDMY(appt.start_at),
       DAYS_HE[d.getDay()],
       timeStr,
-      appt.profiles?.name        || '',
+      appt.profiles?.name        || 'לקוח מזדמן',
       appt.profiles?.phone       || '',
       appt.services?.name        || '',
       appt.staff?.name           || '',
@@ -589,7 +589,7 @@ export async function generateInvoicesExcel({ invoices, settings }) {
     const r = ws.addRow([
       inv.invoice_number || '',
       fmtDate(inv.service_date || inv.created_at),
-      inv.customer_name  || '',
+      inv.customer_name  || 'לקוח מזדמן',
       inv.customer_phone || '',
       inv.service_name   || '',
       inv.staff_name     || '',
