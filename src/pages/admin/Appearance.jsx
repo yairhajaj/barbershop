@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useTheme, THEMES, LAYOUTS } from '../../contexts/ThemeContext'
 import { useBusinessGallery } from '../../hooks/useBusinessGallery'
 import { useBusinessSettings } from '../../hooks/useBusinessSettings'
@@ -9,15 +9,10 @@ import { useToast } from '../../components/ui/Toast'
 import { supabase } from '../../lib/supabase'
 
 export function Appearance() {
-  const { theme, layout, previewTheme, previewLayout, cancelPreview, saveTheme, saveLayout } = useTheme()
+  const { theme, layout, saveTheme, saveLayout } = useTheme()
   const { items, loading, addItem, deleteItem } = useBusinessGallery()
   const { settings, saveSettings } = useBusinessSettings()
   const toast = useToast()
-
-  // Theme/layout
-  const [pendingTheme,  setPendingTheme]  = useState(null)
-  const [pendingLayout, setPendingLayout] = useState(null)
-  const [saving, setSaving] = useState(false)
 
   // ── Storage bucket status ──────────────────────────────────────
   const [bucketOk, setBucketOk] = useState(null) // null=checking, true=ok, false=missing
@@ -106,23 +101,6 @@ export function Appearance() {
     toast({ message: flow === 'multistep' ? 'מצב רב-שלבי פעיל ✓' : 'מצב עמוד אחד פעיל ✓', type: 'success' })
   }
 
-  // ── Floating / Parallax ───────────────────────────────────────
-  const [floating, setFloating] = useState(
-    localStorage.getItem('floating') === 'true'
-  )
-
-  useEffect(() => {
-    if (settings?.floating !== undefined) setFloating(!!settings.floating)
-  }, [settings?.floating])
-
-  async function handleToggleFloating() {
-    const next = !floating
-    setFloating(next)
-    localStorage.setItem('floating', String(next))
-    saveSettings({ floating: next }).catch(() => {})
-    toast({ message: next ? 'אפקט ריחוף פעיל ✓' : 'ריחוף כבוי', type: 'success' })
-  }
-
   // ── Gallery mode ───────────────────────────────────────────────
   const [galleryMode, setGalleryMode] = useState(
     localStorage.getItem('gallery_mode') || 'fan'
@@ -165,27 +143,14 @@ export function Appearance() {
     }
   }
 
-  // ── Theme / Layout ─────────────────────────────────────────────
-  const hasChanges = pendingTheme !== null || pendingLayout !== null
-  const activeTheme  = pendingTheme  ?? theme
-  const activeLayout = pendingLayout ?? layout
-
-  function selectTheme(t)  { setPendingTheme(t);  previewTheme(t) }
-  function selectLayout(l) { setPendingLayout(l); previewLayout(l) }
-  function handleCancel()  { cancelPreview(); setPendingTheme(null); setPendingLayout(null) }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      if (pendingTheme  !== null) await saveTheme(pendingTheme)
-      if (pendingLayout !== null) await saveLayout(pendingLayout)
-      setPendingTheme(null); setPendingLayout(null)
-      toast({ message: 'עיצוב נשמר — יעודכן בכל המכשירים', type: 'success' })
-    } catch (err) {
-      toast({ message: err.message, type: 'error' })
-    } finally {
-      setSaving(false)
-    }
+  // ── Theme / Layout — immediate save on click ───────────────────
+  async function selectTheme(t) {
+    await saveTheme(t)
+    toast({ message: 'ערכת צבעים עודכנה ✓', type: 'success' })
+  }
+  async function selectLayout(l) {
+    await saveLayout(l)
+    toast({ message: 'סגנון תצוגה עודכן ✓', type: 'success' })
   }
 
   // ── Gallery ────────────────────────────────────────────────────
@@ -234,27 +199,6 @@ export function Appearance() {
           </p>
         </div>
       )}
-      {/* Preview banner */}
-      <AnimatePresence>
-        {hasChanges && (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
-            className="flex items-center justify-between p-4 rounded-2xl border"
-            style={{ background: 'var(--color-gold-tint)', borderColor: 'var(--color-gold)' }}
-          >
-            <div>
-              <p className="font-semibold text-sm" style={{ color: 'var(--color-gold)' }}>תצוגה מוקדמת פעילה</p>
-              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>צופה בשינויים — שמור כדי שייראו בכל המכשירים</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleCancel} className="btn-outline text-sm px-4 py-2">ביטול</button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary text-sm px-4 py-2">
-                {saving ? 'שומר...' : 'שמור עיצוב'}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── HOMEPAGE CONTENT ────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
@@ -425,10 +369,10 @@ export function Appearance() {
       {/* ── THEME ───────────────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
         <h2 className="font-semibold text-lg mb-1">ערכת צבעים</h2>
-        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>לחץ לתצוגה מוקדמת — השינוי יופיע מיד</p>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>לחץ על ערכה — השינוי נשמר מיד בכל המכשירים</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {THEMES.map(th => {
-            const active = activeTheme === th.id
+            const active = theme === th.id
             return (
               <button key={th.id} type="button" onClick={() => selectTheme(th.id)}
                 className="p-4 rounded-2xl border-2 text-right transition-all hover:scale-[1.02]"
@@ -451,10 +395,10 @@ export function Appearance() {
       {/* ── LAYOUT ──────────────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card p-6">
         <h2 className="font-semibold text-lg mb-1">סגנון תצוגה</h2>
-        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>3 חוויות UI/UX שונות לגמרי — לחץ כדי לראות הבדל</p>
+        <p className="text-sm mb-5" style={{ color: 'var(--color-muted)' }}>לחץ על סגנון — השינוי נשמר מיד בכל המכשירים</p>
         <div className="grid grid-cols-3 gap-3">
           {LAYOUTS.map(lay => {
-            const active = activeLayout === lay.id
+            const active = layout === lay.id
             return (
               <button key={lay.id} type="button" onClick={() => selectLayout(lay.id)}
                 className="p-5 border-2 text-right transition-all"
@@ -483,45 +427,6 @@ export function Appearance() {
         </div>
       </motion.section>
 
-      {/* ── FLOATING EFFECT ─────────────────────────────────────── */}
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
-        <h2 className="font-semibold text-lg mb-1">אפקט ריחוף</h2>
-        <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>התוכן מרחף מעל הרקע בגלילה — אפקט עומק קולנועי</p>
-        <button
-          type="button"
-          onClick={handleToggleFloating}
-          className="w-full p-4 rounded-2xl border-2 text-right transition-all"
-          style={{
-            borderColor: floating ? 'var(--color-gold)' : 'var(--color-border)',
-            background:  floating ? 'var(--color-gold-tint)' : 'var(--color-card)',
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <span className="text-3xl">🌊</span>
-            <div className="flex-1">
-              <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--color-text)' }}>ריחוף דף הבית</div>
-              <div className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                {floating
-                  ? 'פעיל — הרקע נשאר מאחורה, התוכן עולה מעליו עם blur ו-fade'
-                  : 'כבוי — גלילה רגילה ללא אפקט'}
-              </div>
-            </div>
-            {/* Toggle switch */}
-            <div
-              className="relative w-12 h-6 rounded-full transition-colors shrink-0"
-              style={{ background: floating ? 'var(--color-gold)' : '#d1d5db' }}
-            >
-              <div
-                className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-                style={{ right: floating ? '2px' : 'calc(100% - 22px)' }}
-              />
-            </div>
-          </div>
-          {floating && (
-            <div className="mt-3 text-xs font-bold" style={{ color: 'var(--color-gold)' }}>✓ פעיל</div>
-          )}
-        </button>
-      </motion.section>
 
       {/* ── PORTFOLIO MODE ──────────────────────────────────────── */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card p-6">

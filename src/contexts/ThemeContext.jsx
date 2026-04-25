@@ -34,12 +34,6 @@ export const THEMES = [
     preview: ['#0f1025', '#818cf8', '#1a1b3a'],
   },
   {
-    id: 'obsidian',
-    name: 'אובסידיאן',
-    desc: 'שחור עמוק עם זהב חם — פרימיום וגלאס',
-    preview: ['#06080F', '#F59E0B', '#0f1219'],
-  },
-  {
     id: 'hot-pink',
     name: 'ורוד זוהר',
     desc: 'ורוד בוהק ומרגש — אנרגטי ומודרני',
@@ -49,12 +43,6 @@ export const THEMES = [
 
 export const LAYOUTS = [
   {
-    id: 'modern',
-    name: 'מודרני',
-    desc: 'כרטיסים צפים עם פינות עגולות — סגנון אפליקציה',
-    icon: '⬭',
-  },
-  {
     id: 'luxury',
     name: 'פרימיום',
     desc: 'גלאס כהה פרימיום — זכוכית מטושטשת על רקע כהה, כמו דף כניסה',
@@ -62,7 +50,7 @@ export const LAYOUTS = [
   },
   {
     id: 'glass',
-    name: 'זכוכית צפה',
+    name: 'בהיר',
     desc: 'זכוכית מקפיאה — iOS, שקיפות ו-blur קינמטי',
     icon: '◻',
   },
