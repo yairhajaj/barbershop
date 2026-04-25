@@ -593,7 +593,7 @@ export function HomePage() {
   useEffect(() => {
     const root = document.getElementById('root')
     const target = root ?? window
-    const OVERLAP = 40   // must match gradient stop in glassPanel
+    const OVERLAP = 30   // must match gradient stop in glassPanel
     const BLEND_OVER = 80 // px of scroll to complete the transition
 
     const handle = () => {
@@ -678,7 +678,7 @@ export function HomePage() {
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: '0',
-    background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 40px)`,
+    background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 30px)`,
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
@@ -824,7 +824,7 @@ export function HomePage() {
         {/* ── GREETING ─────────────────────────────────────────── */}
         <motion.section
           className="px-5 pb-0"
-          style={{ position: 'relative', zIndex: 1, paddingTop: 50 }}
+          style={{ position: 'relative', zIndex: 1, paddingTop: 35 }}
           initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
