@@ -1182,15 +1182,83 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   LAYOUT: frosted — זכוכית מטושטשת (Branja-style translucent panel)
+   LAYOUT: frosted — זכוכית מטושטשת (exact glass clone, warm grey tone)
    ══════════════════════════════════════════════════════════════════ */
-[data-layout="frosted"] .v6-frosted-panel {
-  backdrop-filter: blur(36px) saturate(1.6) !important;
-  -webkit-backdrop-filter: blur(36px) saturate(1.6) !important;
-  /* Fade-in mask: top 28px transparent → no sharp blur boundary at the seam */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 28px);
-  mask-image: linear-gradient(to bottom, transparent 0px, black 28px);
+[data-layout="frosted"] {
+  --radius-card: 1.75rem;
+  --radius-btn: 9999px;
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(210,207,202,0.5);
+  --shadow-elevated: 0 20px 60px rgba(0,0,0,0.18);
 }
+
+[data-layout="frosted"] body { background: var(--color-surface); }
+
+[data-layout="frosted"] .booking-root .floating-content-wrapper {
+  background: rgba(210,207,202,0.10);
+  backdrop-filter: blur(52px) saturate(2.2);
+  -webkit-backdrop-filter: blur(52px) saturate(2.2);
+  border-top: 1px solid rgba(210,207,202,0.30);
+  border-radius: 2rem 2rem 0 0;
+}
+
+[data-layout="frosted"] .booking-root .floating-content-wrapper > section {
+  background: transparent !important;
+}
+
+[data-layout="frosted"] .booking-root .card {
+  background: rgba(210,207,202,0.22) !important;
+  backdrop-filter: blur(24px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.8) !important;
+  border: 1px solid rgba(210,207,202,0.45) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(210,207,202,0.6) !important;
+  border-radius: 1.75rem !important;
+}
+
+[data-layout="frosted"] .booking-root .booking-item-list { gap: 0.75rem !important; }
+[data-layout="frosted"] .booking-root .booking-item-list > * {
+  border-radius: 1.5rem !important;
+  background: rgba(210,207,202,0.26) !important;
+  backdrop-filter: blur(20px) saturate(1.6) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+  border: 1px solid rgba(210,207,202,0.45) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(210,207,202,0.55) !important;
+}
+
+[data-layout="frosted"] .booking-root .btn-primary {
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 20px var(--color-accent-glow), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+[data-layout="frosted"] .booking-root .btn-primary:hover {
+  transform: translateY(-2px) scale(1.03) !important;
+  box-shadow: 0 8px 30px var(--color-accent-glow), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+[data-layout="frosted"] .booking-root .btn-outline {
+  border-radius: 9999px !important;
+  background: rgba(210,207,202,0.18) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(210,207,202,0.42) !important;
+}
+[data-layout="frosted"] .booking-root .input {
+  border-radius: 9999px !important;
+  background: rgba(210,207,202,0.35) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(210,207,202,0.45) !important;
+}
+[data-layout="frosted"] .booking-root .input:focus {
+  background: rgba(210,207,202,0.50) !important;
+  border-color: var(--color-gold) !important;
+}
+
+[data-layout="frosted"] .booking-root .booking-navbar {
+  background: rgba(210,207,202,0.68) !important;
+  backdrop-filter: blur(28px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.8) !important;
+  border-bottom: 1px solid rgba(210,207,202,0.45) !important;
+}
+[data-layout="frosted"] .booking-root .hero-section { min-height: 75vh !important; }
 
 /* ══════════════════════════════════════════════════════════════════
    LAYOUT: beauty — ביוטי (feminine / soft / cosmetic)
