@@ -3,7 +3,6 @@ import JSZip from 'jszip'
 import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useToast } from '../../../components/ui/Toast'
-import { sendEmail } from '../../../lib/email'
 import { generateFinancialReport, downloadWorkbook, generateWorkLog } from '../../../lib/xlsx-report'
 
 function defaultRange() {
@@ -97,9 +96,7 @@ export function AccountantTab() {
     }
   }
 
-  // ─── Action 1b: Send expense receipts email to accountant (links, no attachment) ───
-  // Note: ZIP attachment was removed — Supabase Edge Function has a 6MB request limit.
-  // Instead we embed clickable receipt image links in the email body.
+  // ─── Action 1b: Send receipts — download ZIP then open mailto ───
   async function sendReceipts() {
     if (!requireEmail()) return
     setBusy('receipts')
@@ -111,88 +108,38 @@ export function AccountantTab() {
         .eq('is_cancelled', false)
         .order('date', { ascending: true })
       if (error) throw error
+      if (!expenses?.length) { toast({ message: 'אין הוצאות בטווח זה', type: 'error' }); return }
 
-      if (!expenses?.length) {
-        toast({ message: 'אין הוצאות בטווח זה', type: 'error' })
-        setBusy(null); return
+      const { zipBlob, success } = await buildReceiptsZip(expenses)
+      if (zipBlob) {
+        const url = URL.createObjectURL(zipBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `receipts_${range.from}_${range.to}.zip`
+        a.click()
+        URL.revokeObjectURL(url)
       }
 
       const totalAmt = expenses.reduce((s, e) => s + Number(e.amount || 0), 0)
-      const totalVat = expenses.reduce((s, e) => s + Number(e.vat_amount || 0), 0)
-      let receiptCount = 0
-
-      const rows = expenses.map(e => {
-        const urls = [e.receipt_url, ...(e.receipt_urls || [])].filter(Boolean)
-        receiptCount += urls.length
-        const receiptLinks = urls.length
-          ? urls.map((u, i) => `<a href="${u}" target="_blank" style="color:#c9a96e;margin-left:6px;">קבלה ${urls.length > 1 ? i + 1 : ''}</a>`).join(' ')
-          : '<span style="color:#aaa;">—</span>'
-        return `
-        <tr>
-          <td style="padding:6px 10px;border:1px solid #eee;">${e.date || ''}</td>
-          <td style="padding:6px 10px;border:1px solid #eee;">${e.vendor_name || ''}</td>
-          <td style="padding:6px 10px;border:1px solid #eee;">${e.description || ''}</td>
-          <td style="padding:6px 10px;border:1px solid #eee;">${e.expense_categories?.name || ''}</td>
-          <td style="padding:6px 10px;border:1px solid #eee;text-align:left;">₪${Number(e.amount || 0).toLocaleString('he-IL')}</td>
-          <td style="padding:6px 10px;border:1px solid #eee;text-align:left;">₪${Number(e.vat_amount || 0).toLocaleString('he-IL')}</td>
-          <td style="padding:6px 10px;border:1px solid #eee;">${receiptLinks}</td>
-        </tr>`
-      }).join('')
-
-      const html = `
-        <div dir="rtl" style="font-family:Arial,sans-serif;max-width:800px;">
-          <h2 style="color:#c9a96e;margin-bottom:4px;">קבלות הוצאות</h2>
-          <p style="margin:0 0 16px;font-size:14px;color:#555;">
-            <b>עסק:</b> ${settings?.business_name || ''} &nbsp;|&nbsp;
-            <b>ת.ז./עוסק:</b> ${settings?.business_tax_id || '—'} &nbsp;|&nbsp;
-            <b>תקופה:</b> ${range.from} עד ${range.to}<br/>
-            <b>הוצאות:</b> ${expenses.length} &nbsp;|&nbsp;
-            <b>קבלות מקושרות:</b> ${receiptCount}
-          </p>
-          <table style="border-collapse:collapse;width:100%;font-size:13px;">
-            <thead>
-              <tr style="background:#f5f5f5;">
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">תאריך</th>
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">ספק</th>
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">תיאור</th>
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">קטגוריה</th>
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">סכום</th>
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">מע״מ</th>
-                <th style="padding:8px 10px;border:1px solid #ddd;text-align:right;">קבלה</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-            <tfoot>
-              <tr style="background:#fafafa;font-weight:bold;">
-                <td colspan="4" style="padding:8px 10px;border:1px solid #ddd;">סה״כ</td>
-                <td style="padding:8px 10px;border:1px solid #ddd;text-align:left;">₪${totalAmt.toLocaleString('he-IL')}</td>
-                <td style="padding:8px 10px;border:1px solid #ddd;text-align:left;">₪${totalVat.toLocaleString('he-IL')}</td>
-                <td style="border:1px solid #ddd;"></td>
-              </tr>
-            </tfoot>
-          </table>
-          <p style="color:#999;font-size:11px;margin-top:16px;">
-            ⬆️ לחיצה על "קבלה" פותחת את הצילום המקורי. לקובץ ZIP של כל הקבלות — בקש מבעל העסק.
-          </p>
-        </div>`
-
-      await sendEmail({
-        to: accountantEmail,
-        subject: `קבלות הוצאות — ${settings?.business_name || ''} — ${range.from} עד ${range.to}`,
-        html,
-      })
-
-      toast({ message: `הדוח נשלח לרואה החשבון ✓ (${expenses.length} הוצאות, ${receiptCount} קישורי קבלה)`, type: 'success' })
+      const subject  = encodeURIComponent(`קבלות הוצאות — ${settings?.business_name || ''} — ${range.from} עד ${range.to}`)
+      const body     = encodeURIComponent(
+        `שלום ${accountantName || 'רואה חשבון'},\n\n` +
+        `מצורף קובץ ZIP עם קבלות ההוצאות לתקופה ${range.from} עד ${range.to}.\n\n` +
+        `פירוט:\n` +
+        `• מספר הוצאות: ${expenses.length}\n` +
+        `• סה״כ: ₪${totalAmt.toLocaleString('he-IL')}\n\n` +
+        `בברכה,\n${settings?.business_name || ''}`
+      )
+      window.location.href = `mailto:${accountantEmail}?subject=${subject}&body=${body}`
+      toast({ message: zipBlob ? `קובץ ZIP הורד (${success} קבלות) — אפליקציית המייל נפתחת` : 'אפליקציית המייל נפתחת', type: 'success' })
     } catch (err) {
-      toast({ message: 'שגיאה בשליחת מייל: ' + (err.message || String(err)), type: 'error' })
+      toast({ message: 'שגיאה: ' + (err.message || String(err)), type: 'error' })
     } finally {
       setBusy(null)
     }
   }
 
-  // ─── Action 2: Send invoices + Excel report to accountant ───
-  // Upload Excel to Supabase Storage (temp), email a signed download link.
-  // This avoids the 6MB Supabase Edge Function request body limit.
+  // ─── Action 2: Send Excel report — download then open mailto ───
   async function sendInvoicesReport() {
     if (!requireEmail()) return
     setBusy('invoices')
@@ -200,54 +147,23 @@ export function AccountantTab() {
       const { arrayBuffer, filename, data } = await generateFinancialReport({
         from: range.from, to: range.to, settings,
       })
-
-      // Upload to temp storage bucket
-      const blob     = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      const path     = `accountant-reports/${Date.now()}_${filename}`
-      const { error: upErr } = await supabase.storage.from('finance-exports').upload(path, blob, {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        upsert: true,
-      })
-      if (upErr) throw new Error('שגיאה בהעלאת קובץ: ' + upErr.message)
-
-      // Signed URL valid 7 days
-      const { data: signed, error: signErr } = await supabase.storage.from('finance-exports').createSignedUrl(path, 60 * 60 * 24 * 7)
-      if (signErr) throw new Error('שגיאה ביצירת לינק: ' + signErr.message)
+      downloadWorkbook(arrayBuffer, filename)
 
       const totalInc = data.invoices.filter(i => !i.is_cancelled).reduce((s, i) => s + Number(i.total_amount || 0), 0)
       const totalExp = data.expenses.filter(e => !e.is_cancelled).reduce((s, e) => s + Number(e.amount || 0), 0)
-
-      const html = `
-        <div dir="rtl" style="font-family:Arial,sans-serif;max-width:720px;">
-          <h2 style="color:#c9a96e;margin-bottom:4px;">דוח חשבוניות והכנסות</h2>
-          <p style="margin:0 0 16px;font-size:14px;color:#555;">
-            <b>עסק:</b> ${settings?.business_name || ''} &nbsp;|&nbsp;
-            <b>מס׳ עוסק:</b> ${settings?.business_tax_id || '—'} &nbsp;|&nbsp;
-            <b>תקופה:</b> ${range.from} עד ${range.to}
-          </p>
-          <table style="border-collapse:collapse;font-size:14px;width:100%;">
-            <tr style="background:#f5f5f5;"><td style="padding:8px 12px;border:1px solid #eee;"><b>חשבוניות פעילות</b></td><td style="padding:8px 12px;border:1px solid #eee;">${data.invoices.filter(i => !i.is_cancelled).length}</td></tr>
-            <tr><td style="padding:8px 12px;border:1px solid #eee;"><b>סה״כ הכנסות</b></td><td style="padding:8px 12px;border:1px solid #eee;">₪${totalInc.toLocaleString('he-IL')}</td></tr>
-            <tr style="background:#f5f5f5;"><td style="padding:8px 12px;border:1px solid #eee;"><b>סה״כ הוצאות</b></td><td style="padding:8px 12px;border:1px solid #eee;">₪${totalExp.toLocaleString('he-IL')}</td></tr>
-            <tr><td style="padding:8px 12px;border:1px solid #eee;"><b>רווח גולמי</b></td><td style="padding:8px 12px;border:1px solid #eee;">₪${(totalInc - totalExp).toLocaleString('he-IL')}</td></tr>
-            <tr style="background:#f5f5f5;"><td style="padding:8px 12px;border:1px solid #eee;"><b>הכנסות ידניות</b></td><td style="padding:8px 12px;border:1px solid #eee;">${data.manualIncome.length} רשומות</td></tr>
-          </table>
-          <p style="margin-top:20px;">
-            <a href="${signed.signedUrl}"
-               style="display:inline-block;background:#c9a96e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">
-              ⬇️ הורד קובץ Excel (6 גיליונות)
-            </a>
-          </p>
-          <p style="color:#999;font-size:11px;margin-top:8px;">הקישור בתוקף ל-7 ימים.</p>
-        </div>`
-
-      await sendEmail({
-        to: accountantEmail,
-        subject: `דוח פיננסי — ${settings?.business_name || ''} — ${range.from} עד ${range.to}`,
-        html,
-      })
-
-      toast({ message: 'הדוח נשלח לרואה החשבון ✓', type: 'success' })
+      const subject  = encodeURIComponent(`דוח פיננסי — ${settings?.business_name || ''} — ${range.from} עד ${range.to}`)
+      const body     = encodeURIComponent(
+        `שלום ${accountantName || 'רואה חשבון'},\n\n` +
+        `מצורף דוח פיננסי Excel לתקופה ${range.from} עד ${range.to}.\n\n` +
+        `סיכום:\n` +
+        `• חשבוניות פעילות: ${data.invoices.filter(i => !i.is_cancelled).length}\n` +
+        `• סה״כ הכנסות: ₪${totalInc.toLocaleString('he-IL')}\n` +
+        `• סה״כ הוצאות: ₪${totalExp.toLocaleString('he-IL')}\n` +
+        `• רווח גולמי: ₪${(totalInc - totalExp).toLocaleString('he-IL')}\n\n` +
+        `בברכה,\n${settings?.business_name || ''}`
+      )
+      window.location.href = `mailto:${accountantEmail}?subject=${subject}&body=${body}`
+      toast({ message: 'הקובץ הורד — אפליקציית המייל נפתחת לצירוף ושליחה', type: 'success' })
     } catch (err) {
       toast({ message: 'שגיאה: ' + (err.message || String(err)), type: 'error' })
     } finally {
