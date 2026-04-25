@@ -1187,17 +1187,17 @@
 [data-layout="frosted"] {
   --radius-card: 1.75rem;
   --radius-btn: 9999px;
-  --shadow-card: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(210,207,202,0.5);
-  --shadow-elevated: 0 20px 60px rgba(0,0,0,0.18);
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.22);
+  --shadow-elevated: 0 20px 60px rgba(0,0,0,0.20);
 }
 
 [data-layout="frosted"] body { background: var(--color-surface); }
 
 [data-layout="frosted"] .booking-root .floating-content-wrapper {
-  background: rgba(210,207,202,0.10);
+  background: rgba(130,130,135,0.07);
   backdrop-filter: blur(52px) saturate(2.2);
   -webkit-backdrop-filter: blur(52px) saturate(2.2);
-  border-top: 1px solid rgba(210,207,202,0.30);
+  border-top: 1px solid rgba(255,255,255,0.20);
   border-radius: 2rem 2rem 0 0;
 }
 
@@ -1206,22 +1206,22 @@
 }
 
 [data-layout="frosted"] .booking-root .card {
-  background: rgba(210,207,202,0.22) !important;
+  background: rgba(130,130,135,0.14) !important;
   backdrop-filter: blur(24px) saturate(1.8) !important;
   -webkit-backdrop-filter: blur(24px) saturate(1.8) !important;
-  border: 1px solid rgba(210,207,202,0.45) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(210,207,202,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.28) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.22) !important;
   border-radius: 1.75rem !important;
 }
 
 [data-layout="frosted"] .booking-root .booking-item-list { gap: 0.75rem !important; }
 [data-layout="frosted"] .booking-root .booking-item-list > * {
   border-radius: 1.5rem !important;
-  background: rgba(210,207,202,0.26) !important;
+  background: rgba(130,130,135,0.16) !important;
   backdrop-filter: blur(20px) saturate(1.6) !important;
   -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
-  border: 1px solid rgba(210,207,202,0.45) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(210,207,202,0.55) !important;
+  border: 1px solid rgba(255,255,255,0.28) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.20) !important;
 }
 
 [data-layout="frosted"] .booking-root .btn-primary {
@@ -1235,28 +1235,28 @@
 }
 [data-layout="frosted"] .booking-root .btn-outline {
   border-radius: 9999px !important;
-  background: rgba(210,207,202,0.18) !important;
+  background: rgba(130,130,135,0.13) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border-color: rgba(210,207,202,0.42) !important;
+  border-color: rgba(255,255,255,0.32) !important;
 }
 [data-layout="frosted"] .booking-root .input {
   border-radius: 9999px !important;
-  background: rgba(210,207,202,0.35) !important;
+  background: rgba(130,130,135,0.22) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(210,207,202,0.45) !important;
+  border: 1px solid rgba(255,255,255,0.28) !important;
 }
 [data-layout="frosted"] .booking-root .input:focus {
-  background: rgba(210,207,202,0.50) !important;
+  background: rgba(130,130,135,0.35) !important;
   border-color: var(--color-gold) !important;
 }
 
 [data-layout="frosted"] .booking-root .booking-navbar {
-  background: rgba(210,207,202,0.68) !important;
+  background: rgba(130,130,135,0.52) !important;
   backdrop-filter: blur(28px) saturate(1.8) !important;
   -webkit-backdrop-filter: blur(28px) saturate(1.8) !important;
-  border-bottom: 1px solid rgba(210,207,202,0.45) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.20) !important;
 }
 [data-layout="frosted"] .booking-root .hero-section { min-height: 75vh !important; }
 
