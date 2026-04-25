@@ -673,14 +673,14 @@ export function HomePage() {
   }
 
   // ── v6 glass panel style ──────────────────────────────────────────
-  const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(243,240,234,0.78)'
-  const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(243,240,234,0)'
+  const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(255,255,255,0.48)'
+  const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(255,255,255,0)'
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: '0',
     background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 18px)`,
-    backdropFilter: isDark ? 'none' : 'blur(22px) saturate(1.6)',
-    WebkitBackdropFilter: isDark ? 'none' : 'blur(22px) saturate(1.6)',
+    backdropFilter: isDark ? 'none' : 'blur(52px) saturate(1.8) brightness(1.05)',
+    WebkitBackdropFilter: isDark ? 'none' : 'blur(52px) saturate(1.8) brightness(1.05)',
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
@@ -763,7 +763,7 @@ export function HomePage() {
             height: 180,
             background: isDark
               ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.85) 30%, rgba(18,14,10,0.5) 60%, rgba(18,14,10,0) 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.9) 20%, rgba(243,240,234,0.6) 50%, rgba(243,240,234,0.2) 75%, rgba(243,240,234,0) 100%)',
+              : 'linear-gradient(to top, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 40%, rgba(255,255,255,0) 100%)',
             zIndex: 3,
           }} />
         </div>
