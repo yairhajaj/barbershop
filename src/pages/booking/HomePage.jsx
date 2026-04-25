@@ -483,7 +483,9 @@ export function HomePage() {
   // Pending waitlist offer banner
   const [waitlistOffer, setWaitlistOffer]       = useState(null)
   const [waitlistBannerDismissed, setWaitlistBannerDismissed] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const panelRef = useRef(null)
+  const isDarkRef = useRef(isDark)
+  useEffect(() => { isDarkRef.current = isDark }, [isDark])
 
   useEffect(() => {
     if (!user) return
@@ -587,11 +589,13 @@ export function HomePage() {
     return () => clearTimeout(timer)
   }, [nextAppointment])
 
-  // Hero parallax — fade + slide up as page scrolls; also tracks isScrolled for panel radius
+  // Hero parallax + continuous panel blend animation (no React state — direct DOM)
   useEffect(() => {
     const root = document.getElementById('root')
     const target = root ?? window
-    let wasScrolled = false
+    const OVERLAP = 180  // must match marginTop absolute value
+    const BLEND_OVER = 90 // px of scroll to complete the transition
+
     const handle = () => {
       const y = root ? root.scrollTop : window.scrollY
       const brand = document.getElementById('v6-hero-brand')
@@ -599,10 +603,17 @@ export function HomePage() {
         brand.style.opacity = Math.max(0, 1 - y / 190)
         brand.style.transform = `translateY(${y * -0.12}px)`
       }
-      const nowScrolled = y > 20
-      if (nowScrolled !== wasScrolled) {
-        wasScrolled = nowScrolled
-        setIsScrolled(nowScrolled)
+      if (panelRef.current) {
+        const progress = Math.min(1, Math.max(0, y / BLEND_OVER))
+        const radius = Math.round(progress * 24)
+        const dark = isDarkRef.current
+        const bg0 = dark ? 'rgba(18,14,10,0)' : 'rgba(243,240,234,0)'
+        const bg1 = dark ? 'rgba(18,14,10,0.92)' : 'rgba(243,240,234,0.92)'
+        const gradStop = Math.round(OVERLAP * (1 - progress))
+        panelRef.current.style.borderRadius = `${radius}px ${radius}px 0 0`
+        panelRef.current.style.background = gradStop > 0
+          ? `linear-gradient(to bottom, ${bg0} 0px, ${bg1} ${gradStop}px)`
+          : bg1
       }
     }
     target.addEventListener('scroll', handle, { passive: true })
@@ -665,12 +676,9 @@ export function HomePage() {
   const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(243,240,234,0.92)'
   const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(243,240,234,0)'
   const glassPanel = {
-    position: 'relative', zIndex: 10, marginTop: -120,
-    borderRadius: isScrolled ? '24px 24px 0 0' : '0',
-    transition: 'border-radius 0.35s ease',
-    background: isScrolled
-      ? _panelBg
-      : `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 120px)`,
+    position: 'relative', zIndex: 10, marginTop: -180,
+    borderRadius: '0',
+    background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 180px)`,
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
@@ -716,9 +724,9 @@ export function HomePage() {
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: layout === 'luxury' ? '75vh' : '48vh',
-          minHeight: layout === 'luxury' ? '75vh' : 260,
-          maxHeight: layout === 'luxury' ? 'none' : 360,
+          height: layout === 'luxury' ? '75vh' : '42vh',
+          minHeight: layout === 'luxury' ? '75vh' : 240,
+          maxHeight: layout === 'luxury' ? 'none' : 340,
           overflow: 'hidden',
           background: '#0a0806',
         }}
@@ -811,7 +819,7 @@ export function HomePage() {
       </section>
 
       {/* ── GLASS PANEL — slides over hero ────────────────────────── */}
-      <div style={glassPanel}>
+      <div ref={panelRef} style={glassPanel}>
 
         {/* ── GREETING ─────────────────────────────────────────── */}
         <motion.section
