@@ -66,6 +66,12 @@ export const LAYOUTS = [
     desc: 'זכוכית מקפיאה — iOS, שקיפות ו-blur קינמטי',
     icon: '◻',
   },
+  {
+    id: 'frosted',
+    name: 'זכוכית מטושטשת',
+    desc: 'פאנל שקוף מטושטש — תמונת הרקע נראית דרך הזכוכית',
+    icon: '⬚',
+  },
 ]
 
 const ThemeContext = createContext(null)

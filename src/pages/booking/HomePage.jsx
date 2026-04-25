@@ -485,7 +485,9 @@ export function HomePage() {
   const [waitlistBannerDismissed, setWaitlistBannerDismissed] = useState(false)
   const panelRef = useRef(null)
   const isDarkRef = useRef(isDark)
+  const layoutRef = useRef(layout)
   useEffect(() => { isDarkRef.current = isDark }, [isDark])
+  useEffect(() => { layoutRef.current = layout }, [layout])
 
   useEffect(() => {
     if (!user) return
@@ -603,7 +605,7 @@ export function HomePage() {
         brand.style.opacity = Math.max(0, 1 - y / 190)
         brand.style.transform = `translateY(${y * -0.12}px)`
       }
-      if (panelRef.current) {
+      if (panelRef.current && layoutRef.current !== 'frosted') {
         const progress = Math.min(1, Math.max(0, y / BLEND_OVER))
         const radius = Math.round(progress * 24)
         const dark = isDarkRef.current
@@ -673,12 +675,15 @@ export function HomePage() {
   }
 
   // ── v6 glass panel style ──────────────────────────────────────────
+  const isFrosted = layout === 'frosted'
   const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(228,225,220,0.95)'
   const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(228,225,220,0)'
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
-    borderRadius: '0',
-    background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 18px)`,
+    borderRadius: isFrosted ? '24px 24px 0 0' : '0',
+    ...(isFrosted ? {} : {
+      background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 18px)`,
+    }),
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
@@ -819,7 +824,7 @@ export function HomePage() {
       </section>
 
       {/* ── GLASS PANEL — slides over hero ────────────────────────── */}
-      <div ref={panelRef} style={glassPanel}>
+      <div ref={panelRef} style={glassPanel} className={isFrosted ? 'v6-frosted-panel' : ''}>
 
         {/* ── GREETING ─────────────────────────────────────────── */}
         <motion.section

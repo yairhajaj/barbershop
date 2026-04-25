@@ -1182,6 +1182,20 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   LAYOUT: frosted — זכוכית מטושטשת (Branja-style translucent panel)
+   ══════════════════════════════════════════════════════════════════ */
+[data-layout="frosted"] .v6-frosted-panel {
+  backdrop-filter: blur(40px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.8) !important;
+  background: rgba(235, 230, 222, 0.62) !important;
+  border-radius: 24px 24px 0 0 !important;
+}
+[data-layout="frosted"][data-theme="midnight"] .v6-frosted-panel,
+[data-layout="frosted"][data-theme="obsidian"] .v6-frosted-panel {
+  background: rgba(12, 10, 6, 0.58) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
    LAYOUT: beauty — ביוטי (feminine / soft / cosmetic)
    Scoped to .booking-root only — admin untouched.
 ══════════════════════════════════════════════════════════════════ */
