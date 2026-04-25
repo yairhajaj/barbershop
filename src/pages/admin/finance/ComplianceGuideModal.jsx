@@ -91,6 +91,10 @@ const SECTIONS = [
         body: 'תור שנרשם ביומן אבל הלקוח לא הגיע חייב להיות מסומן "לא הגיע". תור שבוטל חייב להיות מסומן "בוטל". לא ניתן פשוט "להתעלם" ממנו — הרשומה קיימת וניתנת לבדיקה.',
       },
       {
+        title: 'עדכון סטטוס תור — חובה יומיומית',
+        body: 'בסיום כל יום עבודה יש לוודא שכל תור עודכן לסטטוס הנכון: "בוצע" אם הלקוח הגיע, "לא הגיע" אם לא הופיע, "בוטל" אם בוטל. אם מנפיקים חשבוניות — גם אמצעי התשלום חייב להיות מעודכן בחשבונית (מזומן / אשראי / ביט וכו׳). יומן לא מעודכן הוא יומן חסר ערך בביקורת מס.',
+      },
+      {
         title: 'אסור לשנות תאריך של תור שעבר',
         body: 'תור שמועדו עבר הוא רשומה היסטורית. שינוי התאריך שלו בדיעבד שקול לזיוף ספרים. הרשומה חייבת להישמר כפי שהייתה.',
       },
@@ -179,13 +183,14 @@ const SECTIONS = [
       {
         title: 'עליך לדאוג בעצמך',
         body: [
-          'הגשת דוח מע"מ חודשי/דו-חודשי',
-          'הגשת דוח הכנסות שנתי',
-          'שמירת חשבוניות ספקים (הוצאות) — 7 שנים',
-          'גיבוי חיצוני רבעוני — חובה חוקית לפי הוראות ניהול פנקסים',
-          'עדכון שיעור מע"מ אם ישתנה',
+          { text: 'הגשת דוח מע"מ חודשי/דו-חודשי', tag: 'מול רואה חשבון' },
+          { text: 'הגשת דוח הכנסות שנתי', tag: 'מול רואה חשבון' },
+          { text: 'שמירת חשבוניות ספקים (הוצאות) — 7 שנים' },
+          { text: 'גיבוי חיצוני רבעוני — חובה חוקית לפי הוראות ניהול פנקסים' },
+          { text: 'עדכון שיעור מע"מ אם ישתנה' },
         ],
         isList: true,
+        isTagged: true,
       },
     ],
   },
@@ -260,13 +265,23 @@ export function ComplianceGuideModal({ onClose }) {
                       {item.title}
                     </p>
                     {item.isList ? (
-                      <ul className="text-xs space-y-1 pr-4" style={{ color: 'var(--color-muted)' }}>
-                        {item.body.map((line, j) => (
-                          <li key={j} className="flex gap-1.5">
-                            <span className="mt-0.5 shrink-0" style={{ color: 'var(--color-gold)' }}>✓</span>
-                            <span>{line}</span>
-                          </li>
-                        ))}
+                      <ul className="text-xs space-y-1.5 pr-4" style={{ color: 'var(--color-muted)' }}>
+                        {item.body.map((line, j) => {
+                          const text = item.isTagged ? line.text : line
+                          const tag  = item.isTagged ? line.tag  : null
+                          return (
+                            <li key={j} className="flex items-start gap-1.5">
+                              <span className="mt-0.5 shrink-0" style={{ color: 'var(--color-gold)' }}>✓</span>
+                              <span className="flex-1">{text}</span>
+                              {tag && (
+                                <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                                  style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-ring)' }}>
+                                  👨‍💼 {tag}
+                                </span>
+                              )}
+                            </li>
+                          )
+                        })}
                       </ul>
                     ) : (
                       <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted)' }}>
