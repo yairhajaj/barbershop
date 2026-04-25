@@ -1185,8 +1185,11 @@
    LAYOUT: frosted — זכוכית מטושטשת (Branja-style translucent panel)
    ══════════════════════════════════════════════════════════════════ */
 [data-layout="frosted"] .v6-frosted-panel {
-  backdrop-filter: blur(40px) saturate(1.8) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(1.8) !important;
+  backdrop-filter: blur(36px) saturate(1.6) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(1.6) !important;
+  /* Fade-in mask: top 28px transparent → no sharp blur boundary at the seam */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 28px);
+  mask-image: linear-gradient(to bottom, transparent 0px, black 28px);
 }
 
 /* ══════════════════════════════════════════════════════════════════
