@@ -662,14 +662,15 @@ export function HomePage() {
   }
 
   // ── v6 glass panel style ──────────────────────────────────────────
-  const _panelBg = isDark ? 'rgba(18,14,10,0.92)' : 'rgba(243,240,234,0.92)'
+  const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(243,240,234,0.92)'
+  const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(243,240,234,0)'
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: isScrolled ? '24px 24px 0 0' : '0',
     transition: 'border-radius 0.35s ease',
     background: isScrolled
       ? _panelBg
-      : `linear-gradient(to bottom, transparent 0px, ${_panelBg} 120px)`,
+      : `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 120px)`,
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
@@ -747,12 +748,12 @@ export function HomePage() {
           <div className="absolute inset-0 pointer-events-none" style={{
             background: 'linear-gradient(180deg,rgba(0,0,0,.52) 0%,transparent 26%)'
           }} />
-          {/* Surface fade — tight dense blend, only 64px */}
+          {/* Surface fade — gradual 180px blend into panel background */}
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
-            height: 64,
+            height: 180,
             background: isDark
-              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.95) 40%, transparent 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.95) 40%, transparent 100%)',
+              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.8) 40%, rgba(18,14,10,0) 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.8) 40%, rgba(243,240,234,0) 100%)',
             zIndex: 3,
           }} />
         </div>
