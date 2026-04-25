@@ -7,7 +7,6 @@ import { Spinner } from '../../../components/ui/Spinner'
 import { sendEmail, blobToBase64 } from '../../../lib/email'
 import { generateFinancialReport, downloadWorkbook } from '../../../lib/xlsx-report'
 import { downloadOpenFormat, validateOpenFormatSettings, printSection26 } from '../../../lib/openfrmt'
-import { downloadPcn874 } from '../../../lib/pcn874'
 
 function defaultRange() {
   const now = new Date()
@@ -27,7 +26,7 @@ export function AccountantTab() {
   const toast = useToast()
   const { settings } = useBusinessSettings()
   const [range, setRange] = useState(defaultRange)
-  const [busy, setBusy] = useState(null) // 'receipts' | 'receipts-dl' | 'invoices' | 'report' | 'openfrmt' | 'pcn874'
+  const [busy, setBusy] = useState(null) // 'receipts' | 'receipts-dl' | 'invoices' | 'report' | 'openfrmt'
   const [taxPanelOpen, setTaxPanelOpen] = useState(false)
   const [openfrmtDialog, setOpenfrmtDialog] = useState(null) // { report, primaryId } | null
 
@@ -297,19 +296,6 @@ export function AccountantTab() {
     }
   }
 
-  // ─── Action 4b: PCN874 ───
-  async function downloadPcn() {
-    setBusy('pcn874')
-    try {
-      await downloadPcn874({ from: range.from, to: range.to, settings })
-      toast({ message: 'דוח PCN874 הורד', type: 'success' })
-    } catch (err) {
-      toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -391,7 +377,7 @@ export function AccountantTab() {
         <ActionCard
           icon="🏛"
           title="דוחות רשות המיסים"
-          description="OPENFRMT (קובץ אחיד) + PCN874 (מע״מ חודשי)"
+          description="OPENFRMT — קובץ אחיד לרשות המיסים"
           busy={false}
           onClick={() => setTaxPanelOpen(o => !o)}
           variant="tax"
@@ -431,11 +417,6 @@ export function AccountantTab() {
               className="px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
               style={{ background: 'var(--color-gold)', color: '#fff' }}>
               {busy === 'openfrmt' ? <Spinner size="sm" /> : '📁 OPENFRMT (קובץ אחיד)'}
-            </button>
-            <button onClick={downloadPcn} disabled={busy === 'pcn874'}
-              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-              style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-              {busy === 'pcn874' ? <Spinner size="sm" /> : '📄 PCN874 (דוח מע״מ)'}
             </button>
           </div>
           <a href="https://www.gov.il/he/service/download-open-format-files"
@@ -496,8 +477,7 @@ export function AccountantTab() {
       {/* Legal notice */}
       <div className="card p-3" style={{ background: 'var(--color-blue-tint)', border: '1px solid var(--color-blue-ring)' }}>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-          ℹ️ <b>לתשומת לבך:</b> הדוחות ל-רשות המיסים (OPENFRMT, PCN874) מופקים לפי המפרט הרשמי, אך באחריותך לאמת אותם בסימולטור הממשלתי לפני הגשה.
-          לצורך SaaS מסחרי — יש לרשום את התוכנה ברשות המיסים ולקבל "מספר רישום תוכנה".
+          ℹ️ <b>לתשומת לבך:</b> קובץ OPENFRMT מופק לפי מבנה אחיד 1.31. אמת אותו בסימולטור הממשלתי לפני הגשה. דוח מע״מ חודשי (PCN874) מטופל על ידי רואה החשבון שלך.
         </p>
       </div>
     </div>
