@@ -9,6 +9,7 @@ import {
   printSection26,
   buildSection26Report,
 } from '../../../lib/openfrmt'
+import { generateFinancialReport, downloadWorkbook } from '../../../lib/xlsx-report'
 import { OPERATOR } from '../../../config/operator'
 import { ComplianceGuideModal } from './ComplianceGuideModal'
 
@@ -41,13 +42,21 @@ export function IncomeTaxTab() {
   const { settings, saveSettings } = useBusinessSettings()
   const [range, setRange] = useState(defaultRange)
   const [busy, setBusy] = useState(null)
-  const [exportResult, setExportResult] = useState(null) // 5.4 modal data
-  const [report26, setReport26] = useState(null)         // section 2.6 data
-  const [report26Loading, setReport26Loading] = useState(false)
+  const [exportResult, setExportResult] = useState(null)
   const [taxSettings, setTaxSettings] = useState({})
   const [taxSaving, setTaxSaving] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
-  const [seqResult, setSeqResult] = useState(null) // null | { ok, gaps }
+
+  const currentYear = new Date().getFullYear()
+  const currentQ    = Math.ceil((new Date().getMonth() + 1) / 3)
+  const [backupYear, setBackupYear] = useState(currentYear)
+  const [backupQ,    setBackupQ]    = useState(currentQ > 1 ? currentQ - 1 : 4)
+
+  function quarterRange(year, q) {
+    const starts = [null, `${year}-01-01`, `${year}-04-01`, `${year}-07-01`, `${year}-10-01`]
+    const ends   = [null, `${year}-03-31`, `${year}-06-30`, `${year}-09-30`, `${year}-12-31`]
+    return { from: starts[q], to: ends[q] }
+  }
 
   const ofValidation = settings ? validateOpenFormatSettings(settings) : { valid: false, errors: [], warnings: [] }
 
@@ -86,55 +95,22 @@ export function IncomeTaxTab() {
     }
   }
 
-  // ── Section B: Report 2.6 ─────────────────────────────────────
-  async function loadReport26() {
-    setReport26Loading(true)
+  // ── Section B: Quarterly backup ───────────────────────────────
+  async function handleQuarterlyBackup() {
+    setBusy('backup')
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('*, invoice_items(*)')
-        .gte('issue_date', range.from)
-        .lte('issue_date', range.to)
-        .eq('is_cancelled', false)
-        .order('issue_date', { ascending: true })
-      if (error) throw error
-      const invoiceData = data || []
-
-      // Build docTypeSummary from invoices
-      const docTypeSummary = {}
-      invoiceData.forEach(inv => {
-        const docType = inv.document_type
-          ? String(inv.document_type)
-          : inv.is_credit_note
-          ? '330'
-          : inv.payment_status === 'paid'
-          ? '320'
-          : '305'
-        const total = Number(inv.total_amount || 0)
-        if (!docTypeSummary[docType]) docTypeSummary[docType] = { count: 0, total: 0 }
-        docTypeSummary[docType].count++
-        docTypeSummary[docType].total += total
-      })
-
-      const r = buildSection26Report({
-        settings,
-        from: range.from,
-        to: range.to,
-        counts: { C100: invoiceData.length, D110: 0, D120: 0, M100: 0 },
-        docTypeSummary,
-        primaryId: '',
-      })
-      setReport26(r)
+      const { from, to } = quarterRange(backupYear, backupQ)
+      const { arrayBuffer, filename } = await generateFinancialReport({ from, to, settings })
+      const backupFilename = `גיבוי_רבעוני_Q${backupQ}_${backupYear}.xlsx`
+      downloadWorkbook(arrayBuffer, backupFilename)
+      // Record timestamp
+      await supabase.functions.invoke('quarterly-backup')
+      toast({ message: `גיבוי Q${backupQ}/${backupYear} הורד ✓`, type: 'success' })
     } catch (err) {
-      toast({ message: 'שגיאה בטעינת הדוח: ' + (err.message || err), type: 'error' })
+      toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
     } finally {
-      setReport26Loading(false)
+      setBusy(null)
     }
-  }
-
-  function printReport26() {
-    if (!report26) return
-    printSection26(report26)
   }
 
   // ── Section D: Tax settings ────────────────────────────────────
@@ -147,37 +123,6 @@ export function IncomeTaxTab() {
       toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
     } finally {
       setTaxSaving(false)
-    }
-  }
-
-  // ── Section B: Sequence check ──────────────────────────────────
-  async function handleCheckSequence() {
-    setBusy('seq')
-    try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('invoice_number')
-        .gte('issue_date', range.from)
-        .lte('issue_date', range.to)
-        .eq('is_cancelled', false)
-        .eq('is_credit_note', false)
-        .order('invoice_number', { ascending: true })
-      if (error) throw error
-      const nums = (data || [])
-        .map(i => parseInt(i.invoice_number?.replace(/\D/g, '') || '0', 10))
-        .filter(n => n > 0)
-        .sort((a, b) => a - b)
-      const gaps = []
-      for (let i = 1; i < nums.length; i++) {
-        if (nums[i] - nums[i - 1] > 1) {
-          gaps.push({ from: nums[i - 1] + 1, to: nums[i] - 1 })
-        }
-      }
-      setSeqResult({ ok: gaps.length === 0, gaps })
-    } catch (err) {
-      toast({ message: 'שגיאה בבדיקת רצף: ' + err.message, type: 'error' })
-    } finally {
-      setBusy(null)
     }
   }
 
@@ -247,66 +192,46 @@ export function IncomeTaxTab() {
         </button>
       </SectionCard>
 
-      {/* ── Section B: Report 2.6 ── */}
-      <SectionCard title="📊 דוח 2.6 — פלטים לאימות נתונים">
-        <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
-          סיכום כל המסמכים (חשבוניות, קבלות, זיכויים) בטווח התאריכים הנבחר.
+      {/* ── Section B: Quarterly backup ── */}
+      <SectionCard title="📦 גיבוי רבעוני">
+        <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+          לפי הוראות ניהול ספרים, יש לגבות את כל רשומות הנהלת החשבונות אחת לרבעון
+          ולשמור את הקובץ במקום מאובטח (דיסק חיצוני, ענן). הגיבוי כולל את כל
+          החשבוניות, ההוצאות, ועמלות הרבעון הנבחר.
         </p>
-        <button
-          onClick={loadReport26}
-          disabled={report26Loading}
-          className="px-4 py-2 rounded-xl text-sm font-semibold mb-3 transition-all"
-          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-        >
-          {report26Loading ? <Spinner size="sm" /> : '🔄 הצג דוח'}
-        </button>
-
-        {report26 && (
+        <div className="flex gap-2 flex-wrap items-end mb-4">
           <div>
-            <Report26Table report={report26} />
-            <div className="mt-3 flex gap-2">
-              <button onClick={printReport26}
-                className="px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: 'var(--color-gold)', color: '#fff' }}>
-                🖨 הדפס
-              </button>
-            </div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--color-muted)' }}>שנה</label>
+            <select value={backupYear} onChange={e => setBackupYear(Number(e.target.value))}
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+              {[currentYear - 1, currentYear].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
           </div>
-        )}
-
-        <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <p className="text-xs mb-2" style={{ color: 'var(--color-muted)' }}>
-            בדיקה שאין פערים ברצף מספרי החשבוניות (נדרש ע"פ הוראות ניהול פנקסים):
-          </p>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--color-muted)' }}>רבעון</label>
+            <select value={backupQ} onChange={e => setBackupQ(Number(e.target.value))}
+              className="rounded-xl px-3 py-2 text-sm"
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+              <option value={1}>Q1 — ינואר–מרץ</option>
+              <option value={2}>Q2 — אפריל–יוני</option>
+              <option value={3}>Q3 — יולי–ספטמבר</option>
+              <option value={4}>Q4 — אוקטובר–דצמבר</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
           <button
-            onClick={handleCheckSequence}
-            disabled={busy === 'seq'}
-            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+            onClick={handleQuarterlyBackup}
+            disabled={busy === 'backup'}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-            {busy === 'seq' ? <Spinner size="sm" /> : '🔍 בדיקת רצף מספרי חשבוניות'}
+            {busy === 'backup' ? <Spinner size="sm" /> : `📦 הורד גיבוי Q${backupQ}/${backupYear}`}
           </button>
-
-          {seqResult && (
-            <div className="mt-2 p-3 rounded-xl text-xs"
-              style={{
-                background: seqResult.ok ? '#f0fdf4' : '#fef2f2',
-                border: `1px solid ${seqResult.ok ? '#bbf7d0' : '#fecaca'}`,
-                color: seqResult.ok ? '#16a34a' : '#dc2626',
-              }}>
-              {seqResult.ok ? (
-                <p>✅ הרצף תקין — אין פערים בטווח הנבחר.</p>
-              ) : (
-                <div>
-                  <p className="font-semibold mb-1">⚠️ נמצאו פערים ברצף:</p>
-                  <ul className="list-disc pr-4 space-y-0.5">
-                    {seqResult.gaps.map((g, i) => (
-                      <li key={i}>מספרים {g.from}–{g.to} חסרים</li>
-                    ))}
-                  </ul>
-                  <p className="mt-1">יש לבדוק אם מדובר בחשבוניות שבוטלו או בפגם בנתונים.</p>
-                </div>
-              )}
-            </div>
+          {settings?.last_quarterly_backup_at && (
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+              גיבוי אחרון: {new Date(settings.last_quarterly_backup_at).toLocaleString('he-IL')}
+            </p>
           )}
         </div>
       </SectionCard>
