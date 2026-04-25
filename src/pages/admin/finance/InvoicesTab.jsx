@@ -6,6 +6,7 @@ import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatILS, calcVat, invoiceTitle, hasVat, docLabel } from '../../../lib/finance'
 import { printInvoice } from '../../../lib/invoice'
+import { generateInvoicesExcel, downloadWorkbook } from '../../../lib/xlsx-report'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
@@ -34,6 +35,7 @@ export function InvoicesTab() {
   const [dateFilter, setDateFilter] = useState('')
   const [creditConfirmInv, setCreditConfirmInv] = useState(null)
   const [creditBusy, setCreditBusy] = useState(false)
+  const [exportBusy, setExportBusy] = useState(false)
   const [continuityIssues, setContinuityIssues] = useState(null)
   const [continuityLoading, setContinuityLoading] = useState(false)
   const { currentBranch } = useBranch()
@@ -196,6 +198,18 @@ export function InvoicesTab() {
     }
   }
 
+  async function handleExportExcel() {
+    setExportBusy(true)
+    try {
+      const { arrayBuffer, filename } = await generateInvoicesExcel({ invoices: filteredInvoices, settings })
+      downloadWorkbook(arrayBuffer, filename)
+    } catch (err) {
+      showToast({ message: 'שגיאה: ' + err.message, type: 'error' })
+    } finally {
+      setExportBusy(false)
+    }
+  }
+
   async function handleCheckContinuity() {
     setContinuityLoading(true)
     try {
@@ -264,6 +278,15 @@ export function InvoicesTab() {
         </div>
 
         <div className="flex gap-2">
+          <button
+            onClick={handleExportExcel}
+            disabled={exportBusy || filteredInvoices.length === 0}
+            className="px-3 py-2 text-sm rounded-xl font-medium transition-colors disabled:opacity-50"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}
+            title="ייצוא כל החשבוניות המוצגות לקובץ Excel"
+          >
+            {exportBusy ? '...' : '📥 Excel'}
+          </button>
           <button
             onClick={handleCheckContinuity}
             disabled={continuityLoading}

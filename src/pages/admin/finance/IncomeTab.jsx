@@ -10,7 +10,7 @@ import { useBranch } from '../../../contexts/BranchContext'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useStaff } from '../../../hooks/useStaff'
 import { useServices } from '../../../hooks/useServices'
-import { formatILS, calcVat, PAYMENT_METHODS, downloadCSV, hasVat } from '../../../lib/finance'
+import { formatILS, calcVat, PAYMENT_METHODS, hasVat } from '../../../lib/finance'
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
@@ -161,24 +161,6 @@ export function IncomeTab() {
     }
   }
 
-  function handleExportCSV() {
-    const headers = ['\u05EA\u05D0\u05E8\u05D9\u05DA', '\u05EA\u05D9\u05D0\u05D5\u05E8', '\u05DC\u05E7\u05D5\u05D7', '\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD', '\u05E1\u05DB\u05D5\u05DD', '\u05DE\u05E7\u05D5\u05E8']
-    const rows = combined.map(i => {
-      let dateStr = ''
-      try { dateStr = format(new Date(i.date), 'dd/MM/yyyy') } catch { dateStr = '' }
-      return [
-        dateStr,
-        i.description,
-        i.customerName,
-        PAYMENT_METHODS[i.paymentMethod] || i.paymentMethod,
-        i.amount,
-        i.source === 'payment' ? '\u05E1\u05DC\u05D9\u05E7\u05D4' : '\u05D9\u05D3\u05E0\u05D9',
-      ]
-    })
-    downloadCSV(headers, rows, `income_${startDate}_${endDate}.csv`)
-    showToast({ message: 'CSV \u05D9\u05D5\u05E6\u05D0 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4', type: 'success' })
-  }
-
   // Breakdown: services from completed appointments, products from manual_income
   const [serviceBreakdown, setServiceBreakdown] = useState([])
   const [productBreakdown, setProductBreakdown] = useState([])
@@ -285,9 +267,6 @@ export function IncomeTab() {
       <div className="flex gap-2 flex-wrap">
         <button onClick={() => setModalOpen(true)} className="btn-primary text-sm px-4 py-2">
           + {'\u05D4\u05D5\u05E1\u05E3 \u05D4\u05DB\u05E0\u05E1\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA'}
-        </button>
-        <button onClick={handleExportCSV} className="btn-outline text-sm px-4 py-2">
-          {'\u{1F4E5}'} {'\u05D9\u05D9\u05E6\u05D5\u05D0 CSV'}
         </button>
       </div>
 
