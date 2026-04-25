@@ -90,7 +90,9 @@ Deno.serve(async (req) => {
       .from('appointments')
       .select(`
         id, start_at,
-        profiles ( id, name, phone, push_token )
+        profiles ( id, name, phone, push_token ),
+        services ( name ),
+        staff ( name )
       `)
       .eq('status', 'confirmed')
       .eq('reminder_opted_in', true)
@@ -153,9 +155,19 @@ Deno.serve(async (req) => {
         // ── Push ──
         if ((channel === 'push' || channel === 'both') && profile.push_token) {
           try {
+            const serviceName = (appt as any).services?.name ?? ''
+            const staffName   = (appt as any).staff?.name   ?? ''
+            const dateStr     = apptDate.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
+            let titleWhen: string
+            if (cfg.hours <= 1)      titleWhen = 'בעוד שעה'
+            else if (cfg.hours <= 2) titleWhen = 'בעוד שעתיים'
+            else                     titleWhen = 'מחר'
             await webpush.sendNotification(
               JSON.parse(profile.push_token),
-              JSON.stringify({ title: 'תזכורת תור ✂️', body: `התור שלך ${when} בשעה ${time}` })
+              JSON.stringify({
+                title: `✂️ תזכורת תור — ${titleWhen} בשעה ${time}`,
+                body:  `${serviceName}${staffName ? ` אצל ${staffName}` : ''} ב-${dateStr} בשעה ${time}`,
+              })
             )
             success = true
           } catch (pushErr: any) {

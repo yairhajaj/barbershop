@@ -694,10 +694,12 @@ export function Appointments() {
       // Push notification
       const pushToken = appointment.profiles?.push_token
       if (pushToken) {
+        const serviceName = appointment.services?.name || ''
+        const dateStr = new Date(appointment.start_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
         await supabase.functions.invoke('send-push', {
           body: {
-            title: '📅 יש אפשרות להקדים את התור!',
-            body: `${formatTime(newStart)} במקום ${formatTime(appointment.start_at)}`,
+            title: '📅 אפשרות להקדים את התור!',
+            body: `${serviceName} ב-${dateStr} — ${formatTime(newStart)} במקום ${formatTime(appointment.start_at)}. לחץ לאישור ↓`,
             tokens: [pushToken],
             url: confirmUrl,
           },

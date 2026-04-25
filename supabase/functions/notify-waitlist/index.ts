@@ -179,6 +179,13 @@ async function notifyNextInQueue(
   const slotDate      = toIsraelDate(slotStart)   // "YYYY-MM-DD"
   const slotLocalTime = toIsraelTime(slotStart)    // "HH:MM"
 
+  // Fetch staff display name once if staffId provided
+  let staffDisplayName = ''
+  if (params.staffId) {
+    const { data: staffRow } = await supabase.from('staff').select('name').eq('id', params.staffId).single()
+    staffDisplayName = staffRow?.name ?? ''
+  }
+
   // Build query — find first pending entry that matches date + service + branch + time window
   let query = supabase
     .from('waitlist')
@@ -275,8 +282,8 @@ async function notifyNextInQueue(
         await webpush.sendNotification(
           JSON.parse(profile.push_token),
           JSON.stringify({
-            title: '🗓 התפנה תור!',
-            body:  `${serviceName} ב-${dateStr} ${timeStr}`,
+            title: '🔥 התפנה תור — מהר לפני שייתפס!',
+            body:  `${serviceName} ב-${dateStr} בשעה ${timeStr}${staffDisplayName ? ` אצל ${staffDisplayName}` : ''} — לחץ לאישור מיידי`,
             url:   `${appUrl}/waitlist/confirm?token=${token}`,
           })
         )

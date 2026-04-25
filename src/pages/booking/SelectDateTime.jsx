@@ -27,7 +27,7 @@ const TIME_OPTIONS = Array.from({ length: 29 }, (_, i) => {
 
 export function SelectDateTime() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const showToast = useToast()
   const bookingState = JSON.parse(sessionStorage.getItem('booking_state') ?? '{}')
 
@@ -300,13 +300,15 @@ export function SelectDateTime() {
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd')
       await joinWaitlist({
-        userId:    user.id,
-        serviceId: bookingState.serviceId   ?? null,
-        staffId:   bookingState.staffId     ?? null,
-        branchId:  bookingState.branchId    ?? null,
-        date:      dateStr,
-        timeFrom:  wlTimeFrom,
-        timeTo:    wlTimeTo,
+        userId:       user.id,
+        serviceId:    bookingState.serviceId   ?? null,
+        staffId:      bookingState.staffId     ?? null,
+        branchId:     bookingState.branchId    ?? null,
+        date:         dateStr,
+        timeFrom:     wlTimeFrom,
+        timeTo:       wlTimeTo,
+        customerName: profile?.name ?? '',
+        serviceName:  bookingState.serviceName ?? '',
       })
       setShowWaitlist(false)
       setWlPickerMode('from')

@@ -40,7 +40,7 @@ const fadeUp  = {
 export default function BookCinematic() {
   const navigate       = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user }       = useAuth()
+  const { user, profile } = useAuth()
   const { isDark }     = useTheme()
 
   const { staff, loading: staffLoading } = useStaff({ activeOnly: true })
@@ -179,13 +179,15 @@ export default function BookCinematic() {
     setWlSaving(true)
     try {
       await joinWaitlist({
-        userId:    user.id,
-        serviceId: selService?.id  ?? null,
-        staffId:   selStaff?.id    ?? null,
-        branchId:  null,
-        date:      selDate.toISOString().slice(0, 10),
-        timeFrom:  wlTimeFrom,
-        timeTo:    wlTimeTo,
+        userId:       user.id,
+        serviceId:    selService?.id  ?? null,
+        staffId:      selStaff?.id    ?? null,
+        branchId:     null,
+        date:         selDate.toISOString().slice(0, 10),
+        timeFrom:     wlTimeFrom,
+        timeTo:       wlTimeTo,
+        customerName: profile?.name ?? '',
+        serviceName:  selService?.name ?? '',
       })
       setShowWaitlist(false)
       setWlSuccess({ timeFrom: wlTimeFrom, timeTo: wlTimeTo })

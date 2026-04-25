@@ -104,10 +104,12 @@ export function GapApprove() {
       } else {
         const pushToken = appt?.profiles?.push_token
         if (pushToken) {
+          const serviceName = appt?.services?.name || ''
+          const dateStr = new Date(offer.offered_start_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
           await supabase.functions.invoke('send-push', {
             body: {
-              title: '📅 יש אפשרות להקדים את התור!',
-              body: `${formatTime(newStart)} במקום ${formatTime(oldStart)}`,
+              title: '📅 אפשרות להקדים את התור!',
+              body: `${serviceName} ב-${dateStr} — ${formatTime(newStart)} במקום ${formatTime(oldStart)}. לחץ לאישור ↓`,
               tokens: [pushToken],
               url: confirmUrl,
             },

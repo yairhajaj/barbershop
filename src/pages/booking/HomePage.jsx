@@ -480,6 +480,22 @@ export function HomePage() {
   const [calAdded, setCalAdded] = useState(false)
   const [cancellingAppt, setCancellingAppt] = useState(false)
 
+  // Pending waitlist offer banner
+  const [waitlistOffer, setWaitlistOffer]       = useState(null)
+  const [waitlistBannerDismissed, setWaitlistBannerDismissed] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('waitlist')
+      .select('id, token, services(name)')
+      .eq('customer_id', user.id)
+      .eq('status', 'notified')
+      .gt('token_expires_at', new Date().toISOString())
+      .limit(1)
+      .then(({ data }) => { if (data?.[0]) setWaitlistOffer(data[0]) })
+  }, [user?.id])
+
   useEffect(() => {
     if (!user) { setNextAppointment(null); return }
     setNextAppointment(undefined) // loading
@@ -659,6 +675,40 @@ export function HomePage() {
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* ── Pending waitlist offer banner ─────────────────────────── */}
+      {waitlistOffer && !waitlistBannerDismissed && (
+        <div style={{
+          position: 'fixed', top: 'calc(56px + env(safe-area-inset-top, 0px))',
+          left: 12, right: 12, zIndex: 55,
+          background: 'linear-gradient(135deg, #ff6b00, #ff8c00)',
+          borderRadius: 14, padding: '12px 14px',
+          boxShadow: '0 4px 20px rgba(255,107,0,0.45)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ fontSize: 20 }}>🔥</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: '#fff' }}>יש לך הצעת תור ממתינה!</p>
+            <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>
+              {waitlistOffer.services?.name || 'שירות'} — לחץ לאישור מיידי לפני שהמקום ייתפס
+            </p>
+          </div>
+          <a
+            href={`/waitlist/confirm?token=${waitlistOffer.token}&action=accept`}
+            style={{
+              background: '#fff', color: '#ff6b00', fontWeight: 800,
+              fontSize: 12, padding: '6px 12px', borderRadius: 8, textDecoration: 'none',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            אשר עכשיו
+          </a>
+          <button
+            onClick={() => setWaitlistBannerDismissed(true)}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', fontSize: 18, cursor: 'pointer', padding: 4, flexShrink: 0 }}
+          >✕</button>
+        </div>
+      )}
+
       {/* ── HERO — always sticky, v6 style ────────────────────────── */}
       <section
         className="hero-section"

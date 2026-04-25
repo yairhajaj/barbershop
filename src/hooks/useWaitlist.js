@@ -120,7 +120,7 @@ export function useWaitlist({ statusFilter = 'all' } = {}) {
 }
 
 // ── Customer: join waitlist (used in SelectDateTime modal) ────────────────────
-export async function joinWaitlist({ userId, serviceId, staffId, branchId, date, timeFrom, timeTo, notes }) {
+export async function joinWaitlist({ userId, serviceId, staffId, branchId, date, timeFrom, timeTo, notes, customerName, serviceName }) {
   const { error } = await supabase.from('waitlist').insert({
     customer_id:    userId,
     service_id:     serviceId   ?? null,
@@ -132,4 +132,23 @@ export async function joinWaitlist({ userId, serviceId, staffId, branchId, date,
     notes:          notes || null,
   })
   if (error) throw error
+
+  // #8 — notify admins (fire-and-forget)
+  ;(async () => {
+    try {
+      const { data: admins } = await supabase
+        .from('profiles').select('push_token').eq('role', 'admin').not('push_token', 'is', null)
+      const tokens = (admins || []).map(a => a.push_token).filter(Boolean)
+      if (tokens.length > 0) {
+        supabase.functions.invoke('send-push', {
+          body: {
+            title: '📋 נרשם לרשימת המתנה',
+            body:  `${customerName || 'לקוח'} נרשם/ה לרשימת המתנה ל${serviceName || 'שירות'} ב-${date}`,
+            tokens,
+            url: '/admin/appointments',
+          },
+        })
+      }
+    } catch { /* non-fatal */ }
+  })()
 }

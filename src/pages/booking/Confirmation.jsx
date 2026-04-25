@@ -173,6 +173,47 @@ export function Confirmation() {
       sessionStorage.removeItem('booking_state')
       setAppointment(appt)
       setStatus('success')
+
+      // Push notifications (fire-and-forget)
+      ;(async () => {
+        try {
+          const dateStr = slotStart?.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) ?? ''
+          const timeStr = slotStart?.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) ?? ''
+          const svcName  = bookingState.serviceName || ''
+          const stfName  = bookingState.staffName || ''
+          const custName = profile?.name || 'לקוח'
+
+          // #4 — admin push: new booking
+          const { data: admins } = await supabase
+            .from('profiles').select('push_token').eq('role', 'admin').not('push_token', 'is', null)
+          const adminTokens = (admins || []).map((a: any) => a.push_token).filter(Boolean)
+          if (adminTokens.length > 0) {
+            supabase.functions.invoke('send-push', {
+              body: {
+                title: '✂️ הזמנת תור חדשה',
+                body:  `${custName} קבע תור ל${svcName} אצל ${stfName} ב-${dateStr} בשעה ${timeStr}`,
+                tokens: adminTokens,
+                url: '/admin/appointments',
+              },
+            })
+          }
+
+          // #5 — customer push: booking confirmed
+          const { data: custProfile } = await supabase
+            .from('profiles').select('push_token').eq('id', user.id).single()
+          if (custProfile?.push_token) {
+            supabase.functions.invoke('send-push', {
+              body: {
+                title: '✅ התור אושר!',
+                body:  `${svcName} אצל ${stfName} ב-${dateStr} בשעה ${timeStr}. נשמח לראותך!`,
+                tokens: [custProfile.push_token],
+                url: '/',
+              },
+            })
+          }
+        } catch { /* non-fatal */ }
+      })()
+
       // Show push permission banner — web only, never on native iOS
       try {
         const isNativeApp = !!(window?.Capacitor?.isNativePlatform?.())

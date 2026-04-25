@@ -134,6 +134,43 @@ export function MyAppointments() {
     )
   }, [rescheduleDate, rescheduleAppts, rescheduleBlocked, staff, hours])
 
+  async function sendCancelPushes(appt) {
+    try {
+      const dateStr     = new Date(appt.start_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
+      const timeStr     = new Date(appt.start_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+      const serviceName = appt.services?.name || ''
+      const custName    = appt.profiles?.name || 'לקוח'
+
+      // #6 — admin push
+      const { data: admins } = await supabase
+        .from('profiles').select('push_token').eq('role', 'admin').not('push_token', 'is', null)
+      const adminTokens = (admins || []).map(a => a.push_token).filter(Boolean)
+      if (adminTokens.length > 0) {
+        supabase.functions.invoke('send-push', {
+          body: {
+            title: '❌ ביטול תור',
+            body:  `${custName} ביטל/ה את התור ל${serviceName} ב-${dateStr} בשעה ${timeStr}`,
+            tokens: adminTokens,
+            url: '/admin/appointments',
+          },
+        })
+      }
+
+      // #7 — customer push
+      const custToken = appt.profiles?.push_token
+      if (custToken) {
+        supabase.functions.invoke('send-push', {
+          body: {
+            title: 'התור בוטל',
+            body:  `ביטלת את תורך ל${serviceName} ב-${dateStr}. נשמח לראותך שוב בקרוב 🙏`,
+            tokens: [custToken],
+            url: '/',
+          },
+        })
+      }
+    } catch { /* non-fatal */ }
+  }
+
   async function handleCancel(appt) {
     const canCancel = isWithinCancellationWindow(appt.start_at, settings.cancellation_hours)
     if (!canCancel) {
@@ -144,6 +181,7 @@ export function MyAppointments() {
     try {
       await cancelAppointment(appt.id, '', 'customer')
       toast({ message: 'התור בוטל', type: 'success' })
+      sendCancelPushes(appt)
     } catch {
       toast({ message: 'שגיאה בביטול', type: 'error' })
     }
@@ -166,6 +204,7 @@ export function MyAppointments() {
         await cancelAppointment(appt.id, '', 'customer')
         toast({ message: 'התור בוטל', type: 'success' })
       }
+      sendCancelPushes(appt)
     } catch {
       toast({ message: 'שגיאה בביטול', type: 'error' })
     }
