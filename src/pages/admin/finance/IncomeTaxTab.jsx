@@ -8,8 +8,6 @@ import {
   validateOpenFormatSettings,
   printSection26,
   buildSection26Report,
-  buildSection26Html,
-  DOC_TYPES,
 } from '../../../lib/openfrmt'
 import { OPERATOR } from '../../../config/operator'
 import { ComplianceGuideModal } from './ComplianceGuideModal'
@@ -46,10 +44,6 @@ export function IncomeTaxTab() {
   const [exportResult, setExportResult] = useState(null) // 5.4 modal data
   const [report26, setReport26] = useState(null)         // section 2.6 data
   const [report26Loading, setReport26Loading] = useState(false)
-  const [invoices, setInvoices] = useState([])
-  const [creditNotes, setCreditNotes] = useState([])
-  const [invLoading, setInvLoading] = useState(false)
-  const [creatingCreditFor, setCreatingCreditFor] = useState(null)
   const [taxSettings, setTaxSettings] = useState({})
   const [taxSaving, setTaxSaving] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
@@ -141,90 +135,6 @@ export function IncomeTaxTab() {
   function printReport26() {
     if (!report26) return
     printSection26(report26)
-  }
-
-  // ── Section C: Credit notes ────────────────────────────────────
-  async function loadInvoices() {
-    setInvLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('id, invoice_number, issue_date, customer_name, total_amount, is_credit_note, credit_note_for, is_cancelled')
-        .gte('issue_date', range.from)
-        .lte('issue_date', range.to)
-        .order('issue_date', { ascending: false })
-      if (error) throw error
-      const all = data || []
-      setInvoices(all.filter(i => !i.is_credit_note && !i.is_cancelled))
-      setCreditNotes(all.filter(i => i.is_credit_note))
-    } catch (err) {
-      toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
-    } finally {
-      setInvLoading(false)
-    }
-  }
-
-  async function createCreditNote(inv) {
-    setCreatingCreditFor(inv.id)
-    try {
-      // Fetch full invoice with line items
-      const { data: full, error: e1 } = await supabase
-        .from('invoices')
-        .select('*, invoice_items(*)')
-        .eq('id', inv.id)
-        .single()
-      if (e1) throw e1
-
-      // Get next invoice number
-      const { data: biz } = await supabase.from('business_settings').select('invoice_next_number, invoice_prefix').single()
-      const prefix = biz?.invoice_prefix || 'INV'
-      const nextNum = biz?.invoice_next_number || 1
-      const newNumber = `${prefix}-${String(nextNum).padStart(4, '0')}`
-
-      const { data: credit, error: e2 } = await supabase
-        .from('invoices')
-        .insert({
-          invoice_number:    newNumber,
-          issue_date:        new Date().toISOString().slice(0, 10),
-          customer_name:     full.customer_name,
-          customer_phone:    full.customer_phone,
-          customer_email:    full.customer_email,
-          customer_vat_id:   full.customer_vat_id || null,
-          total_amount:      full.total_amount,
-          vat_amount:        full.vat_amount,
-          notes:             `זיכוי לחשבונית ${full.invoice_number}`,
-          is_credit_note:    true,
-          credit_note_for:   full.id,
-          document_type:     330,
-          payment_status:    'credit',
-        })
-        .select()
-        .single()
-      if (e2) throw e2
-
-      // Copy line items
-      if (full.invoice_items?.length) {
-        const lineItems = full.invoice_items.map(li => ({
-          invoice_id:   credit.id,
-          description:  li.description,
-          quantity:     li.quantity,
-          unit_price:   li.unit_price,
-          line_total:   li.line_total,
-          vat_rate:     li.vat_rate,
-        }))
-        await supabase.from('invoice_items').insert(lineItems)
-      }
-
-      // Increment next number
-      await supabase.from('business_settings').update({ invoice_next_number: nextNum + 1 }).eq('id', biz?.id || settings?.id)
-
-      toast({ message: `חשבונית זיכוי ${newNumber} נוצרה ✓`, type: 'success' })
-      loadInvoices()
-    } catch (err) {
-      toast({ message: 'שגיאה ביצירת זיכוי: ' + (err.message || err), type: 'error' })
-    } finally {
-      setCreatingCreditFor(null)
-    }
   }
 
   // ── Section D: Tax settings ────────────────────────────────────
@@ -399,87 +309,6 @@ export function IncomeTaxTab() {
             </div>
           )}
         </div>
-      </SectionCard>
-
-      {/* ── Section C: Credit notes ── */}
-      <SectionCard title="💳 ניהול זיכויים (חשבוניות 330)">
-        <p className="text-xs mb-3" style={{ color: 'var(--color-muted)' }}>
-          הפקת חשבוניות זיכוי (מסמך 330) לביטול חשבוניות קיימות.
-        </p>
-        <button
-          onClick={loadInvoices}
-          disabled={invLoading}
-          className="px-4 py-2 rounded-xl text-sm font-semibold mb-3 transition-all"
-          style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-        >
-          {invLoading ? <Spinner size="sm" /> : '🔄 טען חשבוניות'}
-        </button>
-
-        {invoices.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>
-              חשבוניות ניתנות לזיכוי ({invoices.length})
-            </p>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {invoices.map(inv => {
-                const alreadyCredited = creditNotes.some(cn => cn.credit_note_for === inv.id)
-                return (
-                  <div key={inv.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-xl text-sm"
-                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold" style={{ color: 'var(--color-text)' }}>{inv.invoice_number}</p>
-                      <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                        {inv.customer_name} · {inv.issue_date} · ₪{Number(inv.total_amount || 0).toLocaleString('he-IL')}
-                      </p>
-                    </div>
-                    {alreadyCredited ? (
-                      <span className="text-xs px-2 py-1 rounded-lg"
-                        style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
-                        זוכה ✓
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => createCreditNote(inv)}
-                        disabled={creatingCreditFor === inv.id}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
-                        style={{ background: '#dc2626', color: '#fff' }}>
-                        {creatingCreditFor === inv.id ? <Spinner size="sm" /> : 'צור זיכוי'}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {creditNotes.length > 0 && (
-          <div className="mt-4">
-            <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-muted)' }}>
-              חשבוניות זיכוי קיימות ({creditNotes.length})
-            </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {creditNotes.map(cn => (
-                <div key={cn.id}
-                  className="flex items-center gap-3 p-3 rounded-xl text-sm"
-                  style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold" style={{ color: '#dc2626' }}>{cn.invoice_number}</p>
-                    <p className="text-xs" style={{ color: '#991b1b' }}>
-                      {cn.customer_name} · {cn.issue_date} · ₪{Number(cn.total_amount || 0).toLocaleString('he-IL')}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold" style={{ color: '#dc2626' }}>זיכוי</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {invoices.length === 0 && creditNotes.length === 0 && !invLoading && (
-          <p className="text-xs text-center py-4" style={{ color: 'var(--color-muted)' }}>לחץ "טען חשבוניות" להצגת הנתונים</p>
-        )}
       </SectionCard>
 
       {/* ── Section D: Tax settings ── */}

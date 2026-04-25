@@ -7,14 +7,7 @@ import { formatILS, getBiMonthlyPeriods, hasVat, downloadCSV } from '../../../li
 import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/ui/Toast'
 import { AdminSkeleton } from '../../../components/feedback/AdminSkeleton'
-import {
-  downloadOpenFormat,
-  validateOpenFormatSettings,
-  printSection26,
-  buildSection26Report,
-  generateSampleFiles,
-  printRegistrationPackage,
-} from '../../../lib/bookxTaxExport'
+import { generateSampleFiles } from '../../../lib/bookxTaxExport'
 
 const PERIOD_TYPES = [
   { value: 'monthly',    label: 'חודשי' },
@@ -76,9 +69,7 @@ export function TaxReportTab() {
   const [periodIdx, setPeriodIdx]     = useState(0)
   const [loading, setLoading]         = useState(false)
   const [showAccountant, setShowAccountant] = useState(false)
-  const [exportLoading, setExportLoading]   = useState(false)
   const [sampleLoading, setSampleLoading]   = useState(false)
-  const [exportWarnings, setExportWarnings] = useState([])
 
   const [incomeRows, setIncomeRows]     = useState([])
   const [expenseRows, setExpenseRows]   = useState([])
@@ -215,52 +206,6 @@ export function TaxReportTab() {
     const intl  = phone.startsWith('0') ? `972${phone.slice(1)}` : phone
     window.open(`https://wa.me/${intl}?text=${encodeURIComponent(buildWhatsAppText())}`, '_blank')
     setShowAccountant(false)
-  }
-
-  async function handleExportOpenFrmt() {
-    const from = currentPeriod?.startDate
-    const to   = currentPeriod?.endDate
-    if (!from || !to) return
-    const { valid, errors, warnings } = validateOpenFormatSettings(settings || {})
-    setExportWarnings(warnings || [])
-    if (!valid) { showToast({ message: errors[0], type: 'error' }); return }
-    setExportLoading(true)
-    try {
-      const { report } = await downloadOpenFormat({ from, to, settings })
-      showToast({ message: `קובץ אחיד הופק בהצלחה — ${report.totals.C100} מסמכים`, type: 'success' })
-    } catch (err) {
-      showToast({ message: err.message, type: 'error' })
-    } finally {
-      setExportLoading(false)
-    }
-  }
-
-  function handlePrintSection26() {
-    if (!settings) return
-    const report = buildSection26Report({
-      settings,
-      from: currentPeriod?.startDate,
-      to:   currentPeriod?.endDate,
-      counts: { C100: 0, D110: 0, D120: 0, M100: 0 },
-      docTypeSummary: {},
-      primaryId: '—',
-    })
-    printSection26(report)
-  }
-
-  async function handleQuarterlyBackup() {
-    if (!settings) return
-    setExportLoading(true)
-    try {
-      const fullYear = new Date().getFullYear()
-      await downloadOpenFormat({ from: `${fullYear}-01-01`, to: `${fullYear}-12-31`, settings })
-      await supabase.functions.invoke('quarterly-backup')
-      showToast({ message: 'גיבוי רבעוני הורד — שמור במיקום מאובטח בישראל', type: 'success' })
-    } catch (err) {
-      showToast({ message: err.message, type: 'error' })
-    } finally {
-      setExportLoading(false)
-    }
   }
 
   async function handleExportSample() {
@@ -410,55 +355,41 @@ export function TaxReportTab() {
           )}
 
           {/* Action buttons */}
-          <div className="flex gap-3 flex-wrap">
-            <button
-              onClick={() => {
-                if (!settings?.accountant_name || !settings?.accountant_phone) {
-                  showToast({ message: 'הגדר פרטי רואה חשבון בהגדרות הפיננסים', type: 'error' })
-                  return
-                }
-                setShowAccountant(true)
-              }}
-              className="btn-primary px-5 py-2.5 text-sm"
-            >
-              📤 שלח לרואה חשבון
-            </button>
-            <button onClick={handleExportCSV}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-              📥 ייצוא CSV
-            </button>
-            <button
-              onClick={handleExportSample}
-              disabled={sampleLoading}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
-              {sampleLoading ? '⏳ מכין...' : '🧪 קובץ דמה לסימולטור'}
-            </button>
+          <div className="flex gap-3 flex-wrap items-start">
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => {
+                  if (!settings?.accountant_name || !settings?.accountant_phone) {
+                    showToast({ message: 'הגדר פרטי רואה חשבון בהגדרות הפיננסים', type: 'error' })
+                    return
+                  }
+                  setShowAccountant(true)
+                }}
+                className="btn-primary px-5 py-2.5 text-sm"
+              >
+                📤 שלח לרואה חשבון
+              </button>
+              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>ריכוז הכנסות/הוצאות + מע״מ בWhatsApp</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <button onClick={handleExportCSV}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                📥 ייצוא CSV
+              </button>
+              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>טבלה לפי קטגוריה — לייבוא לחשבשבת/אקסל</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={handleExportSample}
+                disabled={sampleLoading}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}>
+                {sampleLoading ? '⏳ מכין...' : '🧪 קובץ דמה לסימולטור'}
+              </button>
+              <span className="text-xs" style={{ color: 'var(--color-muted)' }}>600 רשומות דמה לאימות בסימולטור הממשלתי</span>
+            </div>
           </div>
-
-          {/* Quarterly backup reminder */}
-          {(() => {
-            const last = settings?.last_quarterly_backup_at ? new Date(settings.last_quarterly_backup_at) : null
-            const daysSince = last ? Math.floor((Date.now() - last) / 86400000) : 999
-            if (daysSince <= 90) return null
-            return (
-              <div className="rounded-2xl p-4 flex items-center justify-between gap-3"
-                style={{ background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.3)' }}>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: '#dc2626' }}>⚠ גיבוי רבעוני נדרש</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                    {last ? `גיבוי אחרון לפני ${daysSince} יום` : 'לא בוצע גיבוי מעולם'} — חובה לפי הוראת מקצוע 24/2004
-                  </p>
-                </div>
-                <button onClick={handleQuarterlyBackup} disabled={exportLoading}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap disabled:opacity-50"
-                  style={{ background: '#dc2626', color: '#fff' }}>
-                  {exportLoading ? '⏳...' : '💾 גיבוי עכשיו'}
-                </button>
-              </div>
-            )
-          })()}
         </>
       )}
 

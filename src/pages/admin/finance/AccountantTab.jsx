@@ -4,9 +4,8 @@ import { supabase } from '../../../lib/supabase'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
-import { sendEmail, blobToBase64 } from '../../../lib/email'
+import { sendEmail } from '../../../lib/email'
 import { generateFinancialReport, downloadWorkbook, generateWorkLog } from '../../../lib/xlsx-report'
-import { downloadOpenFormat, validateOpenFormatSettings, printSection26 } from '../../../lib/openfrmt'
 
 function defaultRange() {
   const now = new Date()
@@ -26,12 +25,7 @@ export function AccountantTab() {
   const toast = useToast()
   const { settings } = useBusinessSettings()
   const [range, setRange] = useState(defaultRange)
-  const [busy, setBusy] = useState(null) // 'receipts' | 'receipts-dl' | 'invoices' | 'report' | 'openfrmt'
-  const [taxPanelOpen, setTaxPanelOpen] = useState(false)
-  const [openfrmtDialog, setOpenfrmtDialog] = useState(null) // { report, primaryId } | null
-
-  // Live validation of OPENFRMT settings
-  const ofValidation = settings ? validateOpenFormatSettings(settings) : { valid: false, errors: [], warnings: [] }
+  const [busy, setBusy] = useState(null)
 
   const accountantEmail = settings?.accountant_email
   const accountantName  = settings?.accountant_name
@@ -292,24 +286,6 @@ export function AccountantTab() {
     }
   }
 
-  // ─── Action 4a: OPENFRMT ───
-  async function downloadOpenfrmt() {
-    if (!ofValidation.valid) {
-      toast({ message: 'חסרות הגדרות חובה: ' + ofValidation.errors[0], type: 'error' })
-      return
-    }
-    setBusy('openfrmt')
-    try {
-      const result = await downloadOpenFormat({ from: range.from, to: range.to, settings })
-      setOpenfrmtDialog(result)
-      toast({ message: 'הקובץ הורד ✓', type: 'success' })
-    } catch (err) {
-      toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -363,142 +339,44 @@ export function AccountantTab() {
         <ActionCard
           icon="📥"
           title="הורד קבלות ZIP"
-          description="כל צילומי הקבלות בקובץ ZIP מקומי, ללא שליחת מייל"
+          description="צילומי כל קבלות ההוצאות בטווח — קובץ ZIP להורדה מקומית"
           busy={busy === 'receipts-dl'}
           onClick={downloadReceiptsZip}
         />
         <ActionCard
           icon="📸"
           title="שלח קבלות לרואה חשבון"
-          description="ZIP עם כל צילומי הקבלות + טבלה מסכמת למייל"
+          description="מייל לרו״ח עם קישורים לכל צילומי הקבלות + טבלת סיכום הוצאות"
           busy={busy === 'receipts'}
           onClick={sendReceipts}
         />
         <ActionCard
           icon="📊"
           title="הורד דוח פיננסי Excel"
-          description="6 גיליונות — סיכום, הכנסות, הוצאות, עמלות, חובות, הכנסות ידניות"
+          description="6 גיליונות: סיכום, הכנסות, הוצאות, עמלות, חובות, הכנסות ידניות"
           busy={busy === 'report'}
           onClick={downloadReport}
         />
         <ActionCard
           icon="🧾"
           title="שלח דוח Excel לרואה חשבון"
-          description="קובץ Excel מעוצב עם כל החשבוניות והכנסות בתקופה"
+          description="מייל לרו״ח עם קישור הורדה לקובץ Excel (קישור תקף 7 ימים)"
           busy={busy === 'invoices'}
           onClick={sendInvoicesReport}
         />
         <ActionCard
           icon="📋"
           title="יומן עבודה"
-          description="כל פעולות היומן לפי תאריכים — לצורך ביקורת מס"
+          description="כל התורים כולל מבוטלים, ממוין לפי תאריך — לצורך ביקורת מס (הוראות ניהול ספרים)"
           busy={busy === 'worklog'}
           onClick={downloadWorkLogReport}
         />
-        <ActionCard
-          icon="🏛"
-          title="דוחות רשות המיסים"
-          description="OPENFRMT — קובץ אחיד לרשות המיסים"
-          busy={false}
-          onClick={() => setTaxPanelOpen(o => !o)}
-          variant="tax"
-        />
       </div>
-
-      {/* Tax authority collapsible panel */}
-      {taxPanelOpen && (
-        <div className="card p-4 space-y-3" style={{ border: '1px solid var(--color-gold)' }}>
-          <p className="text-sm font-semibold" style={{ color: 'var(--color-gold)' }}>
-            🏛 דוחות לרשות המיסים
-          </p>
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-            הקבצים מופקים לפי מבנה אחיד 1.31 והוראת מקצוע 24/2004. יש לאמת בסימולטור הממשלתי לפני הגשה.
-          </p>
-
-          {/* Validation warnings */}
-          {!ofValidation.valid && (
-            <div className="p-3 rounded-xl text-xs space-y-1"
-              style={{ background: 'var(--color-danger-tint)', border: '1px solid var(--color-danger-ring)', color: '#dc2626' }}>
-              <p className="font-semibold">⚠️ חסרות הגדרות חובה להפקת OPENFRMT:</p>
-              <ul className="list-disc pr-4 space-y-0.5">
-                {ofValidation.errors.map((e, i) => <li key={i}>{e}</li>)}
-              </ul>
-              <p className="mt-2">יש להשלים את ההגדרות ב"הגדרות → רישום תוכנה ברשות המיסים".</p>
-            </div>
-          )}
-          {ofValidation.valid && ofValidation.warnings.length > 0 && (
-            <div className="p-3 rounded-xl text-xs space-y-1"
-              style={{ background: 'var(--color-warning-tint)', border: '1px solid var(--color-warning-ring)', color: '#a16207' }}>
-              {ofValidation.warnings.map((w, i) => <p key={i}>⚠️ {w}</p>)}
-            </div>
-          )}
-
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={downloadOpenfrmt} disabled={busy === 'openfrmt' || !ofValidation.valid}
-              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-              style={{ background: 'var(--color-gold)', color: '#fff' }}>
-              {busy === 'openfrmt' ? <Spinner size="sm" /> : '📁 OPENFRMT (קובץ אחיד)'}
-            </button>
-          </div>
-          <a href="https://www.gov.il/he/service/download-open-format-files"
-            target="_blank" rel="noreferrer"
-            className="text-xs underline inline-block" style={{ color: 'var(--color-gold)' }}>
-            סימולטור אימות OPENFRMT ←
-          </a>
-        </div>
-      )}
-
-      {/* OPENFRMT summary dialog (Instruction 24/2004 §5.4) */}
-      {openfrmtDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-          style={{ background: 'var(--color-overlay-lg)' }}
-          onClick={() => setOpenfrmtDialog(null)}>
-          <div className="card modal-bg p-6 max-w-md w-full space-y-4"
-            style={{ background: 'var(--color-modal-panel)', border: '1px solid var(--color-gold)' }}
-            onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-lg" style={{ color: 'var(--color-gold)', fontFamily: 'var(--font-display)' }}>
-              ✓ קובץ אחיד הופק בהצלחה
-            </h3>
-            <div className="text-sm space-y-1" style={{ color: 'var(--color-text)' }}>
-              <p><b>Primary ID:</b> <span className="font-mono text-xs">{openfrmtDialog.primaryId}</span></p>
-              <p><b>תקופה:</b> {range.from} עד {range.to}</p>
-              <p><b>ספירות:</b></p>
-              <ul className="list-disc pr-6 text-xs" style={{ color: 'var(--color-muted)' }}>
-                <li>C100 (כותרות מסמכים): {openfrmtDialog.report.totals.C100}</li>
-                <li>D110 (שורות מסמך): {openfrmtDialog.report.totals.D110}</li>
-                <li>D120 (תקבולים): {openfrmtDialog.report.totals.D120}</li>
-                <li>M100 (פריטים): {openfrmtDialog.report.totals.M100}</li>
-              </ul>
-            </div>
-            <div className="text-xs p-3 rounded-xl"
-              style={{ background: 'var(--color-blue-tint)', color: 'var(--color-muted)' }}>
-              ℹ️ לפי סעיף 5.4 להוראת מקצוע 24/2004 — יש לשמור את ה-Primary ID ואת דוח ההפקה (סעיף 2.6) לתיעוד.
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => printSection26(openfrmtDialog.report)}
-                className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: 'var(--color-gold)', color: '#fff' }}>
-                🖨 הדפס דוח הפקה (2.6)
-              </button>
-              <button onClick={() => setOpenfrmtDialog(null)}
-                className="px-4 py-2 rounded-xl text-sm"
-                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-                סגור
-              </button>
-            </div>
-            <a href="https://www.gov.il/he/service/download-open-format-files"
-              target="_blank" rel="noreferrer"
-              className="text-xs underline inline-block" style={{ color: 'var(--color-gold)' }}>
-              אמת בסימולטור הממשלתי ←
-            </a>
-          </div>
-        </div>
-      )}
 
       {/* Legal notice */}
       <div className="card p-3" style={{ background: 'var(--color-blue-tint)', border: '1px solid var(--color-blue-ring)' }}>
         <p className="text-xs leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-          ℹ️ <b>לתשומת לבך:</b> קובץ OPENFRMT מופק לפי מבנה אחיד 1.31. אמת אותו בסימולטור הממשלתי לפני הגשה. דוח מע״מ חודשי (PCN874) מטופל על ידי רואה החשבון שלך.
+          ℹ️ לייצוא קבצים לרשות המיסים (OPENFRMT / קובץ אחיד) — עבור ללשונית <b>מס הכנסה</b>.
         </p>
       </div>
     </div>
