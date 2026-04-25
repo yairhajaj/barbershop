@@ -673,12 +673,14 @@ export function HomePage() {
   }
 
   // ── v6 glass panel style ──────────────────────────────────────────
-  const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(243,240,234,0.92)'
+  const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(243,240,234,0.78)'
   const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(243,240,234,0)'
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: '0',
     background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 18px)`,
+    backdropFilter: isDark ? 'none' : 'blur(22px) saturate(1.6)',
+    WebkitBackdropFilter: isDark ? 'none' : 'blur(22px) saturate(1.6)',
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
