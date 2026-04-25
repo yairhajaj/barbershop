@@ -221,13 +221,22 @@ export async function buildWorkbook({ from, to, settings, data }) {
     { header: 'מע״מ',         width: 11 },
     { header: 'סה״כ',         width: 13 },
     { header: 'סטטוס',        width: 11 },
-    { header: 'מבוטלת?',      width: 10 },
+    { header: 'הערת זיכוי',   width: 28 },
     { header: 'הערות',        width: 20 },
   ]
   applyHeaderRow(wsIncome.getRow(1))
 
+  const invoiceNumById = Object.fromEntries(invoices.map(i => [i.id, i.invoice_number]))
+
   const incomeCurrencyCols = [8, 9, 10]
   invoices.forEach(i => {
+    let creditNote = ''
+    if (i.credit_note_for) {
+      const orig = invoiceNumById[i.credit_note_for] || i.credit_note_for
+      creditNote = `חשבונית זיכוי של ${orig}`
+    } else if (i.is_cancelled) {
+      creditNote = 'בוטלה — הופקה חשבונית זיכוי'
+    }
     const r = wsIncome.addRow([
       i.invoice_number,
       fmtDate(i.created_at),
@@ -240,11 +249,11 @@ export async function buildWorkbook({ from, to, settings, data }) {
       Number(i.vat_amount        || 0),
       Number(i.total_amount      || 0),
       STATUS_LABELS[i.status] || i.status,
-      i.is_cancelled ? 'כן' : '',
+      creditNote,
       i.notes || '',
     ])
     applyBodyRow(r, incomeCurrencyCols)
-    if (i.is_cancelled) r.eachCell(c => { c.font = { ...BODY_FONT, color: { argb: 'FFAAAAAA' } } })
+    if (i.is_cancelled || i.credit_note_for) r.eachCell(c => { c.font = { ...BODY_FONT, color: { argb: 'FFAAAAAA' } } })
   })
 
   if (invoices.length) {
@@ -599,6 +608,73 @@ export async function generateWorkLog({ from, to, settings }) {
     arrayBuffer,
     filename: `יומן_עבודה_${from}_${to}.xlsx`,
   }
+}
+
+// ─── Invoices Excel (InvoicesTab export) ──────────────────────────────────────
+export async function generateInvoicesExcel({ invoices, settings }) {
+  const wb = new ExcelJS.Workbook()
+  wb.creator  = settings?.business_name || 'HAJAJ'
+  wb.created  = new Date()
+  wb.modified = new Date()
+
+  const ws = wb.addWorksheet('חשבוניות')
+  ws.views = [{ rightToLeft: true, state: 'frozen', ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft' }]
+
+  ws.columns = [
+    { header: 'מס׳ חשבונית', width: 16 },
+    { header: 'תאריך',       width: 13 },
+    { header: 'לקוח',        width: 22 },
+    { header: 'טלפון',       width: 15 },
+    { header: 'שירות',       width: 24 },
+    { header: 'ספר',         width: 16 },
+    { header: 'לפני מע״מ',  width: 13 },
+    { header: 'מע״מ',        width: 11 },
+    { header: 'סה״כ',        width: 13 },
+    { header: 'סטטוס',       width: 11 },
+    { header: 'סוג',         width: 10 },
+  ]
+  applyHeaderRow(ws.getRow(1))
+
+  const currencyCols = [7, 8, 9]
+  const active = invoices.filter(i => !i.is_cancelled && !i.credit_note_for)
+
+  invoices.forEach(inv => {
+    const isCancelled = inv.is_cancelled
+    const isCredit    = !!inv.credit_note_for
+    const r = ws.addRow([
+      inv.invoice_number || '',
+      fmtDate(inv.service_date || inv.created_at),
+      inv.customer_name  || '',
+      inv.customer_phone || '',
+      inv.service_name   || '',
+      inv.staff_name     || '',
+      Number(inv.amount_before_vat || 0),
+      Number(inv.vat_amount        || 0),
+      Number(inv.total_amount      || 0),
+      STATUS_LABELS[inv.status] || inv.status || '',
+      isCredit ? 'זיכוי' : isCancelled ? 'מבוטלת' : 'חשבונית',
+    ])
+    applyBodyRow(r, currencyCols)
+    if (isCancelled || isCredit) {
+      r.eachCell(c => { c.font = { ...BODY_FONT, color: { argb: 'FFAAAAAA' } } })
+    }
+  })
+
+  if (invoices.length) {
+    const lastRow = invoices.length + 1
+    const totalRow = ws.addRow([
+      `סה״כ (${active.length} חשבוניות פעילות)`, '', '', '', '', '',
+      { formula: `SUMIF(K2:K${lastRow},"חשבונית",G2:G${lastRow})` },
+      { formula: `SUMIF(K2:K${lastRow},"חשבונית",H2:H${lastRow})` },
+      { formula: `SUMIF(K2:K${lastRow},"חשבונית",I2:I${lastRow})` },
+      '', '',
+    ])
+    applyTotalRow(totalRow, currencyCols)
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const arrayBuffer = await wb.xlsx.writeBuffer()
+  return { arrayBuffer, filename: `חשבוניות_${today}.xlsx` }
 }
 
 export function downloadWorkbook(arrayBuffer, filename) {
