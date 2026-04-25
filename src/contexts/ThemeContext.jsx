@@ -39,6 +39,12 @@ export const THEMES = [
     desc: 'שחור עמוק עם זהב חם — פרימיום וגלאס',
     preview: ['#06080F', '#F59E0B', '#0f1219'],
   },
+  {
+    id: 'hot-pink',
+    name: 'ורוד זוהר',
+    desc: 'ורוד בוהק ומרגש — אנרגטי ומודרני',
+    preview: ['#ffffff', '#FF2D78', '#fff0f5'],
+  },
 ]
 
 export const LAYOUTS = [

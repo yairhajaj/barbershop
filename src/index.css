@@ -302,6 +302,36 @@
 [data-theme="midnight"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
 
 /* ══════════════════════════════════════════════════════════════════
+   THEME: hot-pink — ורוד זוהר (vibrant hot pink)
+══════════════════════════════════════════════════════════════════ */
+[data-theme="hot-pink"] {
+  --color-primary:       #3d0020;
+  --color-primary-light: #5c0030;
+  --color-gold:          #FF2D78;
+  --color-primary-rgb:   255, 45, 120;
+  --color-gold-text:     #d4005a;
+  --color-gold-btn:      #e8005a;
+  --color-gold-light:    #ff80b0;
+  --color-gold-dark:     #c0004a;
+  --color-surface:       #fff0f5;
+  --color-card:          #ffffff;
+  --color-border:        rgba(255,45,120,0.14);
+  --color-muted:         #b07080;
+  --color-text:          #3d0020;
+  --color-navbar:        #3d0020;
+  --color-accent-glow:   rgba(255,45,120,0.28);
+  --radius-btn:          999px;
+  --radius-card:         1.5rem;
+  --shadow-card:         0 2px 16px rgba(255,45,120,0.10);
+  --shadow-elevated:     0 8px 32px rgba(255,45,120,0.18);
+}
+[data-theme="hot-pink"] .btn-primary {
+  background: linear-gradient(135deg, #FF2D78, #c0004a);
+  box-shadow: 0 4px 20px rgba(255,45,120,0.45);
+}
+[data-theme="hot-pink"] .btn-primary:hover { box-shadow: 0 6px 28px rgba(255,45,120,0.65); }
+
+/* ══════════════════════════════════════════════════════════════════
    THEME: obsidian — אובסידיאן (deep black + warm gold + glass)
    Based on premium dark-glass-gold design system
 ══════════════════════════════════════════════════════════════════ */
