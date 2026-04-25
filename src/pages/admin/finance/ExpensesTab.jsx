@@ -139,11 +139,11 @@ export function ExpensesTab() {
   }
 
   async function handleDelete(id) {
-    if (!await confirm({ title: 'מחיקת הוצאה', description: 'האם אתה בטוח שברצונך למחוק את ההוצאה? פעולה זו אינה הפיכה.', variant: 'destructive', confirmLabel: 'מחק' })) return
+    if (!await confirm({ title: 'ביטול הוצאה', description: 'ההוצאה תסומן כמבוטלת ותישמר בארכיון (נדרש לפי הוראות ניהול ספרים).', variant: 'destructive', confirmLabel: 'בטל הוצאה' })) return
     setDeleting(id)
     try {
       await deleteExpense(id)
-      showToast({ message: '\u05D4\u05D5\u05E6\u05D0\u05D4 \u05E0\u05DE\u05D7\u05E7\u05D4', type: 'success' })
+      showToast({ message: 'ההוצאה בוטלה', type: 'success' })
     } catch (err) {
       showToast({ message: '\u05E9\u05D2\u05D9\u05D0\u05D4: ' + err.message, type: 'error' })
     } finally {

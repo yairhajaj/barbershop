@@ -107,6 +107,22 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb',
     paddingTop: 12,
     fontSize: 8,
+  },
+  footerRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pageNum: {
+    fontSize: 8,
+    color: '#9ca3af',
+  },
+  endOfDoc: {
+    marginTop: 6,
+    textAlign: 'center',
+    fontSize: 7,
+    color: '#d1d5db',
+    letterSpacing: 1,
     color: '#9ca3af',
     textAlign: 'center',
   },
@@ -203,10 +219,22 @@ export function InvoicePDF({ appointment, business, footerText, vatRate, isCopy,
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text>{footerText || `תודה על בחירתך ב-${business.name}!`}</Text>
-          <Text style={{ marginTop: 4 }}>
+          <View style={styles.footerRow}>
+            <Text style={{ color: '#9ca3af', fontSize: 8 }}>{footerText || `תודה על בחירתך ב-${business.name}!`}</Text>
+            <Text
+              style={styles.pageNum}
+              render={({ pageNumber, totalPages }) => `עמוד ${pageNumber} מתוך ${totalPages}`}
+            />
+          </View>
+          <Text style={{ color: '#9ca3af', fontSize: 8, marginTop: 2 }}>
             {business.address} | {business.phone} | {business.email}
           </Text>
+          <Text
+            style={styles.endOfDoc}
+            render={({ pageNumber, totalPages }) =>
+              pageNumber === totalPages ? '— סוף המסמך —' : ''
+            }
+          />
         </View>
       </Page>
     </Document>

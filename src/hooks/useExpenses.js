@@ -10,6 +10,7 @@ export function useExpenses({ startDate, endDate, categoryId, branchId = null } 
       let q = supabase
         .from('expenses')
         .select('*, expense_categories(id, name, icon)')
+        .neq('is_cancelled', true)
         .order('date', { ascending: false })
       if (startDate)  q = q.gte('date', startDate)
       if (endDate)    q = q.lte('date', endDate)
@@ -58,7 +59,10 @@ export function useExpenses({ startDate, endDate, categoryId, branchId = null } 
 
   const deleteMut = useMutation({
     mutationFn: async (id) => {
-      const { error } = await supabase.from('expenses').delete().eq('id', id)
+      const { error } = await supabase.from('expenses').update({
+        is_cancelled: true,
+        cancelled_at: new Date().toISOString(),
+      }).eq('id', id)
       if (error) throw error
     },
     onSuccess: invalidateFinance,

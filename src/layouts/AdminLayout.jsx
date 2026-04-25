@@ -178,6 +178,35 @@ function BranchSwitcher() {
   )
 }
 
+function BackupWarningBanner({ settings }) {
+  const [dismissed, setDismissed] = useState(false)
+  if (dismissed) return null
+
+  const last = settings?.last_quarterly_backup_at
+  const daysSince = last
+    ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000)
+    : null
+  const needsBackup = !last || daysSince > 90
+
+  if (!needsBackup) return null
+
+  return (
+    <div
+      className="mb-4 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium"
+      style={{ background: '#fef9c3', border: '1px solid #fcd34d', color: '#92400e' }}
+    >
+      <span>⚠️</span>
+      <span className="flex-1">
+        {last
+          ? `גיבוי רבעוני לא בוצע מזה ${daysSince} ימים — נדרש לפי הוראות ניהול ספרים`
+          : 'לא בוצע גיבוי רבעוני — ביצוע גיבוי נדרש לפי הוראות ניהול ספרים'}
+        <a href="/admin/finance" className="mr-2 underline font-bold">לייצוא ←</a>
+      </span>
+      <button onClick={() => setDismissed(true)} style={{ color: '#92400e', opacity: 0.6 }}>✕</button>
+    </div>
+  )
+}
+
 export function AdminLayout({ children }) {
   const { user, profile, loading, signOut } = useAuth()
   const { settings } = useBusinessSettings()
@@ -421,6 +450,7 @@ export function AdminLayout({ children }) {
           className="flex-1 p-4 sm:p-6 lg:pb-6 overflow-x-hidden"
           style={{ paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0px))', maxWidth: '100%' }}
         >
+          <BackupWarningBanner settings={settings} />
           {children}
         </main>
       </div>

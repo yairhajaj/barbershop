@@ -34,6 +34,8 @@ export function InvoicesTab() {
   const [dateFilter, setDateFilter] = useState('')
   const [creditConfirmInv, setCreditConfirmInv] = useState(null)
   const [creditBusy, setCreditBusy] = useState(false)
+  const [continuityIssues, setContinuityIssues] = useState(null)
+  const [continuityLoading, setContinuityLoading] = useState(false)
   const { currentBranch } = useBranch()
   const { invoices, loading, createInvoice, markPaid, cancelInvoice, markSent } = useInvoices({
     status: filter === 'all' ? undefined : filter,
@@ -194,6 +196,19 @@ export function InvoicesTab() {
     }
   }
 
+  async function handleCheckContinuity() {
+    setContinuityLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('check_invoice_continuity')
+      if (error) throw error
+      setContinuityIssues(data ?? [])
+    } catch (err) {
+      showToast({ message: 'שגיאה בבדיקת רציפות: ' + err.message, type: 'error' })
+    } finally {
+      setContinuityLoading(false)
+    }
+  }
+
   async function handleCreateCredit(inv) {
     setCreditBusy(true)
     try {
@@ -248,12 +263,23 @@ export function InvoicesTab() {
           ))}
         </div>
 
-        <button
-          onClick={() => setShowGenerate(true)}
-          className="btn-primary px-4 py-2 text-sm"
-        >
-          + הפק {docLabel(businessType)}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCheckContinuity}
+            disabled={continuityLoading}
+            className="px-3 py-2 text-sm rounded-xl font-medium transition-colors"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)' }}
+            title="בדיקת רציפות מספרי חשבוניות (הוראות ניהול ספרים)"
+          >
+            {continuityLoading ? '...' : '🔍 רציפות'}
+          </button>
+          <button
+            onClick={() => setShowGenerate(true)}
+            className="btn-primary px-4 py-2 text-sm"
+          >
+            + הפק {docLabel(businessType)}
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -525,6 +551,47 @@ export function InvoicesTab() {
             </button>
           )}
         </div>
+      </Modal>
+
+      {/* Continuity check results modal */}
+      <Modal
+        open={continuityIssues !== null}
+        onClose={() => setContinuityIssues(null)}
+        title="בדיקת רציפות מספרי חשבוניות"
+      >
+        {continuityIssues?.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">✅</div>
+            <p className="font-bold" style={{ color: 'var(--color-text)' }}>כל המספרים תקינים</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>לא נמצאו חריגות ברצף החשבוניות</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+              נמצאו {continuityIssues?.length} חריגות — נדרש בירור לפי הוראות ניהול ספרים
+            </p>
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {(continuityIssues ?? []).map((issue, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-3 rounded-xl"
+                  style={{
+                    background: issue.issue === 'missing' ? 'var(--color-warning-tint, #fef9c3)' : 'var(--color-error-tint, #fee2e2)',
+                    border: `1px solid ${issue.issue === 'missing' ? '#fcd34d' : '#fca5a5'}`,
+                  }}
+                >
+                  <span>{issue.issue === 'missing' ? '⚠️' : '🔴'}</span>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                      {issue.issue === 'missing' ? 'מספר חסר' : 'כפול'}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>{issue.details}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

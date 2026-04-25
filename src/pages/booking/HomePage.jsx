@@ -483,6 +483,7 @@ export function HomePage() {
   // Pending waitlist offer banner
   const [waitlistOffer, setWaitlistOffer]       = useState(null)
   const [waitlistBannerDismissed, setWaitlistBannerDismissed] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -586,16 +587,22 @@ export function HomePage() {
     return () => clearTimeout(timer)
   }, [nextAppointment])
 
-  // Hero parallax — fade + slide up as page scrolls
+  // Hero parallax — fade + slide up as page scrolls; also tracks isScrolled for panel radius
   useEffect(() => {
     const root = document.getElementById('root')
     const target = root ?? window
+    let wasScrolled = false
     const handle = () => {
       const y = root ? root.scrollTop : window.scrollY
       const brand = document.getElementById('v6-hero-brand')
       if (brand) {
         brand.style.opacity = Math.max(0, 1 - y / 190)
         brand.style.transform = `translateY(${y * -0.12}px)`
+      }
+      const nowScrolled = y > 20
+      if (nowScrolled !== wasScrolled) {
+        wasScrolled = nowScrolled
+        setIsScrolled(nowScrolled)
       }
     }
     target.addEventListener('scroll', handle, { passive: true })
@@ -658,7 +665,8 @@ export function HomePage() {
   const glassPanel = isDark
     ? {
         position: 'relative', zIndex: 10, marginTop: -120,
-        borderRadius: '24px 24px 0 0',
+        borderRadius: isScrolled ? '24px 24px 0 0' : '0',
+        transition: 'border-radius 0.35s ease',
         background: 'rgba(18,14,10,0.92)',
         borderTop: 'none',
         boxShadow: 'none',
@@ -666,7 +674,8 @@ export function HomePage() {
       }
     : {
         position: 'relative', zIndex: 10, marginTop: -120,
-        borderRadius: '24px 24px 0 0',
+        borderRadius: isScrolled ? '24px 24px 0 0' : '0',
+        transition: 'border-radius 0.35s ease',
         background: 'rgba(243,240,234,0.92)',
         borderTop: 'none',
         boxShadow: 'none',
