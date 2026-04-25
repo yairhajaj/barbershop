@@ -78,7 +78,6 @@ export async function fetchFinancialData({ from, to }) {
     { data: expenses },
     { data: commissions },
     { data: debts },
-    { data: manualInc },
   ] = await Promise.all([
     supabase.from('invoices')
       .select('*')
@@ -92,24 +91,18 @@ export async function fetchFinancialData({ from, to }) {
       .select('*, staff(name)')
       .gte('date', from).lte('date', to)
       .order('date', { ascending: true }),
-    // Fix: filter by date range, show all non-paid debts in period
     supabase.from('customer_debts')
       .select('*, profiles(name, phone)')
       .gte('created_at', startIso).lte('created_at', endIso)
       .neq('status', 'paid')
       .order('created_at', { ascending: true }),
-    supabase.from('manual_income')
-      .select('*, staff(name), services(name)')
-      .gte('date', from).lte('date', to)
-      .order('date', { ascending: true }),
   ])
 
   return {
-    invoices:     invoices     ?? [],
-    expenses:     expenses     ?? [],
-    commissions:  commissions  ?? [],
-    debts:        debts        ?? [],
-    manualIncome: manualInc    ?? [],
+    invoices:    invoices    ?? [],
+    expenses:    expenses    ?? [],
+    commissions: commissions ?? [],
+    debts:       debts       ?? [],
   }
 }
 
@@ -119,7 +112,7 @@ export async function buildWorkbook({ from, to, settings, data }) {
   wb.created  = new Date()
   wb.modified = new Date()
 
-  const { invoices, expenses, commissions, debts, manualIncome } = data
+  const { invoices, expenses, commissions, debts } = data
 
   // ─── Sheet 1: Summary ───────────────────────────────────────────────
   const wsSummary = wb.addWorksheet('סיכום')
@@ -130,19 +123,15 @@ export async function buildWorkbook({ from, to, settings, data }) {
   ]
 
   const activeInvoices   = invoices.filter(i => !i.is_cancelled)
-  const totalIncome      = activeInvoices.reduce((s, i)  => s + Number(i.total_amount  || 0), 0)
-  const totalIncomeVat   = activeInvoices.reduce((s, i)  => s + Number(i.vat_amount    || 0), 0)
-  const totalManual      = manualIncome.reduce((s, m)    => s + Number(m.amount        || 0), 0)
-  const totalManualVat   = manualIncome.reduce((s, m)    => s + Number(m.vat_amount    || 0), 0)
+  const totalIncome      = activeInvoices.reduce((s, i) => s + Number(i.total_amount || 0), 0)
+  const totalIncomeVat   = activeInvoices.reduce((s, i) => s + Number(i.vat_amount   || 0), 0)
   const activeExpenses   = expenses.filter(e => !e.is_cancelled)
-  const totalExpenses    = activeExpenses.reduce((s, e)  => s + Number(e.amount        || 0), 0)
-  const totalExpVat      = activeExpenses.reduce((s, e)  => s + Number(e.vat_amount    || 0), 0)
-  const totalCommissions = commissions.reduce((s, c)     => s + Number(c.amount        || 0), 0)
-  const totalDebt        = debts.reduce((s, d)           => s + Number(d.amount        || 0), 0)
-  const allIncome        = totalIncome + totalManual
-  const allIncomeVat     = totalIncomeVat + totalManualVat
-  const profit           = allIncome - totalExpenses
-  const netVat           = allIncomeVat - totalExpVat
+  const totalExpenses    = activeExpenses.reduce((s, e) => s + Number(e.amount        || 0), 0)
+  const totalExpVat      = activeExpenses.reduce((s, e) => s + Number(e.vat_amount    || 0), 0)
+  const totalCommissions = commissions.reduce((s, c)    => s + Number(c.amount        || 0), 0)
+  const totalDebt        = debts.reduce((s, d)          => s + Number(d.amount        || 0), 0)
+  const profit           = totalIncome - totalExpenses
+  const netVat           = totalIncomeVat - totalExpVat
 
   function addSectionHeader(label) {
     const r = wsSummary.addRow([label, ''])
@@ -180,9 +169,8 @@ export async function buildWorkbook({ from, to, settings, data }) {
   wsSummary.addRow([])
 
   addSectionHeader('הכנסות')
-  addDataRow('הכנסות מחשבוניות',   totalIncome)
-  addDataRow('הכנסות ידניות',      totalManual)
-  addDataRow('סה״כ הכנסות',        allIncome)
+  addDataRow('הכנסות מחשבוניות', totalIncome)
+  addDataRow('סה״כ הכנסות',      totalIncome)
   wsSummary.addRow([])
 
   addSectionHeader('הוצאות')
@@ -195,7 +183,7 @@ export async function buildWorkbook({ from, to, settings, data }) {
   wsSummary.addRow([])
 
   addSectionHeader('מע״מ')
-  addDataRow('מע״מ עסקאות (הכנסות)', allIncomeVat)
+  addDataRow('מע״מ עסקאות (הכנסות)', totalIncomeVat)
   addDataRow('מע״מ תשומות (הוצאות)', totalExpVat)
   addDataRow('מע״מ לתשלום',          netVat)
   wsSummary.addRow([])
@@ -391,49 +379,6 @@ export async function buildWorkbook({ from, to, settings, data }) {
       '',
     ])
     applyTotalRow(totalRow, debtCurrencyCols)
-  }
-
-  // ─── Sheet 6: Manual Income ─────────────────────────────────────────
-  const wsMi = wb.addWorksheet('הכנסות ידניות')
-  setRTLFrozen(wsMi)
-  wsMi.columns = [
-    { header: 'תאריך',       width: 12 },
-    { header: 'תיאור',       width: 28 },
-    { header: 'לקוח',        width: 20 },
-    { header: 'מטפל/ת',      width: 16 },
-    { header: 'שירות',       width: 20 },
-    { header: 'אמצעי תשלום', width: 15 },
-    { header: 'סכום',        width: 13 },
-    { header: 'מע״מ',        width: 11 },
-    { header: 'הערות',       width: 24 },
-  ]
-  applyHeaderRow(wsMi.getRow(1))
-
-  const miCurrencyCols = [7, 8]
-  manualIncome.forEach(m => {
-    const r = wsMi.addRow([
-      fmtDate(m.date),
-      m.description || '',
-      m.customer_name || '',
-      m.staff?.name    || '',
-      m.services?.name || '',
-      PAYMENT_LABELS[m.payment_method] || m.payment_method || '',
-      Number(m.amount     || 0),
-      Number(m.vat_amount || 0),
-      m.notes || '',
-    ])
-    applyBodyRow(r, miCurrencyCols)
-  })
-
-  if (manualIncome.length) {
-    const lastDataRow = 1 + manualIncome.length
-    const totalRow = wsMi.addRow([
-      'סה״כ', '', '', '', '', '',
-      { formula: `SUM(G2:G${lastDataRow})` },
-      { formula: `SUM(H2:H${lastDataRow})` },
-      '',
-    ])
-    applyTotalRow(totalRow, miCurrencyCols)
   }
 
   return wb
