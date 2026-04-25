@@ -609,8 +609,9 @@ export function HomePage() {
         const progress = Math.min(1, Math.max(0, y / BLEND_OVER))
         const radius = Math.round(progress * 24)
         const dark = isDarkRef.current
-        const bg0 = dark ? 'rgba(18,14,10,0)' : 'rgba(243,240,234,0)'
-        const bg1 = dark ? 'rgba(18,14,10,0.92)' : 'rgba(243,240,234,0.92)'
+        const fr = layoutRef.current === 'frosted'
+        const bg0 = dark ? 'rgba(18,14,10,0)' : (fr ? 'rgba(188,183,175,0)' : 'rgba(243,240,234,0)')
+        const bg1 = dark ? 'rgba(18,14,10,0.92)' : (fr ? 'rgba(188,183,175,0.85)' : 'rgba(243,240,234,0.92)')
         const gradStop = Math.round(OVERLAP * (1 - progress))
         panelRef.current.style.borderRadius = `${radius}px ${radius}px 0 0`
         panelRef.current.style.background = gradStop > 0
@@ -676,8 +677,11 @@ export function HomePage() {
 
   // ── v6 glass panel style ──────────────────────────────────────────
   const isFrosted = layout === 'frosted'
-  const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(228,225,220,0.95)'
-  const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(228,225,220,0)'
+  const _panelBg     = isDark
+    ? 'rgba(18,14,10,0.92)'
+    : (isFrosted ? 'rgba(188,183,175,0.85)' : 'rgba(228,225,220,0.95)')
+  const _panelBgZero = isDark ? 'rgba(18,14,10,0)'
+    : (isFrosted ? 'rgba(188,183,175,0)' : 'rgba(228,225,220,0)')
   const glassPanel = {
     position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: '0',
