@@ -584,6 +584,7 @@ export function Appointments() {
           const timerId = setTimeout(() => {
             setGapAlert(p => p ? { ...p, waiting: false, activateAt: null } : p)
             if (mode === 'auto') candidates.forEach(c => sendRescheduleOffer(c, cancelledAppt))
+            if (mode === 'approval') candidates.forEach(c => sendApprovalRequest(c, cancelledAppt))
           }, msUntil)
           setGapAlert(p => p ? { ...p, _timerId: timerId } : p)
           return
@@ -591,6 +592,9 @@ export function Appointments() {
       }
       if (!tooEarly && mode === 'auto') {
         for (const c of candidates) await sendRescheduleOffer(c, cancelledAppt)
+      }
+      if (!tooEarly && mode === 'approval') {
+        for (const c of candidates) await sendApprovalRequest(c, cancelledAppt)
       }
     }
 
@@ -710,6 +714,55 @@ export function Appointments() {
       step2_reschedule: {
         ...prev.step2_reschedule,
         offers: { ...prev.step2_reschedule.offers, [appointment.id]: 'sent' }
+      }
+    }) : prev)
+  }
+
+  async function sendApprovalRequest(candidate, cancelledAppt) {
+    const { appointment, newStart, newEnd } = candidate
+
+    const { data: offer, error } = await supabase
+      .from('reschedule_offers')
+      .insert({
+        appointment_id: appointment.id,
+        customer_id: appointment.customer_id,
+        staff_id: cancelledAppt.staff_id,
+        offered_start_at: newStart.toISOString(),
+        offered_end_at: newEnd.toISOString(),
+        original_start_at: appointment.start_at,
+        original_end_at: appointment.end_at,
+        status: 'pending_owner_approval',
+      })
+      .select('token')
+      .single()
+
+    if (error || !offer) { toast({ message: 'שגיאה ביצירת הצעה', type: 'error' }); return }
+
+    const approveUrl = `${window.location.origin}/admin/gap-approve?token=${offer.token}`
+
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('push_token')
+      .eq('role', 'admin')
+      .not('push_token', 'is', null)
+
+    const tokens = (admins || []).map(a => a.push_token).filter(Boolean)
+    if (tokens.length > 0) {
+      await supabase.functions.invoke('send-push', {
+        body: {
+          title: '⚡ חור ביומן — נדרש אישור',
+          body: `${appointment.profiles?.name || 'לקוח'} — מ-${formatTime(appointment.start_at)} ל-${formatTime(newStart)}`,
+          tokens,
+          url: approveUrl,
+        },
+      })
+    }
+
+    setGapAlert(prev => prev ? ({
+      ...prev,
+      step2_reschedule: {
+        ...prev.step2_reschedule,
+        offers: { ...prev.step2_reschedule.offers, [appointment.id]: 'pending_approval' }
       }
     }) : prev)
   }
@@ -1638,6 +1691,8 @@ export function Appointments() {
                         <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#ef4444' }}>נדחה ✕</span>
                       ) : offerStatus === 'sent' ? (
                         <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>נשלח ⏳</span>
+                      ) : offerStatus === 'pending_approval' ? (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>ממתין לאישורך ⏳</span>
                       ) : gapAlert.waiting ? (
                         <span className="text-[10px] px-2 py-1 rounded-lg" style={{ color: 'var(--color-muted)' }}>ממתין ⏰</span>
                       ) : (
