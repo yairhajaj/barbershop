@@ -448,6 +448,159 @@ export async function generateFinancialReport({ from, to, settings }) {
   }
 }
 
+const DAYS_HE   = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+const MONTHS_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
+
+function fmtDateDMY(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
+}
+
+function apptStatusLabel(appt) {
+  if (appt.no_show)                       return '⚫ לא הגיע'
+  if (appt.status === 'cancelled')        return '❌ בוטל'
+  if (appt.status === 'completed')        return '✅ בוצע'
+  if (appt.status === 'pending_reschedule') return '🔄 ממתין לשינוי'
+  return '📅 מאושר'
+}
+
+function apptFillArgb(appt) {
+  if (appt.no_show)                return 'FFF3F4F6'  // gray
+  if (appt.status === 'cancelled') return 'FFFEE2E2'  // red
+  if (appt.status === 'completed') return 'FFDCFCE7'  // green
+  return null
+}
+
+export async function generateWorkLog({ from, to, settings }) {
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('*, profiles(id, name, phone), services(id, name, price), staff(id, name)')
+    .gte('start_at', `${from}T00:00:00`)
+    .lte('start_at', `${to}T23:59:59`)
+    .order('start_at', { ascending: true })
+
+  const appts = appointments ?? []
+
+  const wb = new ExcelJS.Workbook()
+  wb.creator  = settings?.business_name || 'HAJAJ'
+  wb.created  = new Date()
+  wb.modified = new Date()
+
+  const ws = wb.addWorksheet('יומן עבודה')
+  ws.views = [{ rightToLeft: true, state: 'frozen', ySplit: 5, topLeftCell: 'A6', activePane: 'bottomLeft' }]
+  ws.columns = [
+    { width: 6  },  // #
+    { width: 13 },  // תאריך
+    { width: 10 },  // יום
+    { width: 8  },  // שעה
+    { width: 22 },  // לקוח
+    { width: 15 },  // טלפון
+    { width: 22 },  // שירות
+    { width: 16 },  // ספר
+    { width: 10 },  // מחיר
+    { width: 13 },  // סטטוס
+    { width: 24 },  // סיבת ביטול
+    { width: 14 },  // נקבע בתאריך
+  ]
+
+  const addMergedInfoRow = (text) => {
+    const r = ws.addRow([text, '', '', '', '', '', '', '', '', '', '', ''])
+    ws.mergeCells(`A${r.number}:L${r.number}`)
+    r.getCell(1).font      = { name: 'Arial', size: 10, bold: true }
+    r.getCell(1).alignment = { horizontal: 'right' }
+    r.height = 18
+  }
+
+  const [fy, fm, fd] = from.split('-')
+  const [ty, tm, td] = to.split('-')
+  addMergedInfoRow(`שם עסק: ${settings?.business_name || 'HAJAJ Hair Design'}`)
+  addMergedInfoRow(`תקופה: ${fd}/${fm}/${fy} – ${td}/${tm}/${ty}`)
+  addMergedInfoRow(`תאריך הפקה: ${new Date().toLocaleString('he-IL')}`)
+  ws.addRow([])
+
+  const headerRow = ws.addRow(['#', 'תאריך', 'יום', 'שעה', 'לקוח', 'טלפון', 'שירות', 'ספר', 'מחיר', 'סטטוס', 'סיבת ביטול', 'נקבע בתאריך'])
+  applyHeaderRow(headerRow)
+
+  let seq = 1
+  let currentMonthKey = null
+  let monthGroup = []
+  let totCompleted = 0, totCancelled = 0, totNoShow = 0, totRevenue = 0
+
+  const flushMonth = (key, group) => {
+    const comp    = group.filter(a => a.status === 'completed' && !a.no_show)
+    const canc    = group.filter(a => a.status === 'cancelled').length
+    const noshow  = group.filter(a => a.no_show).length
+    const revenue = comp.reduce((s, a) => s + Number(a.services?.price || 0), 0)
+    const [y, m]  = key.split('-')
+    const label   = `${MONTHS_HE[parseInt(m, 10) - 1]} ${y}`
+    const text    = `סיכום ${label}: ${group.length} תורים  |  ${comp.length} בוצעו  |  ${canc} בוטלו  |  ${noshow} לא הגיעו  |  הכנסות: ₪${revenue.toLocaleString('he-IL')}`
+    const r = ws.addRow([text, '', '', '', '', '', '', '', '', '', '', ''])
+    ws.mergeCells(`A${r.number}:L${r.number}`)
+    r.getCell(1).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF9C3' } }
+    r.getCell(1).font      = { bold: true, name: 'Arial', size: 10 }
+    r.getCell(1).alignment = { horizontal: 'right' }
+    r.height = 22
+    totCompleted += comp.length
+    totCancelled += canc
+    totNoShow    += noshow
+    totRevenue   += revenue
+  }
+
+  for (const appt of appts) {
+    const d        = new Date(appt.start_at)
+    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+
+    if (currentMonthKey !== monthKey) {
+      if (currentMonthKey !== null) flushMonth(currentMonthKey, monthGroup)
+      currentMonthKey = monthKey
+      monthGroup      = []
+    }
+    monthGroup.push(appt)
+
+    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+    const r = ws.addRow([
+      seq++,
+      fmtDateDMY(appt.start_at),
+      DAYS_HE[d.getDay()],
+      timeStr,
+      appt.profiles?.name        || '',
+      appt.profiles?.phone       || '',
+      appt.services?.name        || '',
+      appt.staff?.name           || '',
+      Number(appt.services?.price || 0),
+      apptStatusLabel(appt),
+      appt.cancellation_reason   || '',
+      fmtDateDMY(appt.created_at),
+    ])
+    applyBodyRow(r, [9])
+    const fill = apptFillArgb(appt)
+    if (fill) {
+      r.eachCell({ includeEmpty: true }, cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }
+      })
+    }
+  }
+
+  if (currentMonthKey !== null) flushMonth(currentMonthKey, monthGroup)
+
+  if (appts.length > 0) {
+    const grandText = `סה"כ כל התקופה: ${appts.length} תורים  |  ${totCompleted} בוצעו  |  ${totCancelled} בוטלו  |  ${totNoShow} לא הגיעו  |  הכנסות: ₪${totRevenue.toLocaleString('he-IL')}`
+    const r = ws.addRow([grandText, '', '', '', '', '', '', '', '', '', '', ''])
+    ws.mergeCells(`A${r.number}:L${r.number}`)
+    r.getCell(1).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDE68A' } }
+    r.getCell(1).font      = { bold: true, name: 'Arial', size: 11 }
+    r.getCell(1).alignment = { horizontal: 'right' }
+    r.height = 24
+  }
+
+  const arrayBuffer = await wb.xlsx.writeBuffer()
+  return {
+    arrayBuffer,
+    filename: `יומן_עבודה_${from}_${to}.xlsx`,
+  }
+}
+
 export function downloadWorkbook(arrayBuffer, filename) {
   const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url  = URL.createObjectURL(blob)

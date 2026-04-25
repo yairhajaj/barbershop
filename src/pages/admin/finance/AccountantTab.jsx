@@ -5,7 +5,7 @@ import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { useToast } from '../../../components/ui/Toast'
 import { Spinner } from '../../../components/ui/Spinner'
 import { sendEmail, blobToBase64 } from '../../../lib/email'
-import { generateFinancialReport, downloadWorkbook } from '../../../lib/xlsx-report'
+import { generateFinancialReport, downloadWorkbook, generateWorkLog } from '../../../lib/xlsx-report'
 import { downloadOpenFormat, validateOpenFormatSettings, printSection26 } from '../../../lib/openfrmt'
 
 function defaultRange() {
@@ -278,6 +278,20 @@ export function AccountantTab() {
     }
   }
 
+  // ─── Action 3b: Work log ───
+  async function downloadWorkLogReport() {
+    setBusy('worklog')
+    try {
+      const { arrayBuffer, filename } = await generateWorkLog({ from: range.from, to: range.to, settings })
+      downloadWorkbook(arrayBuffer, filename)
+      toast({ message: 'יומן עבודה הורד ✓', type: 'success' })
+    } catch (err) {
+      toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   // ─── Action 4a: OPENFRMT ───
   async function downloadOpenfrmt() {
     if (!ofValidation.valid) {
@@ -373,6 +387,13 @@ export function AccountantTab() {
           description="קובץ Excel מעוצב עם כל החשבוניות והכנסות בתקופה"
           busy={busy === 'invoices'}
           onClick={sendInvoicesReport}
+        />
+        <ActionCard
+          icon="📋"
+          title="יומן עבודה"
+          description="כל פעולות היומן לפי תאריכים — לצורך ביקורת מס"
+          busy={busy === 'worklog'}
+          onClick={downloadWorkLogReport}
         />
         <ActionCard
           icon="🏛"
