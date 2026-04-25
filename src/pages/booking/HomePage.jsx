@@ -738,13 +738,13 @@ export function HomePage() {
               ref={heroVideoRef}
               className="absolute inset-0 w-full h-full object-cover"
               src={heroSrc}
-              style={{ filter: 'brightness(.52) saturate(1.3)' }}
+              style={{ filter: isDark ? 'brightness(.52) saturate(1.3)' : 'brightness(.82) saturate(1.1)' }}
               autoPlay muted loop playsInline controls={false} preload="auto"
               onCanPlay={e => e.target.play().catch(() => {})}
             />
           ) : heroType === 'image' && heroSrc ? (
             <img className="absolute inset-0 w-full h-full object-cover" src={heroSrc} alt="hero"
-              style={{ filter: 'brightness(.65) saturate(1.2)' }} />
+              style={{ filter: isDark ? 'brightness(.52) saturate(1.3)' : 'brightness(.88) saturate(1.1)' }} />
           ) : (
             <div className="absolute inset-0" style={{
               background: 'radial-gradient(ellipse 75% 55% at 60% 18%,rgba(255,95,0,.38) 0%,transparent 58%),' +
@@ -760,8 +760,8 @@ export function HomePage() {
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
             height: 180,
             background: isDark
-              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.8) 40%, rgba(18,14,10,0) 100%)'
-              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.8) 40%, rgba(243,240,234,0) 100%)',
+              ? 'linear-gradient(to top, rgba(18,14,10,1) 0%, rgba(18,14,10,0.85) 30%, rgba(18,14,10,0.5) 60%, rgba(18,14,10,0) 100%)'
+              : 'linear-gradient(to top, rgba(243,240,234,1) 0%, rgba(243,240,234,0.9) 20%, rgba(243,240,234,0.6) 50%, rgba(243,240,234,0.2) 75%, rgba(243,240,234,0) 100%)',
             zIndex: 3,
           }} />
         </div>
