@@ -57,8 +57,7 @@ Deno.serve(async (req) => {
         JSON.parse(profile.push_token),
         JSON.stringify({
           title: '🎂 יום הולדת שמח!',
-          body:  'המספרה מאחלת לך יום הולדת שמח! 🎉 תפנק את עצמך — קבע תור מיוחד',
-          url:   appUrl,
+          body:  'המספרה מאחלת לך יום הולדת שמח! 🎉',
         })
       )
       sent.push(profile.id)
