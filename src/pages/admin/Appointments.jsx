@@ -102,6 +102,7 @@ export function Appointments() {
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [gapAlert, setGapAlert] = useState(null)
   const cascadeTimerRef = useRef(null)
+  const swipeStartX = useRef(null)
   const [addEventOpen, setAddEventOpen] = useState(false)
   const [eventForm, setEventForm] = useState(EMPTY_EVENT)
   const [savingEvent, setSavingEvent] = useState(false)
@@ -1221,7 +1222,7 @@ export function Appointments() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 56px)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100svh - 56px - 64px)', overflow: 'hidden' }}>
       {/* ── Compact toolbar — two rows ── */}
       <div className="flex flex-col gap-1 px-1 pb-1.5 flex-shrink-0" style={{ minHeight: 90 }}>
 
@@ -1234,7 +1235,7 @@ export function Appointments() {
             style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
             title="הקודם"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
 
           <button
@@ -1251,7 +1252,7 @@ export function Appointments() {
             style={{ background: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
             title="הבא"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
 
           {/* Date label */}
@@ -1685,7 +1686,14 @@ export function Appointments() {
       )}
 
       {/* ── Calendar Content ── */}
-      <div className="flex-1 overflow-hidden">
+      <div
+        className="flex-1 overflow-hidden"
+        onTouchStart={e => { swipeStartX.current = e.touches[0].clientX }}
+        onTouchEnd={e => {
+          const dx = e.changedTouches[0].clientX - swipeStartX.current
+          if (Math.abs(dx) > 50) dx < 0 ? navigate(1) : navigate(-1)
+        }}
+      >
       {loading ? (
         <AdminSkeleton />
       ) : view === 'list' ? (
@@ -4022,11 +4030,20 @@ function DayView({ date, appointments, staffColumns, slotMinutes, startHour = ST
 // ─── DroppableSlot ─────────────────────────────────────────────────────────────
 function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
   const { setNodeRef, isOver } = useDroppable({ id })
+  const [lpActive, setLpActive] = useState(false)
+  const lpTimer = useRef(null)
+  const startX = useRef(0)
+  const startY = useRef(0)
 
   let borderTop
   if (isHour)       borderTop = '1.5px solid var(--color-border)'
   else if (isHalf)  borderTop = '1px dashed var(--color-border)'
   else              borderTop = '1px dotted var(--color-border)'
+
+  function clearLP() {
+    if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null }
+    setLpActive(false)
+  }
 
   return (
     <div
@@ -4035,9 +4052,19 @@ function DroppableSlot({ id, top, height, isHour, isHalf, onEmptyClick }) {
       style={{
         top,
         height,
-        borderTop,
-        backgroundColor: isOver ? 'var(--color-gold-tint)' : 'transparent',
+        borderTop: lpActive ? '2px dashed var(--color-gold)' : borderTop,
+        backgroundColor: isOver || lpActive ? 'var(--color-gold-tint)' : 'transparent',
       }}
+      onPointerDown={e => {
+        startX.current = e.clientX
+        startY.current = e.clientY
+        lpTimer.current = setTimeout(() => setLpActive(true), 500)
+      }}
+      onPointerMove={e => {
+        if (lpTimer.current && (Math.abs(e.clientX - startX.current) > 10 || Math.abs(e.clientY - startY.current) > 10)) clearLP()
+      }}
+      onPointerUp={clearLP}
+      onPointerCancel={clearLP}
       onClick={onEmptyClick}
     />
   )
