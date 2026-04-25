@@ -593,8 +593,8 @@ export function HomePage() {
   useEffect(() => {
     const root = document.getElementById('root')
     const target = root ?? window
-    const OVERLAP = 180  // must match marginTop absolute value
-    const BLEND_OVER = 90 // px of scroll to complete the transition
+    const OVERLAP = 40   // must match gradient stop in glassPanel
+    const BLEND_OVER = 80 // px of scroll to complete the transition
 
     const handle = () => {
       const y = root ? root.scrollTop : window.scrollY
@@ -676,9 +676,9 @@ export function HomePage() {
   const _panelBg     = isDark ? 'rgba(18,14,10,0.92)'  : 'rgba(243,240,234,0.92)'
   const _panelBgZero = isDark ? 'rgba(18,14,10,0)'     : 'rgba(243,240,234,0)'
   const glassPanel = {
-    position: 'relative', zIndex: 10, marginTop: -180,
+    position: 'relative', zIndex: 10, marginTop: -120,
     borderRadius: '0',
-    background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 180px)`,
+    background: `linear-gradient(to bottom, ${_panelBgZero} 0px, ${_panelBg} 40px)`,
     borderTop: 'none', boxShadow: 'none',
     minHeight: '60vh',
   }
@@ -724,9 +724,9 @@ export function HomePage() {
         className="hero-section"
         style={{
           position: 'sticky', top: 0, zIndex: 0,
-          height: layout === 'luxury' ? '75vh' : '42vh',
-          minHeight: layout === 'luxury' ? '75vh' : 240,
-          maxHeight: layout === 'luxury' ? 'none' : 340,
+          height: layout === 'luxury' ? '75vh' : '48vh',
+          minHeight: layout === 'luxury' ? '75vh' : 260,
+          maxHeight: layout === 'luxury' ? 'none' : 360,
           overflow: 'hidden',
           background: '#0a0806',
         }}
@@ -823,8 +823,8 @@ export function HomePage() {
 
         {/* ── GREETING ─────────────────────────────────────────── */}
         <motion.section
-          className="px-5 pt-5 pb-0"
-          style={{ position: 'relative', zIndex: 1 }}
+          className="px-5 pb-0"
+          style={{ position: 'relative', zIndex: 1, paddingTop: 50 }}
           initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
