@@ -104,7 +104,7 @@ export function IncomeTaxTab() {
       const backupFilename = `גיבוי_רבעוני_Q${backupQ}_${backupYear}.xlsx`
       downloadWorkbook(arrayBuffer, backupFilename)
       // Record timestamp
-      await supabase.functions.invoke('quarterly-backup')
+      await saveSettings({ last_quarterly_backup_at: new Date().toISOString() })
       toast({ message: `גיבוי Q${backupQ}/${backupYear} הורד ✓`, type: 'success' })
     } catch (err) {
       toast({ message: 'שגיאה: ' + (err.message || err), type: 'error' })
