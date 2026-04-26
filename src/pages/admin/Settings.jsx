@@ -13,8 +13,11 @@ export function Settings() {
   const { breaks, loading: breaksLoading, addBreak, deleteBreak } = useRecurringBreaks()
   const toast = useToast()
   const [form, setForm] = useState(null)
-  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved' | 'error'
   const [showGapHelp, setShowGapHelp] = useState(false)
+  const lastSavedRef = useRef(null)
+  const saveTimerRef = useRef(null)
+  const savedFlashRef = useRef(null)
 
   // Recurring breaks form state
   const [breakForm, setBreakForm] = useState({
@@ -26,21 +29,35 @@ export function Settings() {
   const [addingBreak, setAddingBreak] = useState(false)
 
   useEffect(() => {
-    if (settings) setForm({ ...settings })
+    if (settings) {
+      setForm({ ...settings })
+      lastSavedRef.current = JSON.stringify(settings)
+    }
   }, [settings])
 
-  async function handleSave(e) {
-    e.preventDefault()
-    setSaving(true)
-    try {
-      await saveSettings(form)
-      toast({ message: 'הגדרות נשמרו', type: 'success' })
-    } catch (err) {
-      toast({ message: err.message, type: 'error' })
-    } finally {
-      setSaving(false)
-    }
-  }
+  // Auto-save on any form change (debounced 600ms)
+  useEffect(() => {
+    if (!form) return
+    const cur = JSON.stringify(form)
+    if (cur === lastSavedRef.current) return
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      setSaveStatus('saving')
+      try {
+        await saveSettings(form)
+        lastSavedRef.current = cur
+        setSaveStatus('saved')
+        if (savedFlashRef.current) clearTimeout(savedFlashRef.current)
+        savedFlashRef.current = setTimeout(() => setSaveStatus('idle'), 1800)
+      } catch (err) {
+        setSaveStatus('error')
+        toast({ message: err.message, type: 'error' })
+      }
+    }, 600)
+
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
+  }, [form]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAddBreak(e) {
     e.preventDefault()
@@ -66,9 +83,26 @@ export function Settings() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6" style={{ fontFamily: 'var(--font-display)' }}>הגדרות</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>הגדרות</h1>
+        {saveStatus === 'saving' && (
+          <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)', border: '1px solid var(--color-border)' }}>
+            ⏳ שומר...
+          </span>
+        )}
+        {saveStatus === 'saved' && (
+          <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.3)' }}>
+            ✓ נשמר
+          </span>
+        )}
+        {saveStatus === 'error' && (
+          <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.3)' }}>
+            ⚠ שגיאה
+          </span>
+        )}
+      </div>
 
-      <form onSubmit={handleSave} className="space-y-8">
+      <form onSubmit={e => e.preventDefault()} className="space-y-8">
 
         {/* Cancellation Policy */}
         <section className="card p-6">
@@ -720,9 +754,6 @@ export function Settings() {
           </section>
         )}
 
-        <button type="submit" disabled={saving} className="btn-primary text-base px-8 py-3">
-          {saving ? 'שומר...' : 'שמור הגדרות'}
-        </button>
       </form>
 
       {/* Recurring Breaks — outside form */}
