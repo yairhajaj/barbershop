@@ -13,14 +13,14 @@ import { AccountantTab } from './finance/AccountantTab'
 import { IncomeTaxTab } from './finance/IncomeTaxTab'
 
 const ALL_TABS = [
-  { key: 'dashboard',  icon: '\u{1F4CA}', label: '\u05E1\u05D9\u05DB\u05D5\u05DD' },
-  { key: 'expenses',   icon: '\u{1F4B8}', label: '\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA' },
-  { key: 'invoices',   icon: '\u{1F9FE}', label: '\u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05D5\u05EA', invoicingOnly: true },
+  { key: 'dashboard',  icon: '\u{1F4CA}', label: 'סיכום' },
+  { key: 'expenses',   icon: '\u{1F4B8}', label: 'הוצאות' },
+  { key: 'invoices',   icon: '\u{1F9FE}', label: 'חשבוניות', invoicingOnly: true },
   { key: 'debts',      icon: '💳', label: 'חובות' },
   { key: 'income_tax', icon: '🏛', label: 'מס הכנסה', invoicingOnly: true },
   { key: 'tax',        icon: '📊', label: 'דוח תקבולים', invoicingOnly: true },
   { key: 'accountant', icon: '👨‍💼', label: 'רואה חשבון', invoicingOnly: true },
-  { key: 'settings',   icon: '\u2699\uFE0F', label: '\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA' },
+  { key: 'settings',   icon: '⚙️', label: 'הגדרות' },
 ]
 
 export function Finance() {
@@ -41,10 +41,10 @@ export function Finance() {
             className="text-2xl font-black"
             style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}
           >
-            {'\u{1F4B3}'} {'\u05E0\u05D9\u05D4\u05D5\u05DC \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9'}
+            {'\u{1F4B3}'} {'ניהול פיננסי'}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>
-            {'\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA, \u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05D7\u05E9\u05D1\u05D5\u05E0\u05D9\u05D5\u05EA \u05D5\u05D3\u05D5\u05D7\u05D5\u05EA'}
+            {invoicingEnabled ? 'הכנסות, הוצאות, חשבוניות ודוחות' : 'סטטיסטיקות תורים וביצועים'}
           </p>
         </div>
       </div>

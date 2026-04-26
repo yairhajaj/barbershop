@@ -778,16 +778,164 @@ function AnalyticsSection({ monthly, paymentBreakdown, topServices }) {
 }
 
 // ─────────────────────────────────────────────
+// Scheduling-mode dashboard (no invoicing)
+// ─────────────────────────────────────────────
+function SchedulingDashboard() {
+  const m = useMotion()
+  const { currentBranch } = useBranch()
+  const branchId = currentBranch?.id ?? null
+  const { settings } = useBusinessSettings()
+  const [sched, setSched] = useState(null)
+
+  const tooltipStyle = {
+    backgroundColor: 'var(--color-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 12,
+    color: 'var(--color-text)',
+    fontSize: 12,
+    direction: 'rtl',
+  }
+
+  useEffect(() => {
+    const from = startOfMonth(new Date())
+    const to = endOfMonth(new Date())
+    let q = supabase
+      .from('appointments')
+      .select('id, status, service:services(id, name, price), staff:staff(id, name)')
+      .gte('start_at', from.toISOString())
+      .lte('start_at', to.toISOString())
+    if (branchId) q = q.eq('branch_id', branchId)
+    q.then(({ data }) => {
+      const rows = data ?? []
+      const completed = rows.filter(r => r.status === 'completed')
+      const noshow    = rows.filter(r => r.status === 'no_show')
+      const revenue   = completed.reduce((s, r) => s + (r.service?.price ?? 0), 0)
+
+      const byStaff = {}
+      completed.forEach(r => {
+        const key = r.staff?.id
+        if (!key) return
+        if (!byStaff[key]) byStaff[key] = { name: r.staff.name, count: 0, revenue: 0 }
+        byStaff[key].count++
+        byStaff[key].revenue += r.service?.price ?? 0
+      })
+
+      const byService = {}
+      completed.forEach(r => {
+        const key = r.service?.id
+        if (!key) return
+        if (!byService[key]) byService[key] = { name: r.service.name, count: 0 }
+        byService[key].count++
+      })
+
+      setSched({
+        total: rows.length,
+        completed: completed.length,
+        noshow: noshow.length,
+        revenue,
+        completionRate: rows.length ? Math.round((completed.length / rows.length) * 100) : 0,
+        byStaff: Object.values(byStaff).sort((a, b) => b.count - a.count),
+        topServices: Object.values(byService).sort((a, b) => b.count - a.count).slice(0, 5),
+      })
+    })
+  }, [branchId])
+
+  if (!sched) return <AdminSkeleton />
+
+  const statCards = [
+    { icon: '📅', label: 'תורים החודש',     value: sched.total,           color: 'var(--color-text)',  isNumber: true },
+    { icon: '✅', label: 'הושלמו',           value: sched.completed,        color: '#16a34a',            isNumber: true,
+      sub: sched.total ? `${sched.completionRate}% השלמה` : null },
+    { icon: '💰', label: 'הכנסה משוערת',    value: formatILS(sched.revenue), color: 'var(--color-gold)', isString: true },
+    { icon: '🚫', label: 'לא הגיעו',         value: sched.noshow,           color: '#dc2626',            isNumber: true },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {/* Stat cards */}
+      <motion.div
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        variants={m.listStagger}
+        initial="hidden"
+        animate="visible"
+      >
+        {statCards.map(card => (
+          <motion.div key={card.label} variants={m.fadeUp} className="card p-3 sm:p-4">
+            <div className="text-xl mb-1">{card.icon}</div>
+            <p className="text-xs font-medium mb-1 leading-tight" style={{ color: 'var(--color-muted)' }}>
+              {card.label}
+            </p>
+            <p className="text-lg sm:text-xl font-black" style={{ color: card.color }}>
+              {card.isString ? card.value : card.value}
+            </p>
+            {card.sub && (
+              <p className="text-[10px] font-semibold mt-0.5" style={{ color: 'var(--color-muted)' }}>
+                {card.sub}
+              </p>
+            )}
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* Staff performance */}
+      {sched.byStaff.length > 0 && (
+        <motion.div variants={m.fadeUp} initial="hidden" animate="visible" className="card p-4">
+          <h2 className="font-bold text-base mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+            💈 ביצועי ספרים החודש
+          </h2>
+          <div className="space-y-2">
+            {sched.byStaff.map(s => (
+              <div key={s.name} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: 'var(--color-surface)' }}>
+                <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold"
+                  style={{ background: 'var(--color-gold-tint)', color: 'var(--color-gold)' }}>
+                  {s.name[0]}
+                </div>
+                <span className="flex-1 font-medium text-sm" style={{ color: 'var(--color-text)' }}>{s.name}</span>
+                <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{s.count} תורים</span>
+                <span className="text-sm font-bold" style={{ color: 'var(--color-gold)' }}>{formatILS(s.revenue)}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Popular services chart */}
+      {sched.topServices.length > 0 && (
+        <motion.div variants={m.fadeUp} initial="hidden" animate="visible" className="card p-4">
+          <h2 className="font-bold text-base mb-3" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-display)' }}>
+            ✂️ שירותים פופולריים
+          </h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={sched.topServices} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+              <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" width={80} tick={{ fill: 'var(--color-muted)', fontSize: 10 }} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(v) => [v, 'תורים']}
+              />
+              <Bar dataKey="count" fill="var(--color-gold)" radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
 // Main Dashboard Tab
 // ─────────────────────────────────────────────
 export function DashboardTab() {
   const { currentBranch } = useBranch()
   const { stats, monthly, recent, paymentBreakdown, topServices, loading } = useFinanceDashboard({ branchId: currentBranch?.id ?? null })
   const { settings } = useBusinessSettings()
+  const schedulingMode = settings?.invoicing_enabled === false
   const isOsekPatur = settings?.business_type === 'osek_patur'
   const [quickReceiptOpen, setQuickReceiptOpen] = useState(false)
 
   const m = useMotion()
+
+  if (schedulingMode) return <SchedulingDashboard />
 
   if (loading) return <AdminSkeleton />
 

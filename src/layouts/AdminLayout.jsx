@@ -215,9 +215,8 @@ export function AdminLayout({ children }) {
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  const invEnabled = settings?.invoicing_enabled !== false
-  const NAV_LINKS = invEnabled ? BASE_NAV_LINKS : BASE_NAV_LINKS.filter(l => l.to !== '/admin/finance')
-  const moreLinks = invEnabled ? BOTTOM_MORE : BOTTOM_MORE.filter(l => l.to !== '/admin/finance')
+  const NAV_LINKS = BASE_NAV_LINKS
+  const moreLinks = BOTTOM_MORE
 
   const online = useOnline()
 
