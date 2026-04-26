@@ -122,15 +122,9 @@ export function useBusinessSettings() {
 
     let { error } = await doSave(updates)
 
-    // If a column doesn't exist yet (migration not run), retry with only base columns
+    // Column missing — surface a clear error so user knows the migration is needed
     if (error && (error.code === '42703' || error.message?.includes('column'))) {
-      const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => BASE_COLS.includes(k)))
-      if (Object.keys(safe).length > 0) {
-        const result = await doSave(safe)
-        error = result.error
-      } else {
-        error = null
-      }
+      throw new Error(`עמודה חסרה ב-DB — יש להריץ את המיגרציה ב-Supabase. ${error.message}`)
     }
 
     if (error) throw new Error(error.message)

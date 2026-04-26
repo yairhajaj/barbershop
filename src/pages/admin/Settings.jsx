@@ -35,18 +35,27 @@ export function Settings() {
     }
   }, [settings])
 
-  // Auto-save on any form change (debounced 600ms)
+  // Auto-save on any form change (debounced 600ms) — sends ONLY changed fields
   useEffect(() => {
     if (!form) return
-    const cur = JSON.stringify(form)
-    if (cur === lastSavedRef.current) return
+    const lastSaved = lastSavedRef.current ? JSON.parse(lastSavedRef.current) : null
+    if (!lastSaved) return
+
+    // Compute diff
+    const diff = {}
+    for (const k of Object.keys(form)) {
+      if (JSON.stringify(form[k]) !== JSON.stringify(lastSaved[k])) {
+        diff[k] = form[k]
+      }
+    }
+    if (Object.keys(diff).length === 0) return
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving')
       try {
-        await saveSettings(form)
-        lastSavedRef.current = cur
+        await saveSettings(diff)
+        lastSavedRef.current = JSON.stringify(form)
         setSaveStatus('saved')
         if (savedFlashRef.current) clearTimeout(savedFlashRef.current)
         savedFlashRef.current = setTimeout(() => setSaveStatus('idle'), 1800)
