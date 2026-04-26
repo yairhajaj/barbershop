@@ -17,9 +17,9 @@ const ALL_TABS = [
   { key: 'expenses',   icon: '\u{1F4B8}', label: 'הוצאות' },
   { key: 'invoices',   icon: '\u{1F9FE}', label: 'חשבוניות', invoicingOnly: true },
   { key: 'debts',      icon: '💳', label: 'חובות' },
-  { key: 'income_tax', icon: '🏛', label: 'מס הכנסה', invoicingOnly: true },
+  { key: 'income_tax', icon: '🏛', label: 'מס הכנסה' },
   { key: 'tax',        icon: '📊', label: 'דוח תקבולים', invoicingOnly: true },
-  { key: 'accountant', icon: '👨‍💼', label: 'רואה חשבון', invoicingOnly: true },
+  { key: 'accountant', icon: '👨‍💼', label: 'רואה חשבון' },
   { key: 'settings',   icon: '⚙️', label: 'הגדרות' },
 ]
 
