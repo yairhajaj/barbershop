@@ -125,13 +125,14 @@ export function Confirmation() {
       }
       // ────────────────────────────────────────────────────────────────────────
 
+      const needsApproval = !!settings.approval_required
       const baseData = {
         customer_id:       user.id,
         service_id:        bookingState.serviceId,
         staff_id:          bookingState.staffId ?? null,
         branch_id:         bookingState.branchId ?? null,
         notes:             '',
-        status:            'confirmed',
+        status:            needsApproval ? 'pending_approval' : 'confirmed',
         reminder_opted_in: wantsReminder,
       }
 
@@ -153,7 +154,8 @@ export function Confirmation() {
         appt = data[0]
       } else {
         const apptData = { ...baseData, start_at: bookingState.slotStart, end_at: bookingState.slotEnd }
-        if (isRecurring && settings.recurring_appointments_enabled) {
+        // כשapproval פעיל אין recurring — קודם מאשרים, אחר כך אפשר לקבוע סדרה
+        if (isRecurring && settings.recurring_appointments_enabled && !needsApproval) {
           const results = await createRecurringAppointments(apptData, settings.recurring_weeks_ahead ?? 12)
           appt = results[0]
         } else {
@@ -190,26 +192,28 @@ export function Confirmation() {
           if (adminTokens.length > 0) {
             supabase.functions.invoke('send-push', {
               body: {
-                title: '✂️ הזמנת תור חדשה',
+                title: needsApproval ? '⏳ תור חדש ממתין לאישור' : '✂️ הזמנת תור חדשה',
                 body:  `${custName} קבע תור ל${svcName} אצל ${stfName} ב-${dateStr} בשעה ${timeStr}`,
                 tokens: adminTokens,
-                url: '/admin/appointments',
+                url: needsApproval ? '/admin/approvals' : '/admin/appointments',
               },
             })
           }
 
-          // #5 — customer push: booking confirmed
-          const { data: custProfile } = await supabase
-            .from('profiles').select('push_token').eq('id', user.id).single()
-          if (custProfile?.push_token) {
-            supabase.functions.invoke('send-push', {
-              body: {
-                title: '✅ התור אושר!',
-                body:  `${svcName} אצל ${stfName} ב-${dateStr} בשעה ${timeStr}. נשמח לראותך!`,
-                tokens: [custProfile.push_token],
-                url: '/',
-              },
-            })
+          // #5 — customer push: רק אם התור confirmed (לא ממתין לאישור)
+          if (!needsApproval) {
+            const { data: custProfile } = await supabase
+              .from('profiles').select('push_token').eq('id', user.id).single()
+            if (custProfile?.push_token) {
+              supabase.functions.invoke('send-push', {
+                body: {
+                  title: '✅ התור אושר!',
+                  body:  `${svcName} אצל ${stfName} ב-${dateStr} בשעה ${timeStr}. נשמח לראותך!`,
+                  tokens: [custProfile.push_token],
+                  url: '/',
+                },
+              })
+            }
           }
         } catch { /* non-fatal */ }
       })()
@@ -280,6 +284,7 @@ export function Confirmation() {
 
   // ── SUCCESS ───────────────────────────────────────────────────────
   if (status === 'success' && appointment) {
+    const isPending = appointment.status === 'pending_approval'
     return (
       <div className="min-h-screen pt-24 pb-16 flex items-center justify-center" style={{ background: 'var(--color-surface)' }}>
         <motion.div
@@ -293,16 +298,28 @@ export function Confirmation() {
             animate={{ scale: 1 }}
             transition={{ type: 'spring', delay: 0.2 }}
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'var(--color-gold)' }}
+            style={{ background: isPending ? '#f59e0b' : 'var(--color-gold)' }}
           >
-            <span className="text-white text-3xl font-black">✓</span>
+            <span className="text-white text-3xl font-black">{isPending ? '⏳' : '✓'}</span>
           </motion.div>
 
           <h1 className="text-2xl font-black mb-1" style={{ color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-            {(bookingState.groupSize ?? 1) > 1
-              ? `${bookingState.groupSize} תורים נקבעו!`
-              : 'התור נקבע בהצלחה!'}
+            {isPending
+              ? 'הבקשה נשלחה ✋'
+              : (bookingState.groupSize ?? 1) > 1
+                ? `${bookingState.groupSize} תורים נקבעו!`
+                : 'התור נקבע בהצלחה!'}
           </h1>
+
+          {isPending && (
+            <div className="rounded-2xl p-3 my-3 text-right text-xs"
+              style={{ background: 'rgba(245,158,11,0.1)', border: '1.5px solid rgba(245,158,11,0.3)', color: 'var(--color-text)' }}>
+              <p className="font-bold mb-1">⏳ התור שלך ממתין לאישור בעל העסק</p>
+              <p style={{ color: 'var(--color-muted)', lineHeight: 1.5 }}>
+                ברגע שהתור יאושר — תקבל/י התראה לנייד. אם נדרש שינוי שעה, נציע לך זמן חלופי.
+              </p>
+            </div>
+          )}
 
           {(bookingState.groupSize ?? 1) > 1 && (
             <div
@@ -452,8 +469,19 @@ export function Confirmation() {
             {cancellationPolicyText()}
           </p>
 
+          {/* Approval notice */}
+          {settings.approval_required && (
+            <div className="rounded-xl p-3 mb-2 text-right text-xs"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+              <p className="font-bold mb-0.5" style={{ color: 'var(--color-text)' }}>⏳ התור ימתין לאישור</p>
+              <p style={{ color: 'var(--color-muted)', lineHeight: 1.4 }}>
+                כל תור במספרה זו דורש אישור בעל העסק. נשלח לך התראה ברגע שהתור יאושר.
+              </p>
+            </div>
+          )}
+
           {/* Toggles — compact */}
-          {settings.recurring_appointments_enabled && (
+          {settings.recurring_appointments_enabled && !settings.approval_required && (
             <label className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2.5 mb-2"
               style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
               <div className="relative flex-shrink-0">
@@ -520,6 +548,8 @@ export function Confirmation() {
               `✓ אשר ${bookingState.groupSize} תורים צמודים`
             ) : isRecurring ? (
               `🔁 אשר ${settings.recurring_weeks_ahead ?? 12} תורים שבועיים`
+            ) : settings.approval_required ? (
+              '⏳ שלח בקשה לאישור'
             ) : (
               '✓ אשר הזמנה'
             )}

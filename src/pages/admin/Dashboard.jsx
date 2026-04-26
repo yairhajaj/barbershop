@@ -17,6 +17,7 @@ import { UpcomingAppointmentsList } from '../../components/admin/dashboard/Upcom
 import { KpiStrip } from '../../components/admin/dashboard/KpiStrip'
 import { WalkInModal } from '../../components/admin/dashboard/WalkInModal'
 import { ActionInbox } from '../../components/admin/dashboard/ActionInbox'
+import { PendingApprovalsCard } from '../../components/admin/dashboard/PendingApprovalsCard'
 import { Modal } from '../../components/ui/Modal'
 import { GapCloserHelpBody } from '../../components/admin/GapCloserHelpBody'
 import { AppointmentDetailModal } from '../../components/admin/dashboard/AppointmentDetailModal'
@@ -322,6 +323,13 @@ export function Dashboard() {
       {/* Responsive grid: single col on mobile, 3-col on lg+.
           Mobile order: KPIs → Upcoming4 → Inbox → Staff → GapCloser. */}
       <div className="grid gap-5 lg:grid-cols-3">
+        {/* Pending approvals — only when feature enabled */}
+        {settings?.approval_required && (
+          <div className="order-1 lg:col-span-3">
+            <PendingApprovalsCard />
+          </div>
+        )}
+
         {/* KPI grid — FULL WIDTH at top */}
         <div className="order-1 lg:col-span-3">
           <KpiStrip stats={stats} />

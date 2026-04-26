@@ -40,6 +40,7 @@ export function Payment() {
   async function handlePay() {
     setStatus('creating')
     try {
+      const needsApproval = !!settings?.approval_required
       // 1. Create the appointment (pending payment)
       const apptData = {
         customer_id:    user.id,
@@ -49,13 +50,13 @@ export function Payment() {
         start_at:       bookingState.slotStart,
         end_at:         bookingState.slotEnd,
         notes:          '',
-        status:         'confirmed',
+        status:         needsApproval ? 'pending_approval' : 'confirmed',
         payment_status: 'pending',
         reminder_opted_in: bookingState.wantsReminder ?? true,
       }
 
       let appt
-      if (bookingState.isRecurring && settings?.recurring_appointments_enabled) {
+      if (bookingState.isRecurring && settings?.recurring_appointments_enabled && !needsApproval) {
         const results = await createRecurringAppointments(apptData, settings.recurring_weeks_ahead ?? 12)
         appt = results[0]
       } else {
@@ -99,6 +100,7 @@ export function Payment() {
   async function handlePayAtShop() {
     setStatus('paying-at-shop')
     try {
+      const needsApproval = !!settings?.approval_required
       const apptData = {
         customer_id:    user.id,
         service_id:     bookingState.serviceId,
@@ -107,13 +109,13 @@ export function Payment() {
         start_at:       bookingState.slotStart,
         end_at:         bookingState.slotEnd,
         notes:          '',
-        status:         'confirmed',
+        status:         needsApproval ? 'pending_approval' : 'confirmed',
         payment_status: 'unpaid',
         reminder_opted_in: bookingState.wantsReminder ?? true,
       }
 
       let appt
-      if (bookingState.isRecurring && settings?.recurring_appointments_enabled) {
+      if (bookingState.isRecurring && settings?.recurring_appointments_enabled && !needsApproval) {
         const results = await createRecurringAppointments(apptData, settings.recurring_weeks_ahead ?? 12)
         appt = results[0]
       } else {

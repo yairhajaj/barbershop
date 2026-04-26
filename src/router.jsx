@@ -52,6 +52,7 @@ const Waitlist     = lazy(() => import('./pages/admin/Waitlist').then(m => ({ de
 const Finance      = lazy(() => import('./pages/admin/Finance').then(m => ({ default: m.Finance })))
 const QuickSettle  = lazy(() => import('./pages/admin/QuickSettle').then(m => ({ default: m.QuickSettle })))
 const GapApprove   = lazy(() => import('./pages/admin/GapApprove').then(m => ({ default: m.GapApprove })))
+const Approvals    = lazy(() => import('./pages/admin/Approvals').then(m => ({ default: m.Approvals })))
 
 // Wrap admin pages in Suspense for lazy loading.
 // Using a component (not a helper fn) so React can reconcile instances.
@@ -149,6 +150,7 @@ const router = createBrowserRouter([
   { path: '/admin',              element: <AdminRoute><Dashboard /></AdminRoute> },
   { path: '/admin/dashboard',    element: <Navigate to="/admin" replace /> },
   { path: '/admin/appointments', element: <AdminRoute><Appointments /></AdminRoute> },
+  { path: '/admin/approvals',    element: <AdminRoute><Approvals /></AdminRoute> },
   { path: '/admin/staff',        element: <AdminRoute><Staff /></AdminRoute> },
   { path: '/admin/services',     element: <AdminRoute><Services /></AdminRoute> },
   { path: '/admin/products',     element: <AdminRoute><Products /></AdminRoute> },

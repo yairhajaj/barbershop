@@ -23,7 +23,8 @@ import { Modal } from '../../components/ui/Modal'
 import { Spinner } from '../../components/ui/Spinner'
 import { AdminSkeleton } from '../../components/feedback/AdminSkeleton'
 import { useToast } from '../../components/ui/Toast'
-import { findGapOpportunities, findRescheduleCandidates, formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
+import { formatTime, formatDate, generateSlots, dayName } from '../../lib/utils'
+import { findOptimalRescheduleScenarios } from '../../lib/scheduleOptimizer'
 import { supabase } from '../../lib/supabase'
 import { printInvoice } from '../../lib/invoice'
 import { docLabel } from '../../lib/finance'
@@ -330,7 +331,7 @@ export function Appointments() {
         supabase.from('appointments')
           .select('start_at, end_at, status')
           .eq('staff_id', staffId)
-          .in('status', ['confirmed', 'pending_reschedule'])
+          .in('status', ['confirmed', 'pending_reschedule', 'pending_approval'])
           .gte('start_at', dayStart.toISOString())
           .lte('start_at', dayEnd.toISOString()),
         supabase.from('blocked_times')
@@ -480,12 +481,35 @@ export function Appointments() {
         const { appointment_id, status } = payload.new
         setGapAlert(prev => {
           if (!prev) return prev
+          const step2 = prev.step2_reschedule
+          if (!step2) return prev
+          // Ignore updates for offers that aren't part of this gap-closer session
+          const inSession = step2.candidates.some(c => c.appointment.id === appointment_id)
+          if (!inSession) return prev
+          const updatedOffers = { ...step2.offers, [appointment_id]: status }
+          let activeIndex = step2.activeIndex ?? 0
+          const activeCand = step2.candidates[activeIndex]
+
+          // Sequential advance: only when the *active* candidate is declined
+          if (status === 'declined' && activeCand && activeCand.appointment.id === appointment_id) {
+            const mode = settings?.gap_closer_mode || 'off'
+            const nextIndex = activeIndex + 1
+            const nextCandidate = step2.candidates[nextIndex]
+            if (nextCandidate && mode !== 'off') {
+              activeIndex = nextIndex
+              // auto: fire next offer automatically.
+              // approval: just advance — admin must click "send" for next candidate.
+              if (mode === 'auto') {
+                setTimeout(() => {
+                  sendRescheduleOffer(nextCandidate, prev.cancelledAppt)
+                }, 0)
+              }
+            }
+          }
+
           return {
             ...prev,
-            step2_reschedule: {
-              ...prev.step2_reschedule,
-              offers: { ...prev.step2_reschedule.offers, [appointment_id]: status }
-            }
+            step2_reschedule: { ...step2, offers: updatedOffers, activeIndex },
           }
         })
         if (status === 'accepted') refetch()
@@ -545,17 +569,18 @@ export function Appointments() {
     const advanceHours = settings?.gap_closer_advance_hours ?? 2
     const notifChannel = settings?.gap_closer_notification_channel || 'push'
 
-    // Compute Gap Closer candidates now (before appointments state changes)
+    // Compute Gap Closer scenarios — smart day-compaction (not just slot-fill)
     const remaining = appointments.filter(a => a.id !== id && a.status === 'confirmed')
     const sameDayStaff = remaining.filter(a =>
       a.staff_id === cancelledAppt.staff_id &&
       isSameDay(new Date(a.start_at), new Date(cancelledAppt.start_at))
     )
-    const candidates = findRescheduleCandidates(
-      { start: new Date(cancelledAppt.start_at), end: new Date(cancelledAppt.end_at) },
-      sameDayStaff,
-      threshold
-    )
+    const maxShift = settings?.gap_closer_max_shift_minutes || 90
+    const candidates = findOptimalRescheduleScenarios(sameDayStaff, {
+      threshold,
+      maxShift,
+      maxScenarios: 3,
+    })
 
     const gapStart = new Date(cancelledAppt.start_at)
     const now = new Date()
@@ -563,39 +588,51 @@ export function Appointments() {
     const tooEarly = hoursUntilGap > advanceHours
     const activateAt = tooEarly ? new Date(gapStart.getTime() - advanceHours * 60 * 60 * 1000) : null
 
-    // Show alert immediately — step2 hidden until cascade completes
+    // Show alert immediately
+    // Step 1 (Waitlist) ALWAYS auto-fires regardless of mode — it's the customers'
+    // standing request to be notified when their preferred slot opens up.
+    // Step 2 (Reschedule) is what the approval mode gates (each candidate = manual click).
     setGapAlert({
       cancelledAppt,
       freedSlot: { start: cancelledAppt.start_at, end: cancelledAppt.end_at },
       step1_waitlist: 'sending',
-      step2_reschedule: null,
+      step2_reschedule: mode === 'approval'
+        ? { candidates, offers: {}, activeIndex: 0 }
+        : null,
       waiting: tooEarly,
       activateAt,
     })
 
-    // Activate Gap Closer (called after waitlist cascade finishes)
+    // Activate Gap Closer step 2 (called after waitlist cascade finishes).
+    // approval mode: just set candidates — admin clicks each "send" button.
+    // auto mode: send first candidate; realtime handler advances on decline.
     async function activateGapCloser() {
-      setGapAlert(prev => prev ? { ...prev, step2_reschedule: { candidates, offers: {} } } : prev)
+      setGapAlert(prev => prev ? {
+        ...prev,
+        step2_reschedule: { candidates, offers: {}, activeIndex: 0 },
+      } : prev)
       if (mode === 'off' || candidates.length === 0) return
+      // approval mode = wait for admin clicks; do nothing automatic
+      if (mode !== 'auto') return
+
+      const sendFirst = () => {
+        const first = candidates[0]
+        if (!first) return
+        sendRescheduleOffer(first, cancelledAppt)
+      }
 
       if (tooEarly && activateAt) {
         const msUntil = Math.max(0, activateAt - new Date())
         if (msUntil > 0) {
           const timerId = setTimeout(() => {
             setGapAlert(p => p ? { ...p, waiting: false, activateAt: null } : p)
-            if (mode === 'auto') candidates.forEach(c => sendRescheduleOffer(c, cancelledAppt))
-            if (mode === 'approval') candidates.forEach(c => sendApprovalRequest(c, cancelledAppt))
+            sendFirst()
           }, msUntil)
           setGapAlert(p => p ? { ...p, _timerId: timerId } : p)
           return
         }
       }
-      if (!tooEarly && mode === 'auto') {
-        for (const c of candidates) await sendRescheduleOffer(c, cancelledAppt)
-      }
-      if (!tooEarly && mode === 'approval') {
-        for (const c of candidates) await sendApprovalRequest(c, cancelledAppt)
-      }
+      sendFirst()
     }
 
     // Cascade step: check if slot was filled, else notify next in waitlist
@@ -639,7 +676,9 @@ export function Appointments() {
       }
     }
 
-    // First call — notify person 1 in waitlist
+    // Step 1 — ALWAYS auto-fires (independent of Gap Closer mode).
+    // The waitlist is the customers' standing request — they expect a notification
+    // whenever their preferred slot opens up, regardless of how far in the future.
     try {
       const { data } = await supabase.functions.invoke('notify-waitlist', { body: invokeBody })
       if (data?.notified > 0) {
@@ -1127,7 +1166,7 @@ export function Appointments() {
           supabase.from('appointments')
             .select('start_at, end_at, status, id')
             .eq('staff_id', rescheduleStaff)
-            .in('status', ['confirmed', 'pending_reschedule'])
+            .in('status', ['confirmed', 'pending_reschedule', 'pending_approval'])
             .gte('start_at', dayStart.toISOString())
             .lte('start_at', dayEnd.toISOString()),
           supabase.from('blocked_times')
@@ -1641,7 +1680,7 @@ export function Appointments() {
             {gapAlert.cancelledAppt?.staff?.name && ` (${gapAlert.cancelledAppt.staff.name})`}
           </div>
 
-          {/* Step 1: Waitlist */}
+          {/* Step 1: Waitlist (always auto — independent of Gap Closer mode) */}
           <div className="flex items-center gap-3 mb-3">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
               style={{ background: 'var(--color-gold)', color: '#fff' }}>1</div>
@@ -1673,38 +1712,79 @@ export function Appointments() {
           <div className="mr-9 mb-3">
             {!gapAlert.step2_reschedule ? null :
             gapAlert.step2_reschedule.candidates.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>אין תורים מתאימים להקדמה</p>
+              <p className="text-xs" style={{ color: 'var(--color-muted)' }}>היום כבר מסודר טוב — אין מה לייעל</p>
             ) : (
               <div className="flex flex-col gap-2">
-                {gapAlert.step2_reschedule.candidates.map(({ appointment, newStart, timeSaved }) => {
+                <p className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                  {(settings?.gap_closer_mode || 'off') === 'approval'
+                    ? `${gapAlert.step2_reschedule.candidates.length} מועמדים — בחר/י למי לשלוח (כל פעולה דורשת אישור)`
+                    : `ניסיון ${Math.min((gapAlert.step2_reschedule.activeIndex ?? 0) + 1, gapAlert.step2_reschedule.candidates.length)} מתוך ${gapAlert.step2_reschedule.candidates.length}`}
+                </p>
+                {gapAlert.step2_reschedule.candidates.map((cand, idx) => {
+                  const { appointment, newStart, newEnd, shiftMinutes, direction, description } = cand
                   const offerStatus = gapAlert.step2_reschedule.offers[appointment.id]
+                  const activeIndex = gapAlert.step2_reschedule.activeIndex ?? 0
+                  const mode = settings?.gap_closer_mode || 'off'
+                  const isApprovalMode = mode === 'approval'
+                  const isActive = idx === activeIndex
+                  const isPast = idx < activeIndex
+                  const isFuture = idx > activeIndex && !offerStatus
+                  // In approval mode, every non-sent candidate is clickable.
+                  const isClickable = !offerStatus && !gapAlert.waiting && (isApprovalMode || isActive)
+                  const isDimmed = !isApprovalMode && isFuture
                   return (
-                    <div key={appointment.id} className="flex items-center justify-between rounded-xl px-3 py-2 text-xs"
-                      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                      <div style={{ color: 'var(--color-text)' }}>
-                        <span className="font-medium">{appointment.profiles?.name || 'לקוח'}</span>
-                        <span className="mx-1" style={{ color: 'var(--color-muted)' }}>—</span>
-                        <span style={{ color: 'var(--color-muted)' }}>{formatTime(appointment.start_at)} → {formatTime(newStart)}</span>
-                        <span className="mx-1 text-[10px]" style={{ color: 'var(--color-gold)' }}>({timeSaved} דק׳ מוקדם)</span>
+                    <div key={appointment.id} className="rounded-xl px-3 py-2 text-xs"
+                      style={{
+                        background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)',
+                        opacity: isDimmed ? 0.5 : 1,
+                      }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div style={{ color: 'var(--color-text)' }}>
+                          <span className="font-medium">{appointment.profiles?.name || 'לקוח'}</span>
+                          <span className="mx-1" style={{ color: 'var(--color-muted)' }}>—</span>
+                          <span style={{ color: 'var(--color-muted)' }}>{formatTime(appointment.start_at)} → {formatTime(newStart)}</span>
+                          <span className="mx-1 text-[10px]" style={{ color: direction === 'earlier' ? 'var(--color-gold)' : '#f97316' }}>
+                            ({shiftMinutes} דק׳ {direction === 'earlier' ? 'מוקדם' : 'מאוחר'})
+                          </span>
+                        </div>
+                        {offerStatus === 'accepted' ? (
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#22c55e' }}>אושר ✓</span>
+                        ) : offerStatus === 'declined' ? (
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#ef4444' }}>נדחה ✕</span>
+                        ) : offerStatus === 'sent' ? (
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>נשלח ⏳</span>
+                        ) : offerStatus === 'pending_approval' ? (
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>ממתין לאישור ⏳</span>
+                        ) : gapAlert.waiting ? (
+                          <span className="text-[10px] px-2 py-1 rounded-lg" style={{ color: 'var(--color-muted)' }}>ממתין ⏰</span>
+                        ) : isClickable ? (
+                          <button
+                            onClick={() => {
+                              // In approval mode, clicking a non-active candidate also advances activeIndex
+                              if (isApprovalMode && !isActive) {
+                                setGapAlert(p => p ? {
+                                  ...p,
+                                  step2_reschedule: { ...p.step2_reschedule, activeIndex: idx },
+                                } : p)
+                              }
+                              sendRescheduleOffer({ appointment, newStart, newEnd, timeSaved: shiftMinutes }, gapAlert.cancelledAppt)
+                            }}
+                            className="px-3 py-1 rounded-lg text-[10px] font-bold text-white transition-all whitespace-nowrap"
+                            style={{ background: 'var(--color-gold)' }}
+                          >
+                            ✓ אשר ושלח
+                          </button>
+                        ) : isPast ? (
+                          <span className="text-[10px] px-2 py-1 rounded-lg" style={{ color: 'var(--color-muted)' }}>—</span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-1 rounded-lg" style={{ color: 'var(--color-muted)' }}>ממתין לתורו</span>
+                        )}
                       </div>
-                      {offerStatus === 'accepted' ? (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#22c55e' }}>אושר ✓</span>
-                      ) : offerStatus === 'declined' ? (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: '#ef4444' }}>נדחה ✕</span>
-                      ) : offerStatus === 'sent' ? (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>נשלח ⏳</span>
-                      ) : offerStatus === 'pending_approval' ? (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--color-gold)' }}>ממתין לאישורך ⏳</span>
-                      ) : gapAlert.waiting ? (
-                        <span className="text-[10px] px-2 py-1 rounded-lg" style={{ color: 'var(--color-muted)' }}>ממתין ⏰</span>
-                      ) : (
-                        <button
-                          onClick={() => sendRescheduleOffer({ appointment, newStart, newEnd: new Date(newStart.getTime() + (new Date(appointment.end_at) - new Date(appointment.start_at))), timeSaved }, gapAlert.cancelledAppt)}
-                          className="px-3 py-1 rounded-lg text-[10px] font-bold text-white transition-all"
-                          style={{ background: 'var(--color-gold)' }}
-                        >
-                          שלח הצעה
-                        </button>
+                      {description && (
+                        <div className="mt-1 text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                          ⚡ {description}
+                        </div>
                       )}
                     </div>
                   )
@@ -3722,9 +3802,10 @@ function WeekView({ days, appointments, serviceColors, onSelect, onReschedule, r
                   const isGroupAppt = appt.notes?.includes('קבוצה של')
                   const isWkDone    = appt.status === 'completed' && !appt.no_show
                   const wkStatusBorder = appt.no_show ? undefined
-                    : appt.status === 'pending'   ? 'var(--color-warning-solid)'
-                    : appt.status === 'confirmed' ? 'var(--color-success-solid)'
-                    : isWkDone                    ? 'rgba(255,255,255,0.4)'
+                    : appt.status === 'pending'           ? 'var(--color-warning-solid)'
+                    : appt.status === 'pending_approval'  ? '#f59e0b'
+                    : appt.status === 'confirmed'         ? 'var(--color-success-solid)'
+                    : isWkDone                            ? 'rgba(255,255,255,0.4)'
                     : undefined
 
                   return (
@@ -4179,9 +4260,10 @@ function DraggableAppt({ appt, top, height, color, isTall, isXTall, onSelect }) 
   const isNoShow    = appt.no_show
   const isCompleted = appt.status === 'completed' && !isNoShow
   const statusBorderColor = isNoShow ? undefined
-    : appt.status === 'pending'   ? 'var(--color-warning-solid)'
-    : appt.status === 'confirmed' ? 'var(--color-success-solid)'
-    : isCompleted                 ? 'rgba(255,255,255,0.4)'
+    : appt.status === 'pending'           ? 'var(--color-warning-solid)'
+    : appt.status === 'pending_approval'  ? '#f59e0b'
+    : appt.status === 'confirmed'         ? 'var(--color-success-solid)'
+    : isCompleted                         ? 'rgba(255,255,255,0.4)'
     : undefined
 
   const style = {

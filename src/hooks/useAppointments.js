@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { findGapOpportunities } from '../lib/utils'
+import { notifyWaitlistOnCancellation } from '../lib/waitlistNotify'
 
 const APPT_SELECT = `
   *,
@@ -20,7 +20,7 @@ export function useAppointments({ staffId, date, customerId } = {}) {
       let q = supabase
         .from('appointments')
         .select(APPT_SELECT)
-        .in('status', ['confirmed', 'pending_reschedule'])
+        .in('status', ['confirmed', 'pending_reschedule', 'pending_approval'])
         .order('start_at')
 
       if (staffId)    q = q.eq('staff_id', staffId)
@@ -91,15 +91,14 @@ export function useAppointments({ staffId, date, customerId } = {}) {
 
   const cancelMut = useMutation({
     mutationFn: async ({ id, reason = '', cancelledBy = 'customer' }) => {
-      const current = query.data ?? []
+      const appt = (query.data ?? []).find(a => a.id === id)
       const { error } = await supabase
         .from('appointments')
         .update({ status: 'cancelled', cancellation_reason: reason, cancelled_by: cancelledBy })
         .eq('id', id)
       if (error) throw error
-      const updated = current.filter(a => a.id !== id)
-      const gaps = findGapOpportunities(updated, id)
-      return { gaps }
+      // Notify waitlist immediately — independent of Gap Closer mode/timing
+      if (appt) notifyWaitlistOnCancellation(appt)
     },
     onSuccess: invalidate,
   })

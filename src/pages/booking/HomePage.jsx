@@ -13,6 +13,7 @@ import { useBusinessGallery } from '../../hooks/useBusinessGallery'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useToast } from '../../components/ui/Toast'
+import { notifyWaitlistOnCancellation } from '../../lib/waitlistNotify'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
 import { minutesToDisplay, priceDisplay } from '../../lib/utils'
 
@@ -508,7 +509,7 @@ export function HomePage() {
       .from('appointments')
       .select('*, services ( id, name, duration_minutes, price ), staff ( id, name, photo_url )')
       .eq('customer_id', user.id)
-      .in('status', ['confirmed', 'pending_reschedule'])
+      .in('status', ['confirmed', 'pending_reschedule', 'pending_approval'])
       .gte('start_at', new Date().toISOString())
       .order('start_at', { ascending: true })
       .limit(1)
@@ -570,6 +571,8 @@ export function HomePage() {
         .from('appointments')
         .update({ status: 'cancelled', cancelled_by: 'customer' })
         .eq('id', nextAppointment.id)
+      // Notify waitlist immediately — independent of Gap Closer
+      notifyWaitlistOnCancellation(nextAppointment)
       setNextAppointment(null)
       showToast({ message: 'התור בוטל בהצלחה', type: 'success' })
     } catch {

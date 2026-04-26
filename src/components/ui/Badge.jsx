@@ -3,6 +3,7 @@ const STATUS_MAP = {
   cancelled:          { label: 'בוטל',      cls: 'badge-cancelled' },
   completed:          { label: 'הושלם',     cls: 'badge-completed' },
   pending_reschedule: { label: 'ממתין להעברה', cls: 'badge-pending' },
+  pending_approval:   { label: 'ממתין לאישור',  cls: 'badge-pending' },
 }
 
 export function StatusBadge({ status }) {

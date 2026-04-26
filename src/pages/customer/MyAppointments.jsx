@@ -96,7 +96,7 @@ export function MyAppointments() {
       supabase.from('appointments')
         .select('*')
         .eq('staff_id', rescheduleAppt.staff_id)
-        .in('status', ['confirmed', 'pending_reschedule'])
+        .in('status', ['confirmed', 'pending_reschedule', 'pending_approval'])
         .neq('id', rescheduleAppt.id)
         .gte('start_at', start.toISOString())
         .lte('start_at', end.toISOString()),
@@ -259,7 +259,7 @@ export function MyAppointments() {
   }
 
   const upcoming = appointments
-    .filter(a => a.status === 'confirmed' && new Date(a.start_at) > new Date())
+    .filter(a => (a.status === 'confirmed' || a.status === 'pending_approval') && new Date(a.start_at) > new Date())
     .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
   const past = appointments

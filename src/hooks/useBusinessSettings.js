@@ -73,10 +73,13 @@ const DEFAULT_SETTINGS = {
   // Gap Closer
   gap_closer_mode:                 'off',    // 'off' | 'approval' | 'auto'
   gap_closer_threshold_minutes:    30,
-  gap_closer_advance_hours:        2,       // hours before gap to start acting
+  gap_closer_advance_hours:        2,       // hours before gap to send reschedule offers (NOT waitlist)
+  gap_closer_max_shift_minutes:    90,      // max minutes a customer can be shifted earlier/later
   gap_closer_notification_channel: 'push',  // 'push' | 'whatsapp'
   // Invoicing / financial subsystem toggle
   invoicing_enabled: true,
+  // Manual approval — every new booking enters pending_approval until owner approves
+  approval_required: false,
   // gallery_mode intentionally omitted — uses localStorage fallback pattern like portfolio_view_mode / booking_flow
 }
 

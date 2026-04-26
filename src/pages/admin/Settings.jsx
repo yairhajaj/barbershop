@@ -260,6 +260,27 @@ export function Settings() {
           )}
         </section>
 
+        {/* Manual Approval */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h2 className="font-semibold text-lg">אישור ידני לכל תור ✋</h2>
+              <p className="text-sm text-muted mt-1">כל תור שלקוח קובע ימתין לאישור שלך לפני שיהפוך לסופי</p>
+            </div>
+            <Toggle
+              checked={form.approval_required ?? false}
+              onChange={v => setForm(f => ({ ...f, approval_required: v }))}
+            />
+          </div>
+          {(form.approval_required ?? false) && (
+            <div className="border-t pt-4 mt-2 text-xs text-muted space-y-1">
+              <p>• כשהמתג פעיל — תור חדש נכנס למצב "ממתין לאישור" וחוסם את המשבצת.</p>
+              <p>• בלוח הבקרה יופיע ווידג'ט "תורים ממתינים לאישור" עם דף ייעודי לאישור/דחייה/הצעת זמן חלופי.</p>
+              <p>• הלקוח יקבל התראה ברגע שתאשר את התור.</p>
+            </div>
+          )}
+        </section>
+
         {/* Shabbat Mode */}
         <section className="card p-6">
           <h2 className="font-semibold text-lg mb-1">מצב שבת 🕍</h2>
@@ -621,7 +642,7 @@ export function Settings() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">כמה שעות לפני החור להתחיל לפעול?</label>
+                <label className="block text-sm font-medium mb-1">כמה שעות לפני החור לשלוח הצעות הזזה ללקוחות?</label>
                 <input
                   className="input w-28"
                   type="number"
@@ -632,7 +653,22 @@ export function Settings() {
                   onChange={e => setForm(f => ({ ...f, gap_closer_advance_hours: parseFloat(e.target.value) || 2 }))}
                 />
                 <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-                  לדוגמה: חור בשעה 17:00 עם ערך 2 יפעיל הודעות רק מ-15:00.
+                  לדוגמה: חור בשעה 17:00 עם ערך 2 — הצעות יישלחו רק מ-15:00. רשימת המתנה מופעלת תמיד — מיידי, בכל ביטול.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">הזזה מקסימלית ללקוח (דק')</label>
+                <input
+                  className="input w-28"
+                  type="number"
+                  min={15}
+                  max={180}
+                  step={15}
+                  value={form.gap_closer_max_shift_minutes ?? 90}
+                  onChange={e => setForm(f => ({ ...f, gap_closer_max_shift_minutes: parseInt(e.target.value) || 90 }))}
+                />
+                <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                  המקסימום שמציעים ללקוח להזיז את תורו קדימה או אחורה
                 </p>
               </div>
             </div>

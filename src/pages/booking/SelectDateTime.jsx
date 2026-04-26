@@ -256,7 +256,7 @@ export function SelectDateTime() {
           .from('appointments')
           .select('start_at, end_at, staff_id')
           .in('staff_id', otherMembers.map(s => s.id))
-          .in('status', ['confirmed', 'pending_reschedule'])
+          .in('status', ['confirmed', 'pending_reschedule', 'pending_approval'])
           .gte('start_at', dayStart.toISOString())
           .lte('start_at', dayEnd.toISOString())
 
