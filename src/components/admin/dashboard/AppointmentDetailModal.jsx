@@ -11,6 +11,7 @@ import { BUSINESS } from '../../../config/business'
 import { printInvoice } from '../../../lib/invoice'
 import { docLabel } from '../../../lib/finance'
 import { formatDate, formatTime } from '../../../lib/utils'
+import { notifyWaitlistOnCancellation } from '../../../lib/waitlistNotify'
 
 const PAYMENT_LABELS = { cash: 'מזומן', credit: 'כרטיס אשראי', bit: 'ביט', paybox: 'Paybox', transfer: 'העברה בנקאית' }
 
@@ -150,6 +151,8 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
       await supabase.from('appointments')
         .update({ status: 'cancelled', cancelled_by: 'admin', cancelled_at: new Date().toISOString() })
         .eq('id', apt.id)
+      // Notify waitlist immediately — independent of Gap Closer
+      notifyWaitlistOnCancellation(apt, settings?.gap_closer_notification_channel)
       toast({ message: 'תור בוטל', type: 'success' })
       onChange?.(); onClose()
     } catch (e) { toast({ message: e.message, type: 'error' }) }

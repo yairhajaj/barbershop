@@ -4,6 +4,7 @@ import { useToast } from '../../ui/Toast'
 import { Modal } from '../../ui/Modal'
 import { useBusinessSettings } from '../../../hooks/useBusinessSettings'
 import { formatTime } from '../../../lib/utils'
+import { notifyWaitlistOnCancellation } from '../../../lib/waitlistNotify'
 import { docLabel } from '../../../lib/finance'
 import { BUSINESS } from '../../../config/business'
 
@@ -156,6 +157,8 @@ export function NextAppointmentHero({ apt, onChange }) {
       await supabase.from('appointments')
         .update({ no_show: true, status: 'cancelled', cancelled_by: 'no_show' })
         .eq('id', apt.id)
+      // Notify waitlist immediately — independent of Gap Closer
+      notifyWaitlistOnCancellation(apt, settings?.gap_closer_notification_channel)
       toast({ message: 'סומן "לא הגיע"', type: 'success' })
       onChange?.()
     } catch (e) {
