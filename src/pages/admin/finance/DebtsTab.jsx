@@ -54,7 +54,9 @@ export function DebtsTab() {
       const now            = new Date().toISOString()
 
       // 1. Invoice number
-      const { data: invoiceNum } = await supabase.rpc('next_invoice_number')
+      const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+      if (!invoiceNum) throw new Error('לא הוקצה מספר חשבונית')
 
       // 2. Insert invoice
       await supabase.from('invoices').insert({

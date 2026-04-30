@@ -104,7 +104,9 @@ export function NextAppointmentHero({ apt, onChange }) {
       const nowIso = new Date().toISOString()
 
       // 1. Invoice number + create invoice
-      const { data: invoiceNum } = await supabase.rpc('next_invoice_number')
+      const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+      if (!invoiceNum) throw new Error('לא הוקצה מספר חשבונית')
       await supabase.from('invoices').insert({
         invoice_number: invoiceNum,
         appointment_id: apt.id,

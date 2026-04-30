@@ -70,7 +70,9 @@ export function AppointmentDetailModal({ apt, open, onClose, onChange, onResched
         date: apt.start_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
       })
 
-      const { data: invoiceNum } = await supabase.rpc('next_invoice_number')
+      const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+      if (!invoiceNum) throw new Error('לא הוקצה מספר חשבונית')
       const serviceNames = [apt.services?.name, ...invoiceProducts.map(p => p.name)].filter(Boolean).join(' + ')
       const { data: inv } = await supabase.from('invoices').insert({
         invoice_number: invoiceNum,

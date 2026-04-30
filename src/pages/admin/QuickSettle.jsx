@@ -87,7 +87,9 @@ export function QuickSettle() {
       const { beforeVat, vatAmount } = calcVat(price, vatRate, businessType)
       const nowIso = new Date().toISOString()
 
-      const { data: invoiceNum } = await supabase.rpc('next_invoice_number')
+      const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+      if (!invoiceNum) throw new Error('לא הוקצה מספר חשבונית')
       const isPatur = businessType === 'osek_patur'
 
       const { data: inv } = await supabase.from('invoices').insert({

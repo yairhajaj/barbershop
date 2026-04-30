@@ -186,7 +186,9 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
       const nowIso = new Date().toISOString()
       const staffMember = staff.find(s => s.id === staffId)
 
-      const { data: invoiceNum } = await supabase.rpc('next_invoice_number')
+      const { data: invoiceNum, error: numErr } = await supabase.rpc('next_invoice_number')
+      if (numErr) throw numErr
+      if (!invoiceNum) throw new Error('לא הוקצה מספר חשבונית')
 
       const { data: inv, error: invErr } = await supabase.from('invoices').insert({
         invoice_number: invoiceNum,
