@@ -52,12 +52,15 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
 
   const supportsContactPicker = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
 
-  // פריט מותאם שהוקלד אך לא הוסף לעגלה — מצורף אוטומטית בשמירה
-  const pendingCustomPrice = Number(customPrice) || 0
+  // אם המשתמש הקליד פריט מותאם בלי ללחוץ "+", נצרף אותו אוטומטית כפריט וירטואלי
+  // כך שהכפתור פעיל וגם השמירה כוללת אותו
+  const pendingCustomPrice = parseFloat(customPrice) || 0
   const hasPendingCustom = customName.trim().length > 0 && pendingCustomPrice > 0
-  const total = cartItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
-    + (hasPendingCustom ? pendingCustomPrice : 0)
-  const canSave = cartItems.length > 0 || hasPendingCustom
+  const pendingCustomItem = hasPendingCustom
+    ? { type: 'custom', id: null, name: customName.trim(), unit_price: pendingCustomPrice, quantity: 1, tempId: 'pending-custom' }
+    : null
+  const effectiveCart = pendingCustomItem ? [...cartItems, pendingCustomItem] : cartItems
+  const total = effectiveCart.reduce((s, i) => s + i.unit_price * i.quantity, 0)
 
   // Reset on open
   useEffect(() => {
@@ -163,10 +166,6 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
   }
 
   async function save() {
-    // אם הוקלד פריט מותאם אך לא נוסף לעגלה — נצרף אותו אוטומטית
-    const effectiveCart = hasPendingCustom
-      ? [...cartItems, { type: 'custom', id: null, name: customName.trim(), unit_price: pendingCustomPrice, quantity: 1, tempId: nextTempId() }]
-      : cartItems
     if (effectiveCart.length === 0) { toast({ message: 'הוסף לפחות פריט אחד', type: 'error' }); return }
     if (isDebt && !selectedCustomer) { toast({ message: 'לחוב נדרש לקוח רשום', type: 'error' }); return }
     setBusy(true)
@@ -472,7 +471,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
           </label>
         )}
 
-        <button onClick={save} disabled={busy || !canSave}
+        <button onClick={save} disabled={busy || effectiveCart.length === 0}
           className="w-full py-3 rounded-xl font-black text-sm disabled:opacity-50"
           style={{ background: 'var(--color-gold)', color: '#000' }}>
           {busy ? 'מעבד...' : isDebt ? '📋 רשום חוב' : `✓ אשר + הפק ${docLabel(settings?.business_type)}${total ? ' ₪' + total.toLocaleString('he-IL') : ''}`}
