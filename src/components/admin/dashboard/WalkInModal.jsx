@@ -52,7 +52,12 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
 
   const supportsContactPicker = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
 
+  // פריט מותאם שהוקלד אך לא הוסף לעגלה — מצורף אוטומטית בשמירה
+  const pendingCustomPrice = Number(customPrice) || 0
+  const hasPendingCustom = customName.trim().length > 0 && pendingCustomPrice > 0
   const total = cartItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+    + (hasPendingCustom ? pendingCustomPrice : 0)
+  const canSave = cartItems.length > 0 || hasPendingCustom
 
   // Reset on open
   useEffect(() => {
@@ -158,19 +163,24 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
   }
 
   async function save() {
-    if (cartItems.length === 0) { toast({ message: 'הוסף לפחות פריט אחד', type: 'error' }); return }
+    // אם הוקלד פריט מותאם אך לא נוסף לעגלה — נצרף אותו אוטומטית
+    const effectiveCart = hasPendingCustom
+      ? [...cartItems, { type: 'custom', id: null, name: customName.trim(), unit_price: pendingCustomPrice, quantity: 1, tempId: nextTempId() }]
+      : cartItems
+    if (effectiveCart.length === 0) { toast({ message: 'הוסף לפחות פריט אחד', type: 'error' }); return }
     if (isDebt && !selectedCustomer) { toast({ message: 'לחוב נדרש לקוח רשום', type: 'error' }); return }
     setBusy(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
       const customerName = selectedCustomer?.name || customerNameManual.split(' · ')[0] || ''
       const customerPhone = selectedCustomer?.phone || ''
-      const descLine = cartItems.map(i => i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name).join(', ')
+      const descLine = effectiveCart.map(i => i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name).join(', ')
+      const cartTotal = effectiveCart.reduce((s, i) => s + i.unit_price * i.quantity, 0)
 
       if (isDebt) {
         const { error } = await supabase.from('customer_debts').insert({
           customer_id: selectedCustomer.id,
-          amount: total,
+          amount: cartTotal,
           description: descLine,
           status: 'pending',
         })
@@ -181,8 +191,8 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
 
       const vatRate = settings?.vat_rate || 18
       const isPatur = settings?.business_type === 'osek_patur'
-      const priceBeforeVat = isPatur ? total : Math.round(total / (1 + vatRate / 100))
-      const vatAmount = isPatur ? 0 : total - priceBeforeVat
+      const priceBeforeVat = isPatur ? cartTotal : Math.round(cartTotal / (1 + vatRate / 100))
+      const vatAmount = isPatur ? 0 : cartTotal - priceBeforeVat
       const nowIso = new Date().toISOString()
       const staffMember = staff.find(s => s.id === staffId)
 
@@ -201,7 +211,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
         amount_before_vat: priceBeforeVat,
         vat_rate: vatRate,
         vat_amount: vatAmount,
-        total_amount: total,
+        total_amount: cartTotal,
         status: 'paid',
         paid_at: nowIso,
         notes: payMethod,
@@ -210,7 +220,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
       if (invErr) throw invErr
 
       // Invoice line items
-      const lineItems = cartItems.map(item => ({
+      const lineItems = effectiveCart.map(item => ({
         invoice_id: inv.id,
         kind: item.type === 'product' ? 'product' : 'service',
         service_id: item.type === 'service' ? item.id : null,
@@ -224,7 +234,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
       await supabase.from('invoice_items').insert(lineItems)
 
       // Manual income rows (one per cart item)
-      const incomeRows = cartItems.map(item => {
+      const incomeRows = effectiveCart.map(item => {
         const amt = item.unit_price * item.quantity
         const row = {
           amount: amt,
@@ -462,7 +472,7 @@ export function WalkInModal({ open, onClose, onSaved, initialCustomer = null }) 
           </label>
         )}
 
-        <button onClick={save} disabled={busy || cartItems.length === 0}
+        <button onClick={save} disabled={busy || !canSave}
           className="w-full py-3 rounded-xl font-black text-sm disabled:opacity-50"
           style={{ background: 'var(--color-gold)', color: '#000' }}>
           {busy ? 'מעבד...' : isDebt ? '📋 רשום חוב' : `✓ אשר + הפק ${docLabel(settings?.business_type)}${total ? ' ₪' + total.toLocaleString('he-IL') : ''}`}
